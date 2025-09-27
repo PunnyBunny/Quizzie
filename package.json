@@ -12,11 +12,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@types/dom-speech-recognition": "^0.0.6",
     "firebase": "^10.14.1",
     "lodash": "^4.17.21",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-firebase-hooks": "^5.1.1",
+    "react-h5-audio-player": "^3.10.1",
     "react-router-dom": "^6.27.0",
     "simple-react-validator": "^1.6.2",
     "use-force-update": "^2.0.0"
