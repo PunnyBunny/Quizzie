@@ -150,7 +150,7 @@ export function RecordingSessionProvider({ children }: { children: React.ReactNo
       };
 
       mediaRecorderRef.current = mediaRecorder;
-      mediaRecorder.start(1000); // Collect data every 1000 ms
+      mediaRecorder.start(100); // Collect data every 100 ms
     };
 
     const setupSpeechRecognition = (stream: MediaStream) => {

@@ -36,16 +36,51 @@ export default function NewAssessment() {
     }),
   );
 
+  const [submitting, setSubmitting] = useState(false);
+
   const formValid = validator.current.allValid(); // note: messages are only revealed on submit
 
-  const submitForm = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formValid) {
-      validator.current.showMessages();
-      return;
+  const submitForm = async (e: React.FormEvent) => {
+    try {
+      e.preventDefault();
+      setSubmitting(true);
+      if (!formValid) {
+        validator.current.showMessages();
+        return;
+      }
+
+      const response = await fetch(
+        "https://us-central1-quizzie-hku.cloudfunctions.net/api/create-assessment",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            age,
+            grade,
+            school,
+            name: studentName,
+          }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      );
+      if (!response.ok) {
+        alert("Failed to create new assessment. Please try again.");
+        console.error(
+          "Failed to create new assessment:",
+          response.statusText,
+          await response.text(),
+        );
+        return;
+      }
+      console.log("Created new assessment:", await response.json());
+
+      const json = await response.json();
+      const assessmentId = json.id;
+      window.location.href = `/assessment/${assessmentId}/s/0/instruction`;
+    } finally {
+      setSubmitting(false);
     }
-    // TODO: save student details to database, generate assessment ID
-    window.location.href = `/assessment/0/s/0/instruction`;
   };
 
   return (

@@ -82,7 +82,6 @@ export default function AssessmentQuestion() {
   const { transcript, interimTranscript } = useTranscriptText();
   const { audioBlob, audioBlobUrl } = useAudioRecording();
   const { startRecording, stopRecording, cleanup } = useRecordingControls();
-  // const { browserSupport } = useBrowserSupport();
 
   // Clean up recording session when component unmounts
   useEffect(() => {
@@ -106,37 +105,64 @@ export default function AssessmentQuestion() {
     setSelectedIndex(null);
   }, [sectionIndex, questionIndex]);
 
+  const [submitting, setSubmitting] = useState(false);
+
   const isLastQuestion = questionIndex === totalQuestions - 1;
   const isLastQuestionInAssessment = sectionIndex === totalSections - 1 && isLastQuestion;
 
   const navigate = useNavigate();
 
   const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    try {
+      e.preventDefault();
+      setSubmitting(true);
 
-    if (question.kind === "mc" && selectedIndex == null) {
-      alert("Please select an answer.");
-      return;
-    }
+      if (question.kind === "mc" && selectedIndex == null) {
+        alert("Please select an answer.");
+        return;
+      }
 
-    if (question.kind === "audio" && audioBlob == null) {
-      alert("Please record your answer.");
-      return;
-    }
+      if (question.kind === "audio" && audioBlob == null) {
+        alert("Please record your answer.");
+        return;
+      }
 
-    // TODO: Save the answer to the database and print score
-    if (question.kind === "mc") {
-      console.log("Answer saved: " + selectedIndex);
-    } else if (question.kind === "audio") {
-      console.log("Audio answer saved:", audioBlob);
-    }
+      // TODO: Save the answer to the database and print score
+      if (question.kind === "mc") {
+        const response = await fetch(
+          "https://us-central1-quizzie-hku.cloudfunctions.net/api/submit-mc-answer",
+          {
+            method: "POST",
+            body: JSON.stringify({
+              assessmentId: id,
+              sectionIndex: sectionIndex,
+              questionIndex: questionIndex,
+              selectedIndex: selectedIndex,
+            }),
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
+        );
+        if (!response.ok) {
+          alert("Failed to save answer. Please try again.");
+          console.error("Failed to save answer:", response.statusText, await response.text());
+          return;
+        }
+        console.log("Answer saved: " + selectedIndex);
+      } else if (question.kind === "audio") {
+        console.log("Audio answer saved:", audioBlob);
+      }
 
-    if (isLastQuestionInAssessment) {
-      navigate("/thank-you");
-    } else if (isLastQuestion) {
-      navigate(`/assessment/${id}/s/${sectionIndex + 1}/instruction`);
-    } else {
-      navigate(`/assessment/${id}/s/${sectionIndex}/q/${questionIndex + 1}`);
+      if (isLastQuestionInAssessment) {
+        navigate("/thank-you");
+      } else if (isLastQuestion) {
+        navigate(`/assessment/${id}/s/${sectionIndex + 1}/instruction`);
+      } else {
+        navigate(`/assessment/${id}/s/${sectionIndex}/q/${questionIndex + 1}`);
+      }
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -314,10 +340,11 @@ export default function AssessmentQuestion() {
                 className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 shadow disabled:opacity-50"
                 disabled={
                   (question.kind === "mc" && selectedIndex == null) ||
-                  (question.kind === "audio" && audioBlob == null)
+                  (question.kind === "audio" && audioBlob == null) ||
+                  submitting
                 }
               >
-                Next
+                {!submitting ? "Next" : "Loading..."}
               </button>
             </div>
           </section>

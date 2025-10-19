@@ -9,6 +9,9 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
+    ignores: ["lib/**"],
+  },
+  {
     files: ["**/*.{ts,tsx}"],
     languageOptions: {
       ecmaVersion: 2020,
@@ -23,6 +26,7 @@ export default tseslint.config(
     rules: {
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": "warn",
+      "@typescript-eslint/no-empty-object-type": "off",
     },
   },
   prettierConfig,
