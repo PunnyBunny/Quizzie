@@ -2,6 +2,9 @@ import React, { useRef, useState } from "react";
 import SimpleReactValidator from "simple-react-validator";
 import useForceUpdate from "use-force-update";
 import { useBrowserSupport } from "../providers/RecordingSessionProvider.tsx";
+import { useHttpsCallable } from "react-firebase-hooks/functions";
+import { functions } from "../lib/firebase.ts";
+import { toInteger } from "lodash";
 
 function BrowserSupportCheck({ children }: { children: React.ReactNode }) {
   const browserSupport = useBrowserSupport();
@@ -21,9 +24,20 @@ function BrowserSupportCheck({ children }: { children: React.ReactNode }) {
   return children;
 }
 
+interface CreateAssessmentRequest {
+  name: string;
+  age: number;
+  grade: string;
+  school: string;
+}
+
+interface CreateAssessmentResponse {
+  id: string;
+}
+
 export default function NewAssessment() {
   const [studentName, setStudentName] = useState("");
-  const [age, setAge] = useState("");
+  const [age, setAge] = useState(0);
   const [grade, setGrade] = useState("");
   const [school, setSchool] = useState("");
 
@@ -35,6 +49,11 @@ export default function NewAssessment() {
       element: (message: string) => <p className="mt-1 text-xs text-red-600">{message}</p>,
     }),
   );
+
+  const [createAssessmentFunc, , error] = useHttpsCallable<
+    CreateAssessmentRequest,
+    CreateAssessmentResponse
+  >(functions, "api/create-assessment");
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -49,34 +68,16 @@ export default function NewAssessment() {
         return;
       }
 
-      const response = await fetch(
-        "https://us-central1-quizzie-hku.cloudfunctions.net/api/create-assessment",
-        {
-          method: "POST",
-          body: JSON.stringify({
-            age,
-            grade,
-            school,
-            name: studentName,
-          }),
-          headers: {
-            "Content-Type": "application/json",
-          },
-        },
-      );
-      if (!response.ok) {
-        alert("Failed to create new assessment. Please try again.");
-        console.error(
-          "Failed to create new assessment:",
-          response.statusText,
-          await response.text(),
-        );
-        return;
+      const response = await createAssessmentFunc({ age, grade, school, name: studentName });
+      if (!response) {
+        // TODO: handle error
+        throw new Error("Failed to create assessment");
       }
-      console.log("Created new assessment:", await response.json());
 
-      const json = await response.json();
-      const assessmentId = json.id;
+      const { id: assessmentId } = response.data;
+
+      console.log("Created new assessment. ID:", assessmentId);
+
       window.location.href = `/assessment/${assessmentId}/s/0/instruction`;
     } finally {
       setSubmitting(false);
@@ -91,6 +92,12 @@ export default function NewAssessment() {
             <h1 className="text-3xl font-bold">Student Information</h1>
             <p className="text-gray-600 mt-1">Please enter the student's details to begin</p>
           </div>
+
+          {error && (
+            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 text-red-700 px-3 py-2 text-sm">
+              {error.message}
+            </div>
+          )}
 
           <div className="bg-white rounded-2xl shadow border border-gray-200">
             <form onSubmit={submitForm} noValidate className="p-6 md:p-8 flex flex-col gap-4">
@@ -134,7 +141,7 @@ export default function NewAssessment() {
                   placeholder="Enter age"
                   value={age}
                   onChange={(e) => {
-                    setAge(e.target.value);
+                    setAge(toInteger(e.target.value));
                   }}
                   min={1}
                 />
@@ -182,8 +189,9 @@ export default function NewAssessment() {
               <button
                 type="submit"
                 className="w-full rounded-lg bg-gray-700 text-white py-3 text-base font-semibold hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={submitting}
               >
-                Start Assessment
+                {!submitting ? "Start Assessment" : "Starting Assessment..."}
               </button>
             </form>
           </div>
