@@ -1,5 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
+import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -18,5 +19,11 @@ export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
 export { signInWithEmailAndPassword } from "firebase/auth";
+
+export const functions = getFunctions(app);
+
+if (window.location.hostname === "localhost") {
+  connectFunctionsEmulator(functions, "127.0.0.1", 5001);
+}
 
 export { FirebaseError } from "firebase/app";
