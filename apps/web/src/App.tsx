@@ -29,7 +29,7 @@ const ProtectedRoute = ({ authState }: ProtectedRouteProps) => {
     if (!loading && !authenticated) {
       navigate("/login");
     }
-  }, [loading, authenticated]);
+  }, [loading, authenticated, navigate]);
 
   if (error) {
     return <div className="text-red">An error occurred: {error.message}</div>;

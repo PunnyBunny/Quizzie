@@ -4,10 +4,16 @@ import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 import prettierConfig from "eslint-config-prettier";
+import { defineConfig } from "eslint/config";
 
-export default tseslint.config(
+export default defineConfig(
+  {
+    ignores: ["**/lib/**", "apps/web/tailwind.config.ts", "apps/web/postcss.config.mjs"],
+  },
   js.configs.recommended,
-  ...tseslint.configs.recommended,
+  tseslint.configs.recommendedTypeChecked,
+  tseslint.configs.stylisticTypeChecked,
+  prettierConfig,
   {
     files: ["**/*.{ts,tsx}"],
     languageOptions: {
@@ -25,5 +31,11 @@ export default tseslint.config(
       "react-refresh/only-export-components": "warn",
     },
   },
-  prettierConfig,
+  {
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+      },
+    },
+  },
 );

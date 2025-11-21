@@ -9,6 +9,8 @@ import {
 } from "../providers/RecordingSessionProvider.tsx";
 import H5AudioPlayer, { RHAP_UI } from "react-h5-audio-player";
 import "react-h5-audio-player/lib/styles.css";
+import { useHttpsCallable } from "react-firebase-hooks/functions";
+import { functions } from "../lib/firebase.ts";
 
 function MicrophoneIcon() {
   return (
@@ -46,6 +48,13 @@ function StopIcon() {
       />
     </svg>
   );
+}
+
+interface SubmitMcAnswerRequest {
+  assessmentId: string;
+  section: number;
+  question: number;
+  answer: number;
 }
 
 export default function AssessmentQuestion() {
@@ -112,45 +121,56 @@ export default function AssessmentQuestion() {
 
   const navigate = useNavigate();
 
+  const [submitMcAnswerFunc] = useHttpsCallable<SubmitMcAnswerRequest>(
+    functions,
+    "api/submit-mc-answer",
+  );
+  interface SubmitAudioAnswerRequest {
+    assessmentId: string;
+    section: number;
+    question: number;
+    transcript: string;
+  }
+  const [submitAudioAnswerFunc] = useHttpsCallable<SubmitAudioAnswerRequest>(
+    functions,
+    "api/submit-audio-answer",
+  );
+
   const onSubmit = async (e: React.FormEvent) => {
     try {
       e.preventDefault();
       setSubmitting(true);
 
-      if (question.kind === "mc" && selectedIndex == null) {
-        alert("Please select an answer.");
-        return;
-      }
-
-      if (question.kind === "audio" && audioBlob == null) {
-        alert("Please record your answer.");
-        return;
-      }
-
-      // TODO: Save the answer to the database and print score
+      // TODO: print score
       if (question.kind === "mc") {
-        const response = await fetch(
-          "https://us-central1-quizzie-hku.cloudfunctions.net/api/submit-mc-answer",
-          {
-            method: "POST",
-            body: JSON.stringify({
-              assessmentId: id,
-              sectionIndex: sectionIndex,
-              questionIndex: questionIndex,
-              selectedIndex: selectedIndex,
-            }),
-            headers: {
-              "Content-Type": "application/json",
-            },
-          },
-        );
-        if (!response.ok) {
-          alert("Failed to save answer. Please try again.");
-          console.error("Failed to save answer:", response.statusText, await response.text());
+        if (selectedIndex == null) {
+          alert("Please select an answer.");
           return;
         }
+
+        await submitMcAnswerFunc({
+          assessmentId: id,
+          section: sectionIndex,
+          question: questionIndex,
+          answer: selectedIndex,
+        });
+
         console.log("Answer saved: " + selectedIndex);
       } else if (question.kind === "audio") {
+        console.log("here");
+        // TODO: test submitting audio answer
+        if (audioBlob == null) {
+          alert("Please record your answer.");
+          return;
+        }
+
+        await submitAudioAnswerFunc({
+          assessmentId: id,
+          section: sectionIndex,
+          question: questionIndex,
+          transcript: transcript ?? "",
+        });
+
         console.log("Audio answer saved:", audioBlob);
       }
 

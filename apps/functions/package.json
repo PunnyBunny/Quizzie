@@ -1,5 +1,6 @@
 {
-  "name": "functions",
+  "name": "quizzie-functions",
+  "private": true,
   "scripts": {
     "build": "tsc",
     "build:watch": "tsc --watch",
@@ -31,6 +32,5 @@
     "@typescript-eslint/parser": "^8.44.1",
     "eslint": "^9.36.0",
     "typescript": "^5.0.0"
-  },
-  "private": true
+  }
 }
