@@ -2,11 +2,11 @@ import React, { createContext, useCallback, useContext, useMemo, useRef, useStat
 
 type RecordingStatus = "idle" | "recording" | "error";
 
-type RecordingSessionContextType = {
+interface RecordingSessionContextType {
   // Functions
   startRecording: () => Promise<void>;
   stopRecording: () => void;
-  cleanup: () => void;
+  resetAudio: () => void;
 
   // State
   audioBlob: Blob | null;
@@ -20,7 +20,7 @@ type RecordingSessionContextType = {
 
   // Audio info
   audioBlobUrl: string;
-};
+}
 
 const RecordingSessionContext = createContext<RecordingSessionContextType | undefined>(undefined);
 
@@ -60,7 +60,8 @@ export function RecordingSessionProvider({ children }: { children: React.ReactNo
 
   // Audio recording state
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [audioBlobUrl, setAudioBlobUrl] = useState("");
+  const audioBlobUrlRef = useRef<string>("");
+  const [audioBlobUrl, setAudioBlobUrl] = useState<string>("");
 
   // Refs for cleanup
   const streamRef = useRef<MediaStream | null>(null);
@@ -69,7 +70,7 @@ export function RecordingSessionProvider({ children }: { children: React.ReactNo
 
   const webmMimeType = "audio/webm;codecs=opus";
 
-  const cleanup = () => {
+  const cleanup = useCallback(() => {
     setError("");
     setStatus("idle");
     setTranscript("");
@@ -87,11 +88,12 @@ export function RecordingSessionProvider({ children }: { children: React.ReactNo
       mediaRecorderRef.current.stop();
       mediaRecorderRef.current = null;
     }
-    if (audioBlobUrl) {
-      URL.revokeObjectURL(audioBlobUrl);
+    if (audioBlobUrlRef.current) {
+      URL.revokeObjectURL(audioBlobUrlRef.current);
+      audioBlobUrlRef.current = "";
       setAudioBlobUrl("");
     }
-  };
+  }, []);
 
   const startRecording = useCallback(async () => {
     if (!browserSupport) {
@@ -126,14 +128,12 @@ export function RecordingSessionProvider({ children }: { children: React.ReactNo
 
           setAudioBlob(blob);
 
-          // Clean up previous download URL
-          if (audioBlobUrl) {
-            URL.revokeObjectURL(audioBlobUrl);
+          if (audioBlobUrlRef.current) {
+            URL.revokeObjectURL(audioBlobUrlRef.current);
           }
 
-          // Create new download URL
-          const newDownloadUrl = URL.createObjectURL(blob);
-          setAudioBlobUrl(newDownloadUrl);
+          audioBlobUrlRef.current = URL.createObjectURL(blob);
+          setAudioBlobUrl(audioBlobUrlRef.current);
         }
 
         const endTime = new Date();
@@ -261,7 +261,7 @@ export function RecordingSessionProvider({ children }: { children: React.ReactNo
     // Functions
     startRecording,
     stopRecording,
-    cleanup,
+    resetAudio: cleanup,
 
     // State
     audioBlob,
@@ -311,6 +311,6 @@ export function useBrowserSupport() {
 }
 
 export function useRecordingControls() {
-  const { startRecording, stopRecording, cleanup } = useRecordingSession();
-  return { startRecording, stopRecording, cleanup };
+  const { startRecording, stopRecording, resetAudio } = useRecordingSession();
+  return { startRecording, stopRecording, resetAudio };
 }

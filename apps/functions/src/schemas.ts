@@ -19,6 +19,7 @@ export const AudioAnswerSchema = z.object({
   section: z.coerce.number().int(),
   question: z.coerce.number().int(),
   transcript: z.string(),
+  gsUri: z.string(),
 });
 
 export type AssessmentInput = z.infer<typeof AssessmentSchema>;
