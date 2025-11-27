@@ -8,7 +8,7 @@ import { type AuthStateHook, useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "./lib/firebase.ts";
 import Dashboard from "./pages/Dashboard.tsx";
 import AssessmentSectionInstruction from "./pages/AssessmentSectionInstruction.tsx";
-import AssessmentQuestion from "./pages/AssessmentQuestion.tsx";
+import { AssessmentQuestion } from "./pages/AssessmentQuestion.tsx";
 import OngoingAssessments from "./pages/OngoingAssessments";
 import CompletedAssessments from "./pages/CompletedAssessments";
 import GradeOverview from "./pages/GradeOverview";
@@ -16,6 +16,7 @@ import GradeQuestion from "./pages/GradeQuestion";
 import { QuestionProvider } from "./providers/QuestionProvider.tsx";
 import { AnswerProvider } from "./providers/AnswerProvider.tsx";
 import { RecordingSessionProvider } from "./providers/RecordingSessionProvider.tsx";
+import ThankYou from "./pages/ThankYou.tsx";
 
 interface ProtectedRouteProps {
   authState: AuthStateHook;
@@ -75,6 +76,8 @@ function App() {
                 element={<AssessmentQuestion />}
               />
             </Route>
+
+            <Route path="/thank-you" element={<ThankYou />} />
 
             <Route path="*" element={<NotFound />} />
           </Route>
