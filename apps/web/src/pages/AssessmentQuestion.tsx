@@ -67,6 +67,10 @@ interface SubmitAudioAnswerRequest {
   gsUri: string;
 }
 
+interface FinishAssessmentRequest {
+  assessmentId: string;
+}
+
 export function AssessmentQuestion() {
   const {
     id = "",
@@ -112,10 +116,8 @@ export function AssessmentQuestion() {
   const { audioBlob, audioBlobUrl } = useAudioRecording();
   const { startRecording, stopRecording, resetAudio } = useRecordingControls();
 
-  // TODO: think and fix cleanup codes
   // Clean up recording session when component unmounts
   useEffect(() => {
-    console.log("in useeffect");
     return resetAudio;
   }, [resetAudio]);
 
@@ -147,6 +149,9 @@ export function AssessmentQuestion() {
 
   const [submitAudioAnswerFunc, submittingAudioAnswer, submitAudioAnswerError] =
     useHttpsCallable<SubmitAudioAnswerRequest>(functions, "api/submit-audio-answer");
+
+  const [finishAssessmentFunc, finishingAssessment, finishAssessmentError] =
+    useHttpsCallable<FinishAssessmentRequest>(functions, "api/finish-assessment");
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -189,7 +194,13 @@ export function AssessmentQuestion() {
       console.log("Audio answer saved:", audioBlob);
     }
 
-    if (submitMcAnswerError || submitAudioAnswerError) {
+    if (isLastQuestionInAssessment) {
+      await finishAssessmentFunc({
+        assessmentId: id,
+      });
+    }
+
+    if (submitMcAnswerError || submitAudioAnswerError || finishAssessmentError) {
       return;
     }
 
@@ -248,6 +259,11 @@ export function AssessmentQuestion() {
           {submitAudioAnswerError && (
             <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-md">
               {submitAudioAnswerError.message}
+            </div>
+          )}
+          {finishAssessmentError && (
+            <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-md">
+              {finishAssessmentError.message}
             </div>
           )}
           <section className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
@@ -375,7 +391,11 @@ export function AssessmentQuestion() {
                 type="button"
                 className="px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
                 onClick={() => {
-                  /* placeholder */
+                  if (
+                    window.confirm("Are you sure you want to exit? Your progress will be saved.")
+                  ) {
+                    navigate("/");
+                  }
                 }}
               >
                 Save & Exit
@@ -388,10 +408,13 @@ export function AssessmentQuestion() {
                   (question.kind === "mc" && selectedIndex == null) ||
                   (question.kind === "audio" && audioBlob == null) ||
                   submittingMcAnswer ||
-                  submittingAudioAnswer
+                  submittingAudioAnswer ||
+                  finishingAssessment
                 }
               >
-                {submittingMcAnswer || submittingAudioAnswer ? "Loading..." : "Next"}
+                {submittingMcAnswer || submittingAudioAnswer || finishingAssessment
+                  ? "Loading..."
+                  : "Next"}
               </button>
             </div>
           </section>

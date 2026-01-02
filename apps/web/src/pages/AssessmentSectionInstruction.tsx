@@ -45,9 +45,9 @@ export default function AssessmentSectionInstruction() {
               type="button"
               className="px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
               onClick={() => {
-                // TODO: Save the assessment
-                console.log("Assessment saved");
-                navigate("/");
+                if (window.confirm("Are you sure you want to exit? Your progress will be saved.")) {
+                  navigate("/");
+                }
               }}
             >
               Save & Exit
