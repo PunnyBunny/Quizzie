@@ -49,12 +49,17 @@ router.post(
     res: FirebaseFunctionResponse<{ id: string }>,
   ) => {
     const { age, grade, name, school } = req.body.data;
+    const { callerEmail } = res.locals;
 
     const doc = {
       age,
       grade,
       name,
       school,
+      creatorEmail: callerEmail,
+      currentSection: 0,
+      currentQuestion: 0,
+      finished: false,
       createdAt: FieldValue.serverTimestamp(),
     };
 
@@ -62,6 +67,51 @@ router.post(
 
     console.info("Created assessment", ref.id);
     res.status(201).json({ data: { id: ref.id } });
+  },
+);
+
+interface Assessment {
+  id: string;
+  age: number;
+  grade: string;
+  name: string;
+  school: string;
+  currentSection: number;
+  currentQuestion: number;
+  finished: boolean;
+  creatorEmail: string;
+  createdAtIsoTimestamp: string;
+}
+interface GetAssessmentsOutput {
+  assessments: Assessment[];
+}
+
+// TODO: this shouldn't really be a POST request, but Firebase Functions has limitations with GET requests
+router.post(
+  "/get-unfinished-assessments",
+  async (
+    _req: FirebaseFunctionRequest<{}>,
+    res: FirebaseFunctionResponse<GetAssessmentsOutput>,
+  ) => {
+    console.log("in /get-unfinished-assessments");
+    const { callerEmail } = res.locals;
+    const allAssessments = await db
+      .collection("assessments")
+      .where("creatorEmail", "==", callerEmail)
+      .get();
+    const unfinishedAssessments = allAssessments.docs
+      .map((doc) => {
+        const data = doc.data();
+        const createdAt = data.createdAt as FirebaseFirestore.Timestamp;
+        return {
+          ...data,
+          id: doc.id,
+          createdAtIsoTimestamp: createdAt.toDate().toISOString() ?? "",
+        } as Assessment;
+      })
+      .filter((assessment) => !assessment.finished);
+    console.log("found assessments:", unfinishedAssessments);
+    res.status(200).json({ data: { assessments: unfinishedAssessments } });
   },
 );
 
@@ -84,6 +134,14 @@ router.post(
     });
 
     await ref.update({ [`answers.${question}`]: answer, updatedAt: now });
+
+    // Update assessment counters
+    const assessmentRef = db.collection("assessments").doc(assessmentId);
+    await assessmentRef.update({
+      currentSection: section,
+      currentQuestion: question + 1,
+      updatedAt: now,
+    });
 
     res.status(200).json({ data: { ok: true } });
   },
