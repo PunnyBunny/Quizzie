@@ -6,3 +6,5 @@ admin.initializeApp();
 export const db = admin.firestore();
 
 export { FieldValue } from "firebase-admin/firestore";
+
+export { admin };
