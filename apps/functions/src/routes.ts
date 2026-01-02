@@ -5,6 +5,8 @@ import {
   AudioAnswerInput,
   MCAnswerInput,
   MCAnswerSchema,
+  FinishAssessmentInput,
+  FinishAssessmentSchema,
 } from "./schemas";
 import { validate } from "./middleware/validation";
 import { db, FieldValue } from "./firebase";
@@ -13,10 +15,15 @@ export const router = express.Router();
 
 // Firebase wraps the actual payload with {"data": ...}
 type FirebaseFunctionRequest<T> = Request<{}, {}, { data: T }>;
-type FirebaseFunctionResponse<T> = Response<{ data: T }>;
+type FirebaseFunctionResponse<T> = Response<{ data: T }, { callerEmail: string }>;
 
 // Helper functions
 
+/**
+ * Find existing answer doc ref for assessmentId and section
+ * @param assessmentId
+ * @param section
+ */
 const findAnswerDocRef = async (
   assessmentId: string,
   section: number,
@@ -86,7 +93,6 @@ router.post(
 router.post(
   "/submit-audio-answer",
   async (req: FirebaseFunctionRequest<AudioAnswerInput>, res: Response) => {
-    console.log("Received audio answer:", req.body.data);
     const { assessmentId, section, question, transcript, gsUri } = req.body.data;
 
     // Upsert Firestore doc for audio type
@@ -105,6 +111,42 @@ router.post(
     await ref.update({
       [`files.${question}`]: gsUri,
       [`transcripts.${question}`]: transcript,
+      updatedAt: now,
+    });
+
+    // Update assessment counters
+    const assessmentRef = db.collection("assessments").doc(assessmentId);
+    await assessmentRef.update({
+      currentSection: section,
+      currentQuestion: question,
+      updatedAt: now,
+    });
+
+    res.status(200).json({ data: { ok: true } });
+  },
+);
+
+// 4) Mark Assessment as Finished
+router.post(
+  "/finish-assessment",
+  validate(FinishAssessmentSchema),
+  async (req: FirebaseFunctionRequest<FinishAssessmentInput>, res: Response) => {
+    const { assessmentId } = req.body.data;
+    const now = FieldValue.serverTimestamp();
+
+    const assessmentRef = db.collection("assessments").doc(assessmentId);
+
+    // Check if assessment exists
+    const assessmentDoc = await assessmentRef.get();
+    if (!assessmentDoc.exists) {
+      res.status(404).json({ error: "Assessment not found" });
+      return;
+    }
+
+    // Mark assessment as finished
+    await assessmentRef.update({
+      finished: true,
+      finishedAt: now,
       updatedAt: now,
     });
 
