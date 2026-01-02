@@ -32,7 +32,7 @@ function LogoutButton() {
   );
 }
 
-export default function Dashboard() {
+export default function DashboardLayout() {
   return (
     <>
       <header className="bg-white shadow">

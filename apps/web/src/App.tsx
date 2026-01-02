@@ -4,9 +4,10 @@ import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import NewAssessment from "./pages/NewAssessment";
+import ViewAssessments from "./pages/ViewAssessments";
 import { type AuthStateHook, useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "./lib/firebase.ts";
-import Dashboard from "./pages/Dashboard.tsx";
+import DashboardLayout from "./pages/DashboardLayout.tsx";
 import AssessmentSectionInstruction from "./pages/AssessmentSectionInstruction.tsx";
 import { AssessmentQuestion } from "./pages/AssessmentQuestion.tsx";
 import OngoingAssessments from "./pages/OngoingAssessments";
@@ -46,8 +47,9 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route element={<ProtectedRoute authState={authState} />}>
-            <Route element={<Dashboard />}>
+            <Route element={<DashboardLayout />}>
               <Route index element={<Home />} />
+              <Route path="view-assessments" element={<ViewAssessments />} />
               <Route path="ongoing" element={<OngoingAssessments />} />
               <Route path="completed" element={<CompletedAssessments />} />
               <Route path="/grade/:id" element={<GradeOverview />}>
