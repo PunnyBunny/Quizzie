@@ -1,7 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
-import { getStorage, connectStorageEmulator } from "firebase/storage";
+import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -31,6 +31,6 @@ export { FirebaseError } from "firebase/app";
 
 export const storage = getStorage(app);
 
-if (window.location.hostname === "localhost") {
-  connectStorageEmulator(storage, "127.0.0.1", 9199);
-}
+// if (window.location.hostname === "localhost") {
+//   connectStorageEmulator(storage, "127.0.0.1", 9199);
+// }
