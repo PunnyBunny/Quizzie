@@ -48,27 +48,31 @@ interface Assessment {
   currentQuestion: number;
 }
 
-interface GetUnfinishedAssessmentsResponse {
+interface GetAssessmentsRequest {
+  finished: boolean;
+}
+
+interface GetAssessmentsResponse {
   assessments: Assessment[];
 }
 
 export default function ViewAssessments() {
   const navigate = useNavigate();
 
-  const [getUnfinishedAssessments, loading, error] = useHttpsCallable<
-    void,
-    GetUnfinishedAssessmentsResponse
-  >(functions, "api/get-unfinished-assessments");
+  const [getAssessments, loading, error] = useHttpsCallable<
+    GetAssessmentsRequest,
+    GetAssessmentsResponse
+  >(functions, "api/get-assessments");
 
   const [assessments, setAssessments] = useState<Assessment[]>([]);
 
   useEffect(() => {
-    void getUnfinishedAssessments().then((response) => {
+    void getAssessments({ finished: false }).then((response) => {
       if (response?.data?.assessments) {
         setAssessments(response.data.assessments);
       }
     });
-  }, [getUnfinishedAssessments]);
+  }, [getAssessments]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
