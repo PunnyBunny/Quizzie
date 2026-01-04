@@ -37,7 +37,25 @@ function EyeIcon() {
     </svg>
   );
 }
-
+function PencilSquareIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+      className="size-6"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"
+      />
+    </svg>
+  );
+}
+// TODO: strip transcript
 export default function Home() {
   const navigate = useNavigate();
   return (
@@ -81,6 +99,29 @@ export default function Home() {
             className="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800"
           >
             View Assessments
+          </button>
+        </div>
+      </div>
+      <div className="bg-white rounded-xl shadow border border-gray-100 overflow-hidden">
+        <div className="p-6 flex flex-col gap-4">
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-gray-200 p-2">
+              <PencilSquareIcon />
+            </div>
+
+            <div>
+              <h2 className="text-2xl font-semibold">Grade finished assessments</h2>
+              <p className="text-gray-600">
+                View and grade finished assessments from previous sessions
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => navigate("/grade-assessments")}
+            className="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800"
+          >
+            Grade Assessments
           </button>
         </div>
       </div>

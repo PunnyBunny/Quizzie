@@ -10,10 +10,8 @@ import { auth } from "./lib/firebase.ts";
 import DashboardLayout from "./pages/DashboardLayout.tsx";
 import AssessmentSectionInstruction from "./pages/AssessmentSectionInstruction.tsx";
 import { AssessmentQuestion } from "./pages/AssessmentQuestion.tsx";
-import OngoingAssessments from "./pages/OngoingAssessments";
-import CompletedAssessments from "./pages/CompletedAssessments";
-import GradeOverview from "./pages/GradeOverview";
-import GradeQuestion from "./pages/GradeQuestion";
+import GradeAssessments from "./pages/GradeAssessments.tsx";
+import GradeAssessment from "./pages/GradeAssessment.tsx";
 import { QuestionProvider } from "./providers/QuestionProvider.tsx";
 import { AnswerProvider } from "./providers/AnswerProvider.tsx";
 import { RecordingSessionProvider } from "./providers/RecordingSessionProvider.tsx";
@@ -50,11 +48,8 @@ function App() {
             <Route element={<DashboardLayout />}>
               <Route index element={<Home />} />
               <Route path="view-assessments" element={<ViewAssessments />} />
-              <Route path="ongoing" element={<OngoingAssessments />} />
-              <Route path="completed" element={<CompletedAssessments />} />
-              <Route path="/grade/:id" element={<GradeOverview />}>
-                <Route path="s/:sectionId/q/:questionId" element={<GradeQuestion />} />
-              </Route>
+              <Route path="grade-assessments" element={<GradeAssessments />} />
+              <Route path="grade/:id" element={<GradeAssessment />} />
             </Route>
 
             <Route
