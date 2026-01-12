@@ -365,3 +365,121 @@ router.post(
     }
   },
 );
+
+interface AdminCreateUserInput {
+  email: string;
+}
+
+interface AdminCreateUserOutput {
+  uid: string;
+  email: string;
+  resetLink: string;
+}
+
+router.post(
+  "/admin/create-user",
+  async (
+    req: FirebaseFunctionRequest<AdminCreateUserInput>,
+    res: FirebaseFunctionResponse<AdminCreateUserOutput>,
+  ) => {
+    try {
+      const { email } = req.body.data;
+
+      // Create user with temporary password
+      const userRecord = await admin.auth().createUser({
+        email,
+        password: Math.random().toString(36).slice(-12), // Random temporary password
+        emailVerified: false,
+      });
+
+      // Set custom claims - always create as regular user (not admin)
+      await admin.auth().setCustomUserClaims(userRecord.uid, { isAdmin: false });
+
+      // Generate password reset link
+      const resetLink = await admin.auth().generatePasswordResetLink(email);
+
+      console.log(`Created user ${userRecord.uid} with email ${email}`);
+      res.status(201).json({
+        data: {
+          uid: userRecord.uid,
+          email: userRecord.email ?? email,
+          resetLink,
+        },
+      });
+    } catch (error) {
+      console.error("Error creating user:", error);
+      handleError(error, res);
+    }
+  },
+);
+
+interface AdminResetPasswordInput {
+  email: string;
+}
+
+interface AdminResetPasswordOutput {
+  email: string;
+  resetLink: string;
+}
+
+router.post(
+  "/admin/reset-password",
+  async (
+    req: FirebaseFunctionRequest<AdminResetPasswordInput>,
+    res: FirebaseFunctionResponse<AdminResetPasswordOutput>,
+  ) => {
+    try {
+      const { email } = req.body.data;
+
+      // Generate password reset link
+      const resetLink = await admin.auth().generatePasswordResetLink(email);
+
+      console.log(`Generated password reset link for ${email}`);
+      res.status(200).json({
+        data: {
+          email,
+          resetLink,
+        },
+      });
+    } catch (error) {
+      console.error("Error generating password reset link:", error);
+      handleError(error, res);
+    }
+  },
+);
+
+interface AdminRemoveUserInput {
+  email: string;
+}
+
+interface AdminRemoveUserOutput {
+  email: string;
+}
+
+router.post(
+  "/admin/remove-user",
+  async (
+    req: FirebaseFunctionRequest<AdminRemoveUserInput>,
+    res: FirebaseFunctionResponse<AdminRemoveUserOutput>,
+  ) => {
+    try {
+      const { email } = req.body.data;
+
+      // Get user by email
+      const userRecord = await admin.auth().getUserByEmail(email);
+
+      // Delete the user
+      await admin.auth().deleteUser(userRecord.uid);
+
+      console.log(`Deleted user ${userRecord.uid} with email ${email}`);
+      res.status(200).json({
+        data: {
+          email,
+        },
+      });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      handleError(error, res);
+    }
+  },
+);

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useHttpsCallable } from "react-firebase-hooks/functions";
 import { functions } from "../lib/firebase.ts";
@@ -10,6 +10,33 @@ interface User {
 
 interface AdminGetUsersResponse {
   users: User[];
+}
+
+interface AdminCreateUserInput {
+  email: string;
+}
+
+interface AdminCreateUserOutput {
+  uid: string;
+  email: string;
+  resetLink: string;
+}
+
+interface AdminResetPasswordInput {
+  email: string;
+}
+
+interface AdminResetPasswordOutput {
+  email: string;
+  resetLink: string;
+}
+
+interface AdminRemoveUserInput {
+  email: string;
+}
+
+interface AdminRemoveUserOutput {
+  email: string;
 }
 
 function BackArrowIcon() {
@@ -33,9 +60,32 @@ export default function AdminUserManagement() {
     functions,
     "api/admin/get-users",
   );
+  const [createUser, creatingUser, createUserError] = useHttpsCallable<
+    AdminCreateUserInput,
+    AdminCreateUserOutput
+  >(functions, "api/admin/create-user");
+  const [resetPassword, resettingPassword] = useHttpsCallable<
+    AdminResetPasswordInput,
+    AdminResetPasswordOutput
+  >(functions, "api/admin/reset-password");
+  const [removeUser, removingUser] = useHttpsCallable<AdminRemoveUserInput, AdminRemoveUserOutput>(
+    functions,
+    "api/admin/remove-user",
+  );
 
   const [users, setUsers] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [formData, setFormData] = useState({
+    email: "",
+  });
+  const [createUserSuccess, setCreateUserSuccess] = useState(false);
+  const [resetLinkPopup, setResetLinkPopup] = useState<{
+    email: string;
+    resetLink: string;
+    title: string;
+    message: string;
+  } | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     void getUsers().then((response) => {
@@ -45,12 +95,154 @@ export default function AdminUserManagement() {
     });
   }, [getUsers]);
 
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreateUserSuccess(false);
+
+    try {
+      const result = await createUser({
+        email: formData.email,
+      });
+
+      if (result?.data) {
+        // Show popup with reset link
+        setResetLinkPopup({
+          email: result.data.email,
+          resetLink: result.data.resetLink,
+          title: "User Created Successfully",
+          message: `User ${result.data.email} has been created. Share the password reset link below with the user so they can set their password.`,
+        });
+
+        // Clear form and refresh users list
+        setFormData({ email: "" });
+        setCreateUserSuccess(true);
+        setTimeout(() => setCreateUserSuccess(false), 3000);
+
+        // Refresh the users list
+        const response = await getUsers();
+        if (response?.data?.users) {
+          setUsers(response.data.users);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to create user:", error);
+    }
+  };
+
+  const handleCopyLink = async () => {
+    if (resetLinkPopup?.resetLink) {
+      await navigator.clipboard.writeText(resetLinkPopup.resetLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const closePopup = () => {
+    setResetLinkPopup(null);
+    setCopied(false);
+  };
+
+  const handleResetPassword = async (email: string) => {
+    try {
+      const result = await resetPassword({ email });
+      if (result?.data) {
+        setResetLinkPopup({
+          email: result.data.email,
+          resetLink: result.data.resetLink,
+          title: "Password Reset Link Generated",
+          message: `A password reset link has been generated for ${result.data.email}. Share this link with the user so they can reset their password.`,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to reset password:", error);
+    }
+  };
+
+  const handleRemoveUser = async (email: string) => {
+    const confirmed = confirm(
+      `Are you sure you want to remove ${email}? This action cannot be undone.`,
+    );
+    if (!confirmed) return;
+
+    try {
+      const result = await removeUser({ email });
+      if (result?.data) {
+        // Show success message
+        confirm(`User ${result.data.email} has been successfully removed.`);
+
+        // Refresh the users list
+        const response = await getUsers();
+        if (response?.data?.users) {
+          setUsers(response.data.users);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to remove user:", error);
+    }
+  };
+
   const filteredUsers = users.filter((user) =>
     user.email?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   return (
     <div className="p-6">
+      {/* ...existing code... */}
+
+      {/* Reset Link Popup Modal */}
+      {resetLinkPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-lg w-full mx-4">
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">{resetLinkPopup.title}</h3>
+              <button onClick={closePopup} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            <p className="text-gray-600 mb-4">{resetLinkPopup.message}</p>
+
+            <div className="bg-gray-50 border border-gray-200 rounded-md p-3 mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Password Reset Link
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={resetLinkPopup.resetLink}
+                  className="flex-1 text-sm bg-white border border-gray-300 rounded px-3 py-2 text-gray-700"
+                />
+                <button
+                  onClick={handleCopyLink}
+                  className={`px-4 py-2 text-sm font-medium rounded transition-colors ${
+                    copied ? "bg-green-600 text-white" : "bg-blue-600 text-white hover:bg-blue-700"
+                  }`}
+                >
+                  {copied ? "Copied!" : "Copy"}
+                </button>
+              </div>
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                onClick={closePopup}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-6">
@@ -90,41 +282,39 @@ export default function AdminUserManagement() {
                 Add New User
               </h3>
 
-              <form className="space-y-4">
+              <form className="space-y-4" onSubmit={handleCreateUser}>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Email Address
                   </label>
                   <input
                     type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ email: e.target.value })}
                     className="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border"
                     placeholder="user@example.com"
+                    required
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                  <input
-                    type="text"
-                    className="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border"
-                    placeholder="John Doe"
-                  />
-                </div>
+                {createUserError && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-600">
+                    Error: {createUserError.message}
+                  </div>
+                )}
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
-                  <select className="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border">
-                    <option value="student">Student</option>
-                    <option value="grader">Grader</option>
-                    <option value="admin">Administrator</option>
-                  </select>
-                </div>
+                {createUserSuccess && (
+                  <div className="p-3 bg-green-50 border border-green-200 rounded-md text-sm text-green-600">
+                    User created successfully!
+                  </div>
+                )}
 
                 <button
-                  type="button"
-                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                  type="submit"
+                  disabled={creatingUser}
+                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Create User
+                  {creatingUser ? "Creating..." : "Create User"}
                 </button>
               </form>
             </div>
@@ -183,45 +373,59 @@ export default function AdminUserManagement() {
                       </td>
                     </tr>
                   )}
-                  {!gettingUsers && !getUsersError && filteredUsers.length === 0 && (
-                    <tr>
-                      <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
-                        {users.length === 0 ? "No users found" : "No users match your search"}
-                      </td>
-                    </tr>
-                  )}
-                  {filteredUsers.map((user, index) => (
-                    <tr key={index}>
-                      <td className="px-6 py-4">
-                        <div className="font-medium text-gray-900">{user.email?.split("@")[0]}</div>
-                        <div className="text-gray-500">{user.email}</div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            user.isAdmin
-                              ? "bg-purple-100 text-purple-800"
-                              : "bg-gray-100 text-gray-800"
-                          }`}
-                        >
-                          {user.isAdmin ? "Admin" : "User"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          Active
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 space-x-3">
-                        <button className="text-blue-600 hover:text-blue-900 font-medium">
-                          Reset Pwd
-                        </button>
-                        <button className="text-red-600 hover:text-red-900 font-medium">
-                          Remove
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {!gettingUsers &&
+                    !getUsersError &&
+                    (filteredUsers.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
+                          {users.length === 0 ? "No users found" : "No users match your search"}
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredUsers.map((user, index) => (
+                        <tr key={index}>
+                          <td className="px-6 py-4 font-medium text-gray-900">{user.email}</td>
+                          <td className="px-6 py-4">
+                            <span
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                user.isAdmin
+                                  ? "bg-purple-100 text-purple-800"
+                                  : "bg-gray-100 text-gray-800"
+                              }`}
+                            >
+                              {user.isAdmin ? "Admin" : "User"}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              Active
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 space-x-3">
+                            {user.isAdmin ? (
+                              "N/A"
+                            ) : (
+                              <div>
+                                <button
+                                  onClick={() => user.email && handleResetPassword(user.email)}
+                                  disabled={resettingPassword || !user.email}
+                                  className="text-blue-600 hover:text-blue-900 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  Reset Pwd
+                                </button>
+                                <button
+                                  onClick={() => user.email && handleRemoveUser(user.email)}
+                                  disabled={removingUser || !user.email}
+                                  className="text-red-600 hover:text-red-900 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    ))}
                 </tbody>
               </table>
             </div>
