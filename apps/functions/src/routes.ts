@@ -2,47 +2,40 @@ import express, { Request, Response } from "express";
 import {
   AssessmentInput,
   AssessmentSchema,
-  AudioAnswerInput,
-  MCAnswerInput,
-  MCAnswerSchema,
+  AudioStudentResponseInput,
   FinishAssessmentInput,
   FinishAssessmentSchema,
-  GetAssessmentAnswersInput,
-  GetAssessmentAnswersSchema,
+  GetAssessmentStudentResponsesInput,
+  GetAssessmentStudentResponsesSchema,
+  MCStudentResponseInput,
+  MCStudentResponseSchema,
   SubmitAudioGradeInput,
   SubmitAudioGradeSchema,
 } from "./schemas";
 import { validate } from "./middleware/validation";
-import { db, FieldValue, admin } from "./firebase";
+import { admin, FieldValue } from "./firebase";
+import {
+  type AssessmentDoc,
+  type AssessmentResponse,
+  assessmentsCollection,
+  findStudentResponseRef,
+  getAssessmentWithAuth,
+  isAudioStudentResponse,
+  isMCStudentResponse,
+  type StudentResponseDoc,
+  studentResponsesCollection,
+  toAssessmentResponse,
+  updateAssessmentProgress,
+  upsertAudioStudentResponseRef,
+  upsertMCStudentResponseRef,
+} from "./database";
+import { handleError } from "./utils/errors";
 
 export const router = express.Router();
 
 // Firebase wraps the actual payload with {"data": ...}
 type FirebaseFunctionRequest<T> = Request<{}, {}, { data: T }>;
 type FirebaseFunctionResponse<T> = Response<{ data: T }, { callerEmail: string }>;
-
-// Helper functions
-
-/**
- * Find existing answer doc ref for assessmentId and section
- * @param assessmentId
- * @param section
- */
-const findAnswerDocRef = async (
-  assessmentId: string,
-  section: number,
-): Promise<FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData> | null> => {
-  const snap = await db
-    .collection("answers")
-    .where("assessment-id", "==", assessmentId)
-    .where("section", "==", section)
-    .limit(1)
-    .get();
-  if (!snap.empty) {
-    return snap.docs[0].ref;
-  }
-  return null;
-};
 
 // 1) Create Assessment
 router.post(
@@ -55,7 +48,7 @@ router.post(
     const { age, grade, name, school } = req.body.data;
     const { callerEmail } = res.locals;
 
-    const doc = {
+    const doc: AssessmentDoc = {
       age,
       grade,
       name,
@@ -67,7 +60,7 @@ router.post(
       createdAt: FieldValue.serverTimestamp(),
     };
 
-    const ref = await db.collection("assessments").add(doc);
+    const ref = await assessmentsCollection().add(doc);
 
     console.info("Created assessment", ref.id);
     res.status(201).json({ data: { id: ref.id } });
@@ -78,20 +71,8 @@ interface GetAssessmentsInput {
   finished: boolean;
 }
 
-interface Assessment {
-  id: string;
-  age: number;
-  grade: string;
-  name: string;
-  school: string;
-  currentSection: number;
-  currentQuestion: number;
-  finished: boolean;
-  creatorEmail: string;
-  createdAtIsoTimestamp: string;
-}
 interface GetAssessmentsOutput {
-  assessments: Assessment[];
+  assessments: AssessmentResponse[];
 }
 
 // TODO: this shouldn't really be a POST request, but Firebase Functions has limitations with GET requests
@@ -101,93 +82,63 @@ router.post(
     req: FirebaseFunctionRequest<GetAssessmentsInput>,
     res: FirebaseFunctionResponse<GetAssessmentsOutput>,
   ) => {
-    console.log("in /get-assessments");
     const { finished } = req.body.data;
     const { callerEmail } = res.locals;
-    const allAssessments = await db
-      .collection("assessments")
+
+    const allAssessments = await assessmentsCollection()
       .where("creatorEmail", "==", callerEmail)
       .get();
-    const unfinishedAssessments = allAssessments.docs
-      .map((doc) => {
-        const data = doc.data();
-        const createdAt = data.createdAt as FirebaseFirestore.Timestamp;
-        return {
-          ...data,
-          id: doc.id,
-          createdAtIsoTimestamp: createdAt.toDate().toISOString() ?? "",
-        } as Assessment;
-      })
-      .filter((assessment) => assessment.finished === finished);
-    console.log("found assessments:", unfinishedAssessments);
-    res.status(200).json({ data: { assessments: unfinishedAssessments } });
+
+    const assessments = allAssessments.docs
+      .map((doc) => toAssessmentResponse(doc))
+      .filter(
+        (assessment): assessment is AssessmentResponse =>
+          assessment !== null && assessment.finished === finished,
+      );
+
+    console.log("found assessments:", assessments);
+    res.status(200).json({ data: { assessments } });
   },
 );
 
-// 2) Submit Multiple-Choice Answers
+// 2) Submit Multiple-Choice Student Response
 router.post(
   "/submit-mc-answer",
-  validate(MCAnswerSchema),
-  async (req: FirebaseFunctionRequest<MCAnswerInput>, res: Response) => {
+  validate(MCStudentResponseSchema),
+  async (req: FirebaseFunctionRequest<MCStudentResponseInput>, res: Response) => {
     const { assessmentId, section, question, answer } = req.body.data;
-    const now = FieldValue.serverTimestamp();
 
-    // Upsert logic
-    let ref = await findAnswerDocRef(assessmentId, section);
-    ref ??= await db.collection("answers").add({
-      "assessment-id": assessmentId,
-      section,
-      type: "mc",
-      answers: {},
-      createdAt: FieldValue.serverTimestamp(),
+    // Upsert student response document
+    const ref = await upsertMCStudentResponseRef(assessmentId, section);
+    await ref.update({
+      [`studentResponses.${question}`]: answer,
+      updatedAt: FieldValue.serverTimestamp(),
     });
 
-    await ref.update({ [`answers.${question}`]: answer, updatedAt: now });
-
-    // Update assessment counters
-    const assessmentRef = db.collection("assessments").doc(assessmentId);
-    await assessmentRef.update({
-      currentSection: section,
-      currentQuestion: question + 1,
-      updatedAt: now,
-    });
+    // Update assessment progress
+    await updateAssessmentProgress(assessmentId, section, question + 1);
 
     res.status(200).json({ data: { ok: true } });
   },
 );
 
-// 3) Submit Audio Answer (multipart/form-data)
+// 3) Submit Audio Student Response
 router.post(
   "/submit-audio-answer",
-  async (req: FirebaseFunctionRequest<AudioAnswerInput>, res: Response) => {
+  async (req: FirebaseFunctionRequest<AudioStudentResponseInput>, res: Response) => {
     const { assessmentId, section, question, transcript, gsUri } = req.body.data;
 
-    // Upsert Firestore doc for audio type
-    let ref = await findAnswerDocRef(assessmentId, section);
-    ref ??= await db.collection("answers").add({
-      "assessment-id": assessmentId,
-      section,
-      type: "audio",
-      files: {},
-      transcripts: {},
-      createdAt: FieldValue.serverTimestamp(),
-    });
-
-    const now = FieldValue.serverTimestamp();
+    // Upsert audio student response document
+    const ref = await upsertAudioStudentResponseRef(assessmentId, section);
 
     await ref.update({
       [`files.${question}`]: gsUri,
       [`transcripts.${question}`]: transcript,
-      updatedAt: now,
+      updatedAt: FieldValue.serverTimestamp(),
     });
 
-    // Update assessment counters
-    const assessmentRef = db.collection("assessments").doc(assessmentId);
-    await assessmentRef.update({
-      currentSection: section,
-      currentQuestion: question,
-      updatedAt: now,
-    });
+    // Update assessment progress
+    await updateAssessmentProgress(assessmentId, section, question);
 
     res.status(200).json({ data: { ok: true } });
   },
@@ -201,7 +152,7 @@ router.post(
     const { assessmentId } = req.body.data;
     const now = FieldValue.serverTimestamp();
 
-    const assessmentRef = db.collection("assessments").doc(assessmentId);
+    const assessmentRef = assessmentsCollection().doc(assessmentId);
 
     // Check if assessment exists
     const assessmentDoc = await assessmentRef.get();
@@ -221,83 +172,66 @@ router.post(
   },
 );
 
-// 6) Get Assessment Answers (for grading)
-// TODO: type the database schema, and rename routes schema
-interface MCStudentResponse {
-  type: "mc";
-  studentResponses: Record<string, number>;
-}
-
-interface AudioStudentResponse {
-  type: "audio";
-  files: Record<string, string>;
-  transcripts: Record<string, string>;
-  grades?: Record<string, number>;
-}
-
-interface GetAssessmentAnswersOutput {
-  assessment: Assessment;
-  studentResponsesBySection: Record<string, MCStudentResponse | AudioStudentResponse>;
+// 5) Get Assessment Student Responses (for grading)
+interface GetAssessmentStudentResponsesOutput {
+  assessment: AssessmentResponse;
+  studentResponsesBySection: Record<string, StudentResponseDoc>;
 }
 
 router.post(
-  "/get-assessment-answers",
-  validate(GetAssessmentAnswersSchema),
+  "/get-assessment-student-responses",
+  validate(GetAssessmentStudentResponsesSchema),
   async (
-    req: FirebaseFunctionRequest<GetAssessmentAnswersInput>,
-    res: FirebaseFunctionResponse<GetAssessmentAnswersOutput>,
+    req: FirebaseFunctionRequest<GetAssessmentStudentResponsesInput>,
+    res: FirebaseFunctionResponse<GetAssessmentStudentResponsesOutput>,
   ) => {
     const { assessmentId } = req.body.data;
     const { callerEmail } = res.locals;
 
-    // Get the assessment
-    const assessmentDoc = await db.collection("assessments").doc(assessmentId).get();
-    if (!assessmentDoc.exists) {
+    // Get the assessment with auth check
+    let assessmentDoc;
+    try {
+      assessmentDoc = await getAssessmentWithAuth(assessmentId, callerEmail);
+    } catch (error) {
+      handleError(error, res);
+      return;
+    }
+
+    const assessment = toAssessmentResponse(assessmentDoc);
+    if (!assessment) {
       res.status(404).json();
       return;
     }
 
-    const assessmentData = assessmentDoc.data()!;
-
-    // Verify ownership
-    if (assessmentData.creatorEmail !== callerEmail) {
-      res.status(403).json();
-      return;
-    }
-
-    const createdAt = assessmentData.createdAt as FirebaseFirestore.Timestamp;
-    const assessment: Assessment = {
-      ...assessmentData,
-      id: assessmentDoc.id,
-      createdAtIsoTimestamp: createdAt.toDate().toISOString() ?? "",
-    } as Assessment;
-
-    // Get all answers for this assessment
-    const answersSnapshot = await db
-      .collection("answers")
+    // Get all student responses for this assessment
+    const studentResponsesSnapshot = await studentResponsesCollection()
       .where("assessment-id", "==", assessmentId)
       .get();
 
-    const answers: Record<string, MCStudentResponse | AudioStudentResponse> = {};
+    const studentResponses: Record<string, StudentResponseDoc> = {};
 
     const bucket = admin.storage().bucket();
 
-    for (const doc of answersSnapshot.docs) {
+    for (const doc of studentResponsesSnapshot.docs) {
       const data = doc.data();
 
-      if (data.type === "mc") {
-        answers[data.section as string] = {
+      if (isMCStudentResponse(data)) {
+        studentResponses[data.section.toString()] = {
+          "assessment-id": data["assessment-id"],
+          section: data.section,
           type: "mc",
-          studentResponses: data.answers as Record<string, number>,
+          studentResponses: data.studentResponses,
+          createdAt: data.createdAt,
+          updatedAt: data.updatedAt,
         };
-      } else if (data.type === "audio") {
+      } else if (isAudioStudentResponse(data)) {
         // TODO: see what gsurl is happening. now all fail to sign the url
         // seems need to add perms to service account by creating a new one
         // see https://github.com/googleapis/nodejs-storage/issues/360
 
         // Convert gs:// URIs to signed URLs
         const signedUrls: Record<string, string> = {};
-        for (const [question, gsUri] of Object.entries(data.files as Record<string, string>)) {
+        for (const [question, gsUri] of Object.entries(data.files)) {
           signedUrls[question] = "";
           try {
             // Parse gs://bucket/path format
@@ -316,11 +250,15 @@ router.post(
           }
         }
 
-        answers[data.section as string] = {
+        studentResponses[data.section.toString()] = {
+          "assessment-id": data["assessment-id"],
+          section: data.section,
           type: "audio",
           files: signedUrls,
-          transcripts: data.transcripts as Record<string, string>,
-          grades: data.grades as Record<string, number> | undefined,
+          transcripts: data.transcripts,
+          grades: data.grades,
+          createdAt: data.createdAt,
+          updatedAt: data.updatedAt,
         };
       }
     }
@@ -328,13 +266,13 @@ router.post(
     res.status(200).json({
       data: {
         assessment,
-        studentResponsesBySection: answers,
+        studentResponsesBySection: studentResponses,
       },
     });
   },
 );
 
-// 7) Submit Audio Grade
+// 6) Submit Audio Grade
 router.post(
   "/submit-audio-grade",
   validate(SubmitAudioGradeSchema),
@@ -344,23 +282,17 @@ router.post(
   ) => {
     const { assessmentId, section, question, grade } = req.body.data;
     const { callerEmail } = res.locals;
-    // TODO: deduplicate
 
     // Verify assessment ownership
-    const assessmentDoc = await db.collection("assessments").doc(assessmentId).get();
-    if (!assessmentDoc.exists) {
-      res.status(404).json();
+    try {
+      await getAssessmentWithAuth(assessmentId, callerEmail);
+    } catch (error) {
+      handleError(error, res);
       return;
     }
 
-    const assessmentData = assessmentDoc.data()!;
-    if (assessmentData.creatorEmail !== callerEmail) {
-      res.status(403).json();
-      return;
-    }
-
-    // Find the answer doc for this section
-    const ref = await findAnswerDocRef(assessmentId, section);
+    // Find the student response doc for this section
+    const ref = await findStudentResponseRef(assessmentId, section);
     if (!ref) {
       res.status(404).json();
       return;
@@ -378,5 +310,24 @@ router.post(
       `Graded assessment ${assessmentId}, section ${section}, question ${question}: ${grade}/5`,
     );
     res.status(200).json({ data: { ok: true } });
+  },
+);
+
+interface AdminGetAssessmentsOutput {}
+
+router.post(
+  "/admin/get-assessments",
+  async (
+    _req: FirebaseFunctionRequest<{}>,
+    res: FirebaseFunctionResponse<AdminGetAssessmentsOutput>,
+  ) => {
+    const allAssessments = await assessmentsCollection().get();
+
+    const assessments = allAssessments.docs.map((doc) => {
+      console.log(doc.data());
+      return toAssessmentResponse(doc);
+    });
+
+    res.status(200).json({ data: { assessments } });
   },
 );

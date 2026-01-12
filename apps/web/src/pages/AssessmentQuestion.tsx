@@ -11,8 +11,9 @@ import H5AudioPlayer, { RHAP_UI } from "react-h5-audio-player";
 import "react-h5-audio-player/lib/styles.css";
 import { useHttpsCallable } from "react-firebase-hooks/functions";
 import { functions, storage } from "../lib/firebase.ts";
-import { ref as storageRef, uploadBytes } from "firebase/storage";
+import { ref as storageRef } from "firebase/storage";
 import mime from "mime";
+import { useUploadFile } from "react-firebase-hooks/storage";
 
 function MicrophoneIcon() {
   return (
@@ -153,6 +154,8 @@ export function AssessmentQuestion() {
   const [finishAssessmentFunc, finishingAssessment, finishAssessmentError] =
     useHttpsCallable<FinishAssessmentRequest>(functions, "api/finish-assessment");
 
+  const [uploadFileFunc, uploadingFile, , uploadFileError] = useUploadFile();
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -179,9 +182,11 @@ export function AssessmentQuestion() {
 
       const path = `assessments/${id}/${sectionIndex}/${questionIndex}.${mime.getExtension(audioBlob.type)}`;
       const fileRef = storageRef(storage, path);
-      const res = await uploadBytes(fileRef, audioBlob, {
+      const res = await uploadFileFunc(fileRef, audioBlob, {
         contentType: audioBlob.type,
       });
+
+      if (!res) return;
 
       await submitAudioAnswerFunc({
         assessmentId: id,
@@ -200,7 +205,7 @@ export function AssessmentQuestion() {
       });
     }
 
-    if (submitMcAnswerError || submitAudioAnswerError || finishAssessmentError) {
+    if (submitMcAnswerError || submitAudioAnswerError || finishAssessmentError || uploadFileError) {
       return;
     }
 
@@ -264,6 +269,11 @@ export function AssessmentQuestion() {
           {finishAssessmentError && (
             <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-md">
               {finishAssessmentError.message}
+            </div>
+          )}
+          {uploadFileError && (
+            <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-md">
+              {uploadFileError.message}
             </div>
           )}
           <section className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
@@ -409,10 +419,11 @@ export function AssessmentQuestion() {
                   (question.kind === "audio" && audioBlob == null) ||
                   submittingMcAnswer ||
                   submittingAudioAnswer ||
+                  uploadingFile ||
                   finishingAssessment
                 }
               >
-                {submittingMcAnswer || submittingAudioAnswer || finishingAssessment
+                {submittingMcAnswer || submittingAudioAnswer || uploadingFile || finishingAssessment
                   ? "Loading..."
                   : "Next"}
               </button>

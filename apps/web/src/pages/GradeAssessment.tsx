@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useHttpsCallable } from "react-firebase-hooks/functions";
 import { functions } from "../lib/firebase.ts";
 import { useEffect, useState } from "react";
@@ -58,7 +58,7 @@ interface Assessment {
   createdAtIsoTimestamp: string;
 }
 
-interface GetAssessmentAnswersRequest {
+interface GetAssessmentStudentResponsesRequest {
   assessmentId: string;
 }
 
@@ -74,7 +74,7 @@ interface AudioStudentResponse {
   grades?: Record<string, number>;
 }
 
-interface GetAssessmentAnswersResponse {
+interface GetAssessmentStudentResponsesResponse {
   assessment: Assessment;
   studentResponsesBySection: Record<string, MCStudentResponse | AudioStudentResponse>;
 }
@@ -89,30 +89,31 @@ interface SubmitAudioGradeRequest {
 export default function GradeAssessment() {
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
 
   if (!id) throw new Error("Assessment ID not provided");
 
-  const [getAssessmentAnswers, fetching, fetchError] = useHttpsCallable<
-    GetAssessmentAnswersRequest,
-    GetAssessmentAnswersResponse
-  >(functions, "api/get-assessment-answers");
+  const [getAssessmentStudentResponses, fetching, fetchError] = useHttpsCallable<
+    GetAssessmentStudentResponsesRequest,
+    GetAssessmentStudentResponsesResponse
+  >(functions, "api/get-assessment-student-responses");
 
   const [submitAudioGrade, submitting, submitError] = useHttpsCallable<SubmitAudioGradeRequest>(
     functions,
     "api/submit-audio-grade",
   );
 
-  // TODO: rename data
-  const [studentResponse, setStudentResponse] = useState<GetAssessmentAnswersResponse | null>(null);
+  const [studentResponseData, setStudentResponseData] =
+    useState<GetAssessmentStudentResponsesResponse | null>(null);
   const [activeSectionIdx, setActiveSectionIdx] = useState(0);
   const [localAudioGrades, setLocalAudioGrades] = useState<Record<string, Record<string, number>>>(
     {},
   );
 
   useEffect(() => {
-    void getAssessmentAnswers({ assessmentId: id }).then((httpResponse) => {
+    void getAssessmentStudentResponses({ assessmentId: id }).then((httpResponse) => {
       if (httpResponse?.data) {
-        setStudentResponse(httpResponse.data);
+        setStudentResponseData(httpResponse.data);
 
         // Initialize local audio grades from server data
         const initialAudioGrades: Record<string, Record<string, number>> = {};
@@ -126,7 +127,7 @@ export default function GradeAssessment() {
         setLocalAudioGrades(initialAudioGrades);
       }
     });
-  }, [id, getAssessmentAnswers]);
+  }, [id, getAssessmentStudentResponses]);
 
   if (fetching) {
     return (
@@ -147,7 +148,7 @@ export default function GradeAssessment() {
     );
   }
 
-  if (!studentResponse) {
+  if (!studentResponseData) {
     return (
       <div className="p-6">
         <div className="text-gray-500">Assessment not found.</div>
@@ -173,13 +174,13 @@ export default function GradeAssessment() {
   };
 
   const getMcStudentResponse = (sectionIndex: number) => {
-    return studentResponse.studentResponsesBySection[sectionIndex.toString()] as
+    return studentResponseData.studentResponsesBySection[sectionIndex.toString()] as
       | MCStudentResponse
       | undefined;
   };
 
   const getAudioStudentResponse = (sectionIndex: number) => {
-    return studentResponse.studentResponsesBySection[sectionIndex.toString()] as
+    return studentResponseData.studentResponsesBySection[sectionIndex.toString()] as
       | AudioStudentResponse
       | undefined;
   };
@@ -222,6 +223,10 @@ export default function GradeAssessment() {
   const mcStudentResponse = getMcStudentResponse(activeSectionIdx);
   const audioStudentResponse = getAudioStudentResponse(activeSectionIdx);
 
+  // Determine the back path based on whether we're in admin mode
+  const isAdminRoute = location.pathname.startsWith("/admin");
+  const backPath = isAdminRoute ? "/admin/assessments" : "/grade-assessments";
+
   return (
     <div className="p-6">
       <div className="max-w-6xl mx-auto">
@@ -229,7 +234,7 @@ export default function GradeAssessment() {
         <div className="mb-6">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate("/completed")}
+              onClick={() => navigate(backPath)}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
               aria-label="Go back"
             >
@@ -238,8 +243,8 @@ export default function GradeAssessment() {
             <div>
               <h1 className="text-3xl font-bold">Grade Assessment</h1>
               <p className="text-gray-600 mt-1">
-                {studentResponse.assessment.name} • {studentResponse.assessment.school} • Grade{" "}
-                {studentResponse.assessment.grade}
+                {studentResponseData.assessment.name} • {studentResponseData.assessment.school} •
+                Grade {studentResponseData.assessment.grade}
               </p>
             </div>
           </div>
