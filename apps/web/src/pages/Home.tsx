@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import useAuth from "../hooks/useAuth.tsx";
 
 function AddIcon() {
   return (
@@ -76,6 +77,10 @@ function ShieldIcon() {
 // TODO: strip transcript
 export default function Home() {
   const navigate = useNavigate();
+  const { loading, isAdmin } = useAuth();
+
+  if (loading) return <div>Loading...</div>;
+
   return (
     <div className="p-6 flex flex-col gap-6">
       <div className="bg-white rounded-xl shadow border border-gray-100 overflow-hidden">
@@ -143,27 +148,29 @@ export default function Home() {
           </button>
         </div>
       </div>
-      <div className="bg-white rounded-xl shadow border border-gray-100 overflow-hidden">
-        <div className="p-6 flex flex-col gap-4">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-gray-200 p-2">
-              <ShieldIcon />
+      {isAdmin && (
+        <div className="bg-white rounded-xl shadow border border-gray-100 overflow-hidden">
+          <div className="p-6 flex flex-col gap-4">
+            <div className="flex items-center gap-3">
+              <div className="rounded-xl bg-gray-200 p-2">
+                <ShieldIcon />
+              </div>
+
+              <div>
+                <h2 className="text-2xl font-semibold">Admin Panel</h2>
+                <p className="text-gray-600">Manage users, view all results, and override grades</p>
+              </div>
             </div>
 
-            <div>
-              <h2 className="text-2xl font-semibold">Admin Panel</h2>
-              <p className="text-gray-600">Manage users, view all results, and override grades</p>
-            </div>
+            <button
+              onClick={() => navigate("/admin")}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+            >
+              Open Admin Panel
+            </button>
           </div>
-
-          <button
-            onClick={() => navigate("/admin")}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-          >
-            Open Admin Panel
-          </button>
         </div>
-      </div>
+      )}
     </div>
   );
 }

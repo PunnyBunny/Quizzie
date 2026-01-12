@@ -1,12 +1,9 @@
-import { useEffect } from "react";
 import { Outlet, Route, Routes, useNavigate } from "react-router-dom";
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import NewAssessment from "./pages/NewAssessment";
 import ViewAssessments from "./pages/ViewAssessments";
-import { type AuthStateHook, useAuthState } from "react-firebase-hooks/auth";
-import { auth } from "./lib/firebase.ts";
 import DashboardLayout from "./pages/DashboardLayout.tsx";
 import AssessmentSectionInstruction from "./pages/AssessmentSectionInstruction.tsx";
 import { AssessmentQuestion } from "./pages/AssessmentQuestion.tsx";
@@ -19,47 +16,61 @@ import ThankYou from "./pages/ThankYou.tsx";
 import AdminHome from "./pages/AdminHome.tsx";
 import AdminViewAssessments from "./pages/AdminViewAssessments.tsx";
 import AdminUserManagement from "./pages/AdminUserManagement.tsx";
+import useAuth from "./hooks/useAuth.tsx";
 
 interface ProtectedRouteProps {
-  authState: AuthStateHook;
+  isAdminRoute: boolean;
 }
 
-const ProtectedRoute = ({ authState }: ProtectedRouteProps) => {
-  const [user, loading, error] = authState;
-  const navigate = useNavigate();
-  const authenticated = user != null;
-  useEffect(() => {
-    if (!loading && !authenticated) {
-      navigate("/login");
-    }
-  }, [loading, authenticated, navigate]);
+const ProtectedRoute = ({ isAdminRoute }: ProtectedRouteProps) => {
+  const { user, loading, error, isAdmin } = useAuth();
 
-  if (error) {
-    return <div className="text-red">An error occurred: {error.message}</div>;
+  const navigate = useNavigate();
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+
+  // Got auth state, [user == null] means not logged in
+  if (user == null) {
+    navigate("/login");
+    return null;
   }
-  return authenticated ? <Outlet /> : null;
+
+  // User is logged in
+  if (!isAdminRoute) return <Outlet />;
+
+  if (!isAdmin) {
+    return <div>Not authorized</div>;
+  }
+
+  return <Outlet />;
 };
 
 function App() {
-  const authState = useAuthState(auth);
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
       <div className="max-w-5xl mx-auto">
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route element={<ProtectedRoute authState={authState} />}>
+
+          <Route element={<ProtectedRoute isAdminRoute={true} />}>
+            <Route element={<DashboardLayout />}>
+              <Route path="admin" element={<AdminHome />} />
+              <Route path="admin/assessments" element={<AdminViewAssessments />} />
+              <Route path="admin/grade/:id" element={<GradeAssessment />} />{" "}
+              <Route path="admin/users" element={<AdminUserManagement />} />
+            </Route>
+          </Route>
+
+          <Route element={<ProtectedRoute isAdminRoute={false} />}>
             <Route element={<DashboardLayout />}>
               <Route index element={<Home />} />
               <Route path="view-assessments" element={<ViewAssessments />} />
               <Route path="grade-assessments" element={<GradeAssessments />} />
               <Route path="grade/:id" element={<GradeAssessment />} />
-              <Route path="admin" element={<AdminHome />} />
-              <Route path="admin/assessments" element={<AdminViewAssessments />} />
-              <Route path="admin/grade/:id" element={<GradeAssessment />} />{" "}
-              {/* TODO: permissions for admin pages */}
-              <Route path="admin/users" element={<AdminUserManagement />} />
             </Route>
 
+            {/* Providers for assessment pages */}
             <Route
               element={
                 <QuestionProvider>
