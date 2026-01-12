@@ -313,7 +313,9 @@ router.post(
   },
 );
 
-interface AdminGetAssessmentsOutput {}
+interface AdminGetAssessmentsOutput {
+  assessments: AssessmentResponse[];
+}
 
 router.post(
   "/admin/get-assessments",
@@ -323,11 +325,43 @@ router.post(
   ) => {
     const allAssessments = await assessmentsCollection().get();
 
-    const assessments = allAssessments.docs.map((doc) => {
-      console.log(doc.data());
-      return toAssessmentResponse(doc);
-    });
+    const assessments = allAssessments.docs.reduce((acc, doc) => {
+      const assessment = toAssessmentResponse(doc);
+      if (assessment) {
+        acc.push(assessment);
+      }
+      return acc;
+    }, [] as AssessmentResponse[]);
 
     res.status(200).json({ data: { assessments } });
+  },
+);
+
+interface UserRecord {
+  email?: string;
+  isAdmin: boolean;
+}
+
+interface AdminGetUsersOutput {
+  users: UserRecord[];
+}
+
+router.post(
+  "/admin/get-users",
+  async (_req: FirebaseFunctionRequest<{}>, res: FirebaseFunctionResponse<AdminGetUsersOutput>) => {
+    try {
+      const listUsersResult = await admin.auth().listUsers();
+
+      const users: UserRecord[] = listUsersResult.users.map((userRecord) => ({
+        email: userRecord.email,
+        isAdmin: (userRecord.customClaims?.isAdmin as boolean) ?? false,
+      }));
+
+      console.log(`Retrieved ${users.length} users`);
+      res.status(200).json({ data: { users } });
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      handleError(error, res);
+    }
   },
 );
