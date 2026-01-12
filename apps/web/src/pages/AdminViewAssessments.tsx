@@ -37,12 +37,20 @@ function ClipboardCheckIcon() {
   );
 }
 
+interface LanguageEntry {
+  language: "cantonese" | "mandarin" | "english" | "other";
+  otherSpecify?: string;
+}
+
 interface Assessment {
   id: string;
   name: string;
-  age: number;
+  birthDate: string;
+  gender: "male" | "female";
   grade: string;
   school: string;
+  motherTongue: LanguageEntry;
+  otherLanguages: LanguageEntry[];
   createdAtIsoTimestamp: string;
   creatorEmail: string;
   finished: boolean;
@@ -335,7 +343,7 @@ export default function AdminViewAssessments() {
                       </div>
                     </th>
                     <th className="px-4 py-3 text-left font-semibold text-gray-700">Grade</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Age</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Birth Date</th>
                     <th className="px-4 py-3 text-left font-semibold text-gray-700">Creator</th>
                     <th
                       className="px-4 py-3 text-left font-semibold text-gray-700 cursor-pointer hover:bg-gray-100"
@@ -362,7 +370,7 @@ export default function AdminViewAssessments() {
                       <td className="px-4 py-3 font-medium text-gray-900">{assessment.name}</td>
                       <td className="px-4 py-3 text-gray-600">{assessment.school}</td>
                       <td className="px-4 py-3 text-gray-600">Grade {assessment.grade}</td>
-                      <td className="px-4 py-3 text-gray-600">{assessment.age}</td>
+                      <td className="px-4 py-3 text-gray-600">{assessment.birthDate}</td>
                       <td className="px-4 py-3 text-gray-600 text-sm">{assessment.creatorEmail}</td>
                       <td className="px-4 py-3 text-gray-600">
                         {formatDate(assessment.createdAtIsoTimestamp)}

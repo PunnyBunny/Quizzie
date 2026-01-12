@@ -49,12 +49,20 @@ function XIcon() {
   );
 }
 
+interface LanguageEntry {
+  language: "cantonese" | "mandarin" | "english" | "other";
+  otherSpecify?: string;
+}
+
 interface Assessment {
   id: string;
   name: string;
-  age: number;
+  birthDate: string;
+  gender: "male" | "female";
   grade: string;
   school: string;
+  motherTongue: LanguageEntry;
+  otherLanguages: LanguageEntry[];
   createdAtIsoTimestamp: string;
 }
 

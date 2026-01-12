@@ -37,12 +37,20 @@ function ClipboardIcon() {
   );
 }
 
+interface LanguageEntry {
+  language: "cantonese" | "mandarin" | "english" | "other";
+  otherSpecify?: string;
+}
+
 interface Assessment {
   id: string;
   name: string;
-  age: number;
+  birthDate: string;
+  gender: "male" | "female";
   grade: string;
   school: string;
+  motherTongue: LanguageEntry;
+  otherLanguages: LanguageEntry[];
   createdAtIsoTimestamp: string;
   currentSection: number;
   currentQuestion: number;
@@ -150,7 +158,7 @@ export default function ViewAssessments() {
                         <h3 className="text-xl font-semibold mb-1">{assessment.name}</h3>
                         <div className="text-sm text-gray-600 space-y-1">
                           <p>
-                            <span className="font-medium">Age:</span> {assessment.age} years
+                            <span className="font-medium">Birth Date:</span> {assessment.birthDate}
                           </p>
                           <p>
                             <span className="font-medium">Grade:</span> {assessment.grade}

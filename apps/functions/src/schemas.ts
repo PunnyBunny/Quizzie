@@ -1,10 +1,21 @@
 import { z } from "zod";
 
+export const LanguageSchema = z.enum(["cantonese", "mandarin", "english", "other"]);
+export const GenderSchema = z.enum(["male", "female"]);
+
+export const LanguageEntrySchema = z.object({
+  language: LanguageSchema,
+  otherSpecify: z.string().optional(),
+});
+
 export const AssessmentSchema = z.object({
-  age: z.number(),
-  grade: z.string().trim().min(1, "grade is required"),
   name: z.string().trim().min(1, "name is required"),
+  birthDate: z.string().trim().min(1, "birth date is required"), // ISO date string
+  gender: GenderSchema,
+  grade: z.string().trim().min(1, "grade is required"),
   school: z.string().trim().min(1, "school is required"),
+  motherTongue: LanguageEntrySchema,
+  otherLanguages: z.array(LanguageEntrySchema),
 });
 
 export const MCStudentResponseSchema = z.object({
@@ -38,6 +49,9 @@ export const SubmitAudioGradeSchema = z.object({
 });
 
 export type AssessmentInput = z.infer<typeof AssessmentSchema>;
+export type LanguageEntry = z.infer<typeof LanguageEntrySchema>;
+export type Language = z.infer<typeof LanguageSchema>;
+export type Gender = z.infer<typeof GenderSchema>;
 export type MCStudentResponseInput = z.infer<typeof MCStudentResponseSchema>;
 export type AudioStudentResponseInput = z.infer<typeof AudioStudentResponseSchema>;
 export type FinishAssessmentInput = z.infer<typeof FinishAssessmentSchema>;

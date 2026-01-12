@@ -45,14 +45,17 @@ router.post(
     req: FirebaseFunctionRequest<AssessmentInput>,
     res: FirebaseFunctionResponse<{ id: string }>,
   ) => {
-    const { age, grade, name, school } = req.body.data;
+    const { name, birthDate, gender, grade, school, motherTongue, otherLanguages } = req.body.data;
     const { callerEmail } = res.locals;
 
     const doc: AssessmentDoc = {
-      age,
-      grade,
       name,
+      birthDate,
+      gender,
+      grade,
       school,
+      motherTongue,
+      otherLanguages,
       creatorEmail: callerEmail,
       currentSection: 0,
       currentQuestion: 0,
@@ -225,10 +228,6 @@ router.post(
           updatedAt: data.updatedAt,
         };
       } else if (isAudioStudentResponse(data)) {
-        // TODO: see what gsurl is happening. now all fail to sign the url
-        // seems need to add perms to service account by creating a new one
-        // see https://github.com/googleapis/nodejs-storage/issues/360
-
         // Convert gs:// URIs to signed URLs
         const signedUrls: Record<string, string> = {};
         for (const [question, gsUri] of Object.entries(data.files)) {

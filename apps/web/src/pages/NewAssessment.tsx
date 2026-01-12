@@ -4,7 +4,14 @@ import useForceUpdate from "use-force-update";
 import { useBrowserSupport } from "../providers/RecordingSessionProvider.tsx";
 import { useHttpsCallable } from "react-firebase-hooks/functions";
 import { functions } from "../lib/firebase.ts";
-import { toInteger } from "lodash";
+
+type Language = "cantonese" | "mandarin" | "english" | "other";
+type Gender = "male" | "female";
+
+interface LanguageEntry {
+  language: Language;
+  otherSpecify?: string;
+}
 
 function BrowserSupportCheck({ children }: { children: React.ReactNode }) {
   const browserSupport = useBrowserSupport();
@@ -26,9 +33,12 @@ function BrowserSupportCheck({ children }: { children: React.ReactNode }) {
 
 interface CreateAssessmentRequest {
   name: string;
-  age: number;
+  birthDate: string;
+  gender: Gender;
   grade: string;
   school: string;
+  motherTongue: LanguageEntry;
+  otherLanguages: LanguageEntry[];
 }
 
 interface CreateAssessmentResponse {
@@ -37,9 +47,13 @@ interface CreateAssessmentResponse {
 
 export default function NewAssessment() {
   const [studentName, setStudentName] = useState("");
-  const [age, setAge] = useState(0);
+  const [birthDate, setBirthDate] = useState("");
+  const [gender, setGender] = useState<Gender | "">("");
   const [grade, setGrade] = useState("");
   const [school, setSchool] = useState("");
+  const [motherTongue, setMotherTongue] = useState<LanguageEntry>({ language: "cantonese" });
+  const [motherTongueOther, setMotherTongueOther] = useState("");
+  const [otherLanguages, setOtherLanguages] = useState<LanguageEntry[]>([]);
 
   const forceUpdate = useForceUpdate();
 
@@ -68,7 +82,23 @@ export default function NewAssessment() {
         return;
       }
 
-      const response = await createAssessmentFunc({ age, grade, school, name: studentName });
+      // Build mother tongue with otherSpecify if needed
+      const finalMotherTongue: LanguageEntry = {
+        language: motherTongue.language,
+        ...(motherTongue.language === "other" && motherTongueOther
+          ? { otherSpecify: motherTongueOther }
+          : {}),
+      };
+
+      const response = await createAssessmentFunc({
+        name: studentName,
+        birthDate,
+        gender: gender as Gender,
+        grade,
+        school,
+        motherTongue: finalMotherTongue,
+        otherLanguages,
+      });
       if (!response) {
         // TODO: handle error
         throw new Error("Failed to create assessment");
@@ -128,24 +158,54 @@ export default function NewAssessment() {
               </div>
 
               <div className="space-y-1">
-                <label htmlFor="age" className="block text-sm font-medium text-gray-800">
-                  Age <span className="text-red-500">*</span>
+                <label htmlFor="birthDate" className="block text-sm font-medium text-gray-800">
+                  Birth Date <span className="text-red-500">*</span>
                 </label>
                 <input
-                  id="age"
-                  type="number"
-                  inputMode="numeric"
+                  id="birthDate"
+                  type="date"
                   className={`w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-400 ${
-                    !validator.current.fieldValid("age") ? "border-red-300" : "border-gray-300"
+                    !validator.current.fieldValid("birthDate")
+                      ? "border-red-300"
+                      : "border-gray-300"
                   }`}
-                  placeholder="Enter age"
-                  value={age}
+                  value={birthDate}
                   onChange={(e) => {
-                    setAge(toInteger(e.target.value));
+                    setBirthDate(e.target.value);
                   }}
-                  min={1}
                 />
-                <span>{validator.current.message("age", age, "required|numeric|min:1,num")}</span>
+                <span>{validator.current.message("birthDate", birthDate, "required")}</span>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-gray-800">
+                  Gender <span className="text-red-500">*</span>
+                </label>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="gender"
+                      value="male"
+                      checked={gender === "male"}
+                      onChange={(e) => setGender(e.target.value as Gender)}
+                      className="w-4 h-4 text-indigo-600"
+                    />
+                    <span>Male</span>
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="gender"
+                      value="female"
+                      checked={gender === "female"}
+                      onChange={(e) => setGender(e.target.value as Gender)}
+                      className="w-4 h-4 text-indigo-600"
+                    />
+                    <span>Female</span>
+                  </label>
+                </div>
+                <span>{validator.current.message("gender", gender, "required")}</span>
               </div>
 
               <div className="space-y-1">
@@ -184,6 +244,103 @@ export default function NewAssessment() {
                   }}
                 />
                 <span>{validator.current.message("school", school, "required")}</span>
+              </div>
+
+              {/* Mother Tongue */}
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-gray-800">
+                  Mother Tongue <span className="text-red-500">*</span>
+                </label>
+                <div className="flex flex-col gap-2">
+                  <select
+                    className="w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-400 border-gray-300"
+                    value={motherTongue.language}
+                    onChange={(e) => {
+                      setMotherTongue({ language: e.target.value as Language });
+                      if (e.target.value !== "other") {
+                        setMotherTongueOther("");
+                      }
+                    }}
+                  >
+                    <option value="cantonese">Cantonese</option>
+                    <option value="mandarin">Mandarin</option>
+                    <option value="english">English</option>
+                    <option value="other">Other (please specify)</option>
+                  </select>
+                  {motherTongue.language === "other" && (
+                    <input
+                      type="text"
+                      className={`w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-400 ${
+                        motherTongue.language === "other" && !motherTongueOther
+                          ? "border-red-300"
+                          : "border-gray-300"
+                      }`}
+                      placeholder="Please specify mother tongue"
+                      value={motherTongueOther}
+                      onChange={(e) => setMotherTongueOther(e.target.value)}
+                    />
+                  )}
+                </div>
+              </div>
+
+              {/* Other Capable Languages */}
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-gray-800">
+                  Other Capable Languages
+                </label>
+                <div className="flex flex-col gap-2">
+                  {otherLanguages.map((entry, index) => (
+                    <div key={index} className="flex gap-2 items-start">
+                      <div className="flex-1 flex flex-col gap-2">
+                        <select
+                          className="w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-400 border-gray-300"
+                          value={entry.language}
+                          onChange={(e) => {
+                            const updated = [...otherLanguages];
+                            updated[index] = { language: e.target.value as Language };
+                            setOtherLanguages(updated);
+                          }}
+                        >
+                          <option value="cantonese">Cantonese</option>
+                          <option value="mandarin">Mandarin</option>
+                          <option value="english">English</option>
+                          <option value="other">Other (please specify)</option>
+                        </select>
+                        {entry.language === "other" && (
+                          <input
+                            type="text"
+                            className="w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-400 border-gray-300"
+                            placeholder="Please specify language"
+                            value={entry.otherSpecify ?? ""}
+                            onChange={(e) => {
+                              const updated = [...otherLanguages];
+                              updated[index] = { ...entry, otherSpecify: e.target.value };
+                              setOtherLanguages(updated);
+                            }}
+                          />
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOtherLanguages(otherLanguages.filter((_, i) => i !== index));
+                        }}
+                        className="px-3 py-2.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setOtherLanguages([...otherLanguages, { language: "cantonese" }])
+                    }
+                    className="text-left text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+                  >
+                    + Add another language
+                  </button>
+                </div>
               </div>
 
               <button

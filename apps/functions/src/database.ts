@@ -1,5 +1,6 @@
 import { db, FieldValue } from "./firebase";
 import type { Timestamp } from "firebase-admin/firestore";
+import type { Gender, LanguageEntry } from "./schemas";
 
 // ============================================================================
 // Type Definitions for Firestore Documents
@@ -10,10 +11,13 @@ import type { Timestamp } from "firebase-admin/firestore";
  * Represents a student assessment/quiz
  */
 export interface AssessmentDoc {
-  age: number;
-  grade: string;
   name: string;
+  birthDate: string; // ISO date string
+  gender: Gender;
+  grade: string;
   school: string;
+  motherTongue: LanguageEntry;
+  otherLanguages: LanguageEntry[];
   creatorEmail: string;
   currentSection: number;
   currentQuestion: number;
@@ -28,10 +32,13 @@ export interface AssessmentDoc {
  */
 export interface AssessmentResponse {
   id: string;
-  age: number;
-  grade: string;
   name: string;
+  birthDate: string;
+  gender: Gender;
+  grade: string;
   school: string;
+  motherTongue: LanguageEntry;
+  otherLanguages: LanguageEntry[];
   creatorEmail: string;
   currentSection: number;
   currentQuestion: number;
@@ -169,10 +176,13 @@ export function toAssessmentResponse(
 
   return {
     id: doc.id,
-    age: data.age,
-    grade: data.grade,
     name: data.name,
+    birthDate: data.birthDate,
+    gender: data.gender,
+    grade: data.grade,
     school: data.school,
+    motherTongue: data.motherTongue,
+    otherLanguages: data.otherLanguages,
     creatorEmail: data.creatorEmail,
     currentSection: data.currentSection,
     currentQuestion: data.currentQuestion,
