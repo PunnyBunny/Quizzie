@@ -232,6 +232,8 @@ router.post(
         // Convert gs:// URIs to signed URLs
         const signedUrls: Record<string, string> = {};
         for (const [question, gsUri] of Object.entries(data.files)) {
+          if (!gsUri) continue;
+
           signedUrls[question] = "";
           try {
             // Parse gs://bucket/path format

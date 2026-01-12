@@ -11,15 +11,15 @@ export const MCStudentResponseSchema = z.object({
   assessmentId: z.string().trim().min(1, "assessmentId is required"),
   section: z.coerce.number().int(),
   question: z.coerce.number().int(),
-  answer: z.coerce.number().int(),
+  answer: z.coerce.number().int().nullable(),
 });
 
 export const AudioStudentResponseSchema = z.object({
   assessmentId: z.string().trim().min(1, "assessmentId is required"),
   section: z.coerce.number().int(),
   question: z.coerce.number().int(),
-  transcript: z.string(),
-  gsUri: z.string(),
+  transcript: z.string().nullable(),
+  gsUri: z.string().nullable(),
 });
 
 export const FinishAssessmentSchema = z.object({

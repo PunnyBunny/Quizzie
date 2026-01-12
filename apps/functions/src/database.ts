@@ -54,7 +54,7 @@ interface BaseStudentResponseDoc {
  */
 export interface MCStudentResponseDoc extends BaseStudentResponseDoc {
   type: "mc";
-  studentResponses: Record<string, number>;
+  studentResponses: Record<string, number | null>;
 }
 
 /**
@@ -62,9 +62,9 @@ export interface MCStudentResponseDoc extends BaseStudentResponseDoc {
  */
 export interface AudioStudentResponseDoc extends BaseStudentResponseDoc {
   type: "audio";
-  files: Record<string, string>;
-  transcripts: Record<string, string>;
-  grades?: Record<string, number>;
+  files: Record<string, string | null>;
+  transcripts: Record<string, string | null>;
+  grades?: Record<string, number | null>;
 }
 
 /**

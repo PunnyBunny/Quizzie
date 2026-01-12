@@ -64,13 +64,13 @@ interface GetAssessmentStudentResponsesRequest {
 
 interface MCStudentResponse {
   type: "mc";
-  studentResponses: Record<string, number>;
+  studentResponses: Record<string, number | null>;
 }
 
 interface AudioStudentResponse {
   type: "audio";
-  files: Record<string, string>;
-  transcripts: Record<string, string>;
+  files: Record<string, string | null>;
+  transcripts: Record<string, string | null>;
   grades?: Record<string, number>;
 }
 
@@ -196,7 +196,12 @@ export default function GradeAssessment() {
       const questionIndex = parseInt(q);
       const choices = quizSection.choices?.[questionIndex];
       const correctAnswer = quizSection.correctAnswers?.[questionIndex];
-      if (choices && correctAnswer && choices[answerIndex] === correctAnswer) {
+      if (
+        choices &&
+        correctAnswer &&
+        answerIndex !== null &&
+        choices[answerIndex] === correctAnswer
+      ) {
         correct++;
       }
     });
@@ -338,7 +343,7 @@ export default function GradeAssessment() {
                             );
                           })}
                         </div>
-                        {studentMcChoiceIdx === undefined && (
+                        {(studentMcChoiceIdx === undefined || studentMcChoiceIdx === null) && (
                           <p className="mt-2 text-sm text-gray-400 italic">No answer provided</p>
                         )}
                       </div>

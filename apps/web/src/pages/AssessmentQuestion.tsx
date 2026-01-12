@@ -57,15 +57,15 @@ interface SubmitMcAnswerRequest {
   assessmentId: string;
   section: number;
   question: number;
-  answer: number;
+  answer: number | null;
 }
 
 interface SubmitAudioAnswerRequest {
   assessmentId: string;
   section: number;
   question: number;
-  transcript: string;
-  gsUri: string;
+  transcript: string | null;
+  gsUri: string | null;
 }
 
 interface FinishAssessmentRequest {
@@ -156,6 +156,53 @@ export function AssessmentQuestion() {
 
   const [uploadFileFunc, uploadingFile, , uploadFileError] = useUploadFile();
 
+  const navigateToNext = () => {
+    if (isLastQuestionInAssessment) {
+      navigate("/thank-you");
+    } else if (isLastQuestion) {
+      navigate(`/assessment/${id}/s/${sectionIndex + 1}/instruction`);
+    } else {
+      navigate(`/assessment/${id}/s/${sectionIndex}/q/${questionIndex + 1}`);
+    }
+  };
+
+  const handleSkip = async () => {
+    if (!window.confirm("Are you sure you want to skip this question? You can't go back.")) {
+      return;
+    }
+
+    if (question.kind === "mc") {
+      await submitMcAnswerFunc({
+        assessmentId: id,
+        section: sectionIndex,
+        question: questionIndex,
+        answer: null,
+      });
+      console.log("MC Answer skipped");
+    } else if (question.kind === "audio") {
+      await submitAudioAnswerFunc({
+        assessmentId: id,
+        section: sectionIndex,
+        question: questionIndex,
+        transcript: null,
+        gsUri: null,
+      });
+      console.log("Audio answer skipped");
+    }
+
+    if (isLastQuestionInAssessment) {
+      await finishAssessmentFunc({
+        assessmentId: id,
+      });
+    }
+
+    if (submitMcAnswerError || submitAudioAnswerError || finishAssessmentError) {
+      return;
+    }
+
+    navigateToNext();
+  };
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -209,13 +256,7 @@ export function AssessmentQuestion() {
       return;
     }
 
-    if (isLastQuestionInAssessment) {
-      navigate("/thank-you");
-    } else if (isLastQuestion) {
-      navigate(`/assessment/${id}/s/${sectionIndex + 1}/instruction`);
-    } else {
-      navigate(`/assessment/${id}/s/${sectionIndex}/q/${questionIndex + 1}`);
-    }
+    navigateToNext();
   };
 
   const title = section?.title ?? "Section";
@@ -411,22 +452,41 @@ export function AssessmentQuestion() {
                 Save & Exit
               </button>
 
-              <button
-                type="submit"
-                className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 shadow disabled:opacity-50"
-                disabled={
-                  (question.kind === "mc" && selectedIndex == null) ||
-                  (question.kind === "audio" && audioBlob == null) ||
-                  submittingMcAnswer ||
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  className="px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                  onClick={handleSkip}
+                  disabled={
+                    submittingMcAnswer ||
+                    submittingAudioAnswer ||
+                    uploadingFile ||
+                    finishingAssessment
+                  }
+                >
+                  Skip
+                </button>
+
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 shadow disabled:opacity-50"
+                  disabled={
+                    (question.kind === "mc" && selectedIndex == null) ||
+                    (question.kind === "audio" && audioBlob == null) ||
+                    submittingMcAnswer ||
+                    submittingAudioAnswer ||
+                    uploadingFile ||
+                    finishingAssessment
+                  }
+                >
+                  {submittingMcAnswer ||
                   submittingAudioAnswer ||
                   uploadingFile ||
                   finishingAssessment
-                }
-              >
-                {submittingMcAnswer || submittingAudioAnswer || uploadingFile || finishingAssessment
-                  ? "Loading..."
-                  : "Next"}
-              </button>
+                    ? "Loading..."
+                    : "Next"}
+                </button>
+              </div>
             </div>
           </section>
         </form>
