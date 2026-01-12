@@ -16,6 +16,9 @@ import { QuestionProvider } from "./providers/QuestionProvider.tsx";
 import { AnswerProvider } from "./providers/AnswerProvider.tsx";
 import { RecordingSessionProvider } from "./providers/RecordingSessionProvider.tsx";
 import ThankYou from "./pages/ThankYou.tsx";
+import AdminHome from "./pages/AdminHome.tsx";
+import AdminViewAssessments from "./pages/AdminViewAssessments.tsx";
+import AdminUserManagement from "./pages/AdminUserManagement.tsx";
 
 interface ProtectedRouteProps {
   authState: AuthStateHook;
@@ -50,6 +53,11 @@ function App() {
               <Route path="view-assessments" element={<ViewAssessments />} />
               <Route path="grade-assessments" element={<GradeAssessments />} />
               <Route path="grade/:id" element={<GradeAssessment />} />
+              <Route path="admin" element={<AdminHome />} />
+              <Route path="admin/assessments" element={<AdminViewAssessments />} />
+              <Route path="admin/grade/:id" element={<GradeAssessment />} />{" "}
+              {/* TODO: permissions for admin pages */}
+              <Route path="admin/users" element={<AdminUserManagement />} />
             </Route>
 
             <Route
