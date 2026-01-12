@@ -409,14 +409,14 @@ export default function AdminUserManagement() {
                                 <button
                                   onClick={() => user.email && handleResetPassword(user.email)}
                                   disabled={resettingPassword || !user.email}
-                                  className="text-blue-600 hover:text-blue-900 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                  className="m-1 px-2 py-1 text-xs font-medium shadow-sm text-white bg-blue-600 hover:bg-blue-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                   Reset Pwd
                                 </button>
                                 <button
                                   onClick={() => user.email && handleRemoveUser(user.email)}
                                   disabled={removingUser || !user.email}
-                                  className="text-red-600 hover:text-red-900 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                  className="m-1 px-2 py-1 text-xs font-medium shadow-sm text-white bg-red-600 hover:bg-red-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                   Remove
                                 </button>
