@@ -47,11 +47,12 @@ interface CreateAssessmentResponse {
 
 export default function NewAssessment() {
   const [studentName, setStudentName] = useState("");
-  const [birthDate, setBirthDate] = useState("");
+  const [birthYear, setBirthYear] = useState("");
+  const [birthMonth, setBirthMonth] = useState("");
   const [gender, setGender] = useState<Gender | "">("");
   const [grade, setGrade] = useState("");
   const [school, setSchool] = useState("");
-  const [motherTongue, setMotherTongue] = useState<LanguageEntry>({ language: "cantonese" });
+  const [motherTongue, setMotherTongue] = useState<LanguageEntry>({ language: "" as Language });
   const [motherTongueOther, setMotherTongueOther] = useState("");
   const [otherLanguages, setOtherLanguages] = useState<LanguageEntry[]>([]);
 
@@ -92,7 +93,7 @@ export default function NewAssessment() {
 
       const response = await createAssessmentFunc({
         name: studentName,
-        birthDate,
+        birthDate: `${birthYear}-${birthMonth.padStart(2, "0")}`,
         gender: gender as Gender,
         grade,
         school,
@@ -135,7 +136,7 @@ export default function NewAssessment() {
 
               <div className="space-y-1">
                 <label htmlFor="studentName" className="block text-sm font-medium text-gray-800">
-                  Student Name <span className="text-red-500">*</span>
+                  Student Name (Surname & Initials) <span className="text-red-500">*</span>
                 </label>
                 <input
                   id="studentName"
@@ -145,7 +146,7 @@ export default function NewAssessment() {
                       ? "border-red-300"
                       : "border-gray-300"
                   }`}
-                  placeholder="Enter student's full name"
+                  placeholder="e.g., Chan TM for Chan Tai Man"
                   value={studentName}
                   onChange={(e) => {
                     setStudentName(e.target.value);
@@ -158,23 +159,53 @@ export default function NewAssessment() {
               </div>
 
               <div className="space-y-1">
-                <label htmlFor="birthDate" className="block text-sm font-medium text-gray-800">
-                  Birth Date <span className="text-red-500">*</span>
+                <label htmlFor="birthYear" className="block text-sm font-medium text-gray-800">
+                  Birth Year & Month <span className="text-red-500">*</span>
                 </label>
-                <input
-                  id="birthDate"
-                  type="date"
-                  className={`w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-400 ${
-                    !validator.current.fieldValid("birthDate")
-                      ? "border-red-300"
-                      : "border-gray-300"
-                  }`}
-                  value={birthDate}
-                  onChange={(e) => {
-                    setBirthDate(e.target.value);
-                  }}
-                />
-                <span>{validator.current.message("birthDate", birthDate, "required")}</span>
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <select
+                      id="birthYear"
+                      className={`w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-400 ${
+                        !validator.current.fieldValid("birthYear")
+                          ? "border-red-300"
+                          : "border-gray-300"
+                      }`}
+                      value={birthYear}
+                      onChange={(e) => setBirthYear(e.target.value)}
+                    >
+                      <option value="">Year</option>
+                      {Array.from({ length: 30 }, (_, i) => new Date().getFullYear() - i).map(
+                        (year) => (
+                          <option key={year} value={year}>
+                            {year}
+                          </option>
+                        ),
+                      )}
+                    </select>
+                    <span>{validator.current.message("birthYear", birthYear, "required")}</span>
+                  </div>
+                  <div className="flex-1">
+                    <select
+                      id="birthMonth"
+                      className={`w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-400 ${
+                        !validator.current.fieldValid("birthMonth")
+                          ? "border-red-300"
+                          : "border-gray-300"
+                      }`}
+                      value={birthMonth}
+                      onChange={(e) => setBirthMonth(e.target.value)}
+                    >
+                      <option value="">Month</option>
+                      {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
+                        <option key={month} value={month}>
+                          {month}
+                        </option>
+                      ))}
+                    </select>
+                    <span>{validator.current.message("birthMonth", birthMonth, "required")}</span>
+                  </div>
+                </div>
               </div>
 
               <div className="space-y-1">
@@ -212,18 +243,23 @@ export default function NewAssessment() {
                 <label htmlFor="grade" className="block text-sm font-medium text-gray-800">
                   Grade/Form <span className="text-red-500">*</span>
                 </label>
-                <input
+                <select
                   id="grade"
-                  type="text"
                   className={`w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-400 ${
                     !validator.current.fieldValid("grade") ? "border-red-300" : "border-gray-300"
                   }`}
-                  placeholder="e.g., Form 1, Form 3, Form 5"
                   value={grade}
                   onChange={(e) => {
                     setGrade(e.target.value);
                   }}
-                />
+                >
+                  <option value="">Select Grade</option>
+                  {["S1", "S2", "S3", "S4", "S5", "S6"].map((g) => (
+                    <option key={g} value={g}>
+                      {g}
+                    </option>
+                  ))}
+                </select>
                 <span>{validator.current.message("grade", grade, "required|min:1")}</span>
               </div>
 
@@ -253,7 +289,11 @@ export default function NewAssessment() {
                 </label>
                 <div className="flex flex-col gap-2">
                   <select
-                    className="w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-400 border-gray-300"
+                    className={`w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-400 ${
+                      !validator.current.fieldValid("motherTongue")
+                        ? "border-red-300"
+                        : "border-gray-300"
+                    }`}
                     value={motherTongue.language}
                     onChange={(e) => {
                       setMotherTongue({ language: e.target.value as Language });
@@ -262,11 +302,15 @@ export default function NewAssessment() {
                       }
                     }}
                   >
+                    <option value="">Please select</option>
                     <option value="cantonese">Cantonese</option>
                     <option value="mandarin">Mandarin</option>
                     <option value="english">English</option>
                     <option value="other">Other (please specify)</option>
                   </select>
+                  <span>
+                    {validator.current.message("motherTongue", motherTongue.language, "required")}
+                  </span>
                   {motherTongue.language === "other" && (
                     <input
                       type="text"
@@ -293,7 +337,11 @@ export default function NewAssessment() {
                     <div key={index} className="flex gap-2 items-start">
                       <div className="flex-1 flex flex-col gap-2">
                         <select
-                          className="w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-400 border-gray-300"
+                          className={`w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-400 ${
+                            !validator.current.fieldValid(`otherLanguage-${index}`)
+                              ? "border-red-300"
+                              : "border-gray-300"
+                          }`}
                           value={entry.language}
                           onChange={(e) => {
                             const updated = [...otherLanguages];
@@ -301,11 +349,19 @@ export default function NewAssessment() {
                             setOtherLanguages(updated);
                           }}
                         >
+                          <option value="">Please select</option>
                           <option value="cantonese">Cantonese</option>
                           <option value="mandarin">Mandarin</option>
                           <option value="english">English</option>
                           <option value="other">Other (please specify)</option>
                         </select>
+                        <span>
+                          {validator.current.message(
+                            `otherLanguage-${index}`,
+                            entry.language,
+                            "required",
+                          )}
+                        </span>
                         {entry.language === "other" && (
                           <input
                             type="text"
@@ -334,7 +390,7 @@ export default function NewAssessment() {
                   <button
                     type="button"
                     onClick={() =>
-                      setOtherLanguages([...otherLanguages, { language: "cantonese" }])
+                      setOtherLanguages([...otherLanguages, { language: "" as Language }])
                     }
                     className="text-left text-indigo-600 hover:text-indigo-800 text-sm font-medium"
                   >
