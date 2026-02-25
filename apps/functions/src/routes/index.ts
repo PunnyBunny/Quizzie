@@ -1,0 +1,11 @@
+import express from "express";
+import { router as assessmentRouter } from "./assessments";
+import { router as submissionRouter } from "./submissions";
+import { router as gradingRouter } from "./grading";
+import { router as adminRouter } from "./admin";
+
+export const router = express.Router();
+router.use(assessmentRouter);
+router.use(submissionRouter);
+router.use(gradingRouter);
+router.use(adminRouter);

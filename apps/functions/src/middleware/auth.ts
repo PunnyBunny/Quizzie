@@ -21,6 +21,7 @@ export const authHandler = async (req: Request, res: Response, next: NextFunctio
   try {
     const decodedToken = await admin.auth().verifyIdToken(idToken);
     res.locals.callerEmail = decodedToken.email ?? null;
+    res.locals.callerClaims = decodedToken;
     next();
   } catch (err) {
     console.error("Error verifying Firebase ID token:", err);

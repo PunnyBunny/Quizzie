@@ -1,6 +1,6 @@
-import { db, FieldValue } from "./firebase";
+import { db, FieldValue, admin } from "./firebase";
 import type { Timestamp } from "firebase-admin/firestore";
-import type { Gender, LanguageEntry } from "./schemas";
+import type { Gender, LanguageEntry } from "./validation";
 
 // ============================================================================
 // Type Definitions for Firestore Documents
@@ -290,4 +290,17 @@ export async function updateAssessmentProgress(
     currentQuestion: question,
     updatedAt: FieldValue.serverTimestamp(),
   });
+}
+
+/**
+ * Convert a gs:// URI to a short-lived signed URL
+ */
+export async function getSignedUrl(gsUri: string): Promise<string> {
+  const pathMatch = /^gs:\/\/[^/]+\/(.+)$/.exec(gsUri);
+  if (!pathMatch) return "";
+  const [signedUrl] = await admin.storage().bucket().file(pathMatch[1]).getSignedUrl({
+    action: "read",
+    expires: Date.now() + 60 * 1000,
+  });
+  return signedUrl;
 }
