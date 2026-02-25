@@ -81,14 +81,15 @@ export type AdminResetPasswordInput = z.infer<typeof AdminResetPasswordSchema>;
 export type AdminRemoveUserInput = z.infer<typeof AdminRemoveUserSchema>;
 
 // Request/response types for route handlers
-import type { AssessmentResponse, StudentResponseDoc } from "./database";
+import type { AssessmentDto } from "./models/assessments";
+import type { StudentResponseDto } from "./models/student-responses";
 
 export interface GetAssessmentsOutput {
-  assessments: AssessmentResponse[];
+  assessments: AssessmentDto[];
 }
 
 export interface AdminGetAssessmentsOutput {
-  assessments: AssessmentResponse[];
+  assessments: AssessmentDto[];
 }
 
 export interface UserRecord {
@@ -116,6 +117,6 @@ export interface AdminRemoveUserOutput {
 }
 
 export interface GetAssessmentStudentResponsesOutput {
-  assessment: AssessmentResponse;
-  studentResponsesBySection: Record<string, StudentResponseDoc>;
+  assessment: AssessmentDto;
+  studentResponsesBySection: Record<string, StudentResponseDto>;
 }

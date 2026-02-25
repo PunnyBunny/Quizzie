@@ -1,7 +1,11 @@
 import express from "express";
 import { validate } from "../middleware/validation";
 import { admin } from "../firebase";
-import { type AssessmentResponse, assessmentsCollection, toAssessmentResponse } from "../database";
+import {
+  type AssessmentDto,
+  assessments as assessmentsDb,
+  toAssessmentDto,
+} from "../models/assessments";
 import {
   type AdminCreateUserInput,
   AdminCreateUserSchema,
@@ -16,7 +20,7 @@ import {
   type AdminResetPasswordOutput,
   type UserRecord,
 } from "../validation";
-import { type FirebaseFunctionRequest, type FirebaseFunctionResponse } from "../types";
+import { type FirebaseFunctionRequest, type FirebaseFunctionResponse } from "../utils/express";
 import { adminHandler } from "../middleware/admin";
 
 export const router = express.Router();
@@ -31,15 +35,15 @@ router.post(
     _req: FirebaseFunctionRequest<{}>,
     res: FirebaseFunctionResponse<AdminGetAssessmentsOutput>,
   ) => {
-    const allAssessments = await assessmentsCollection().get();
+    const allAssessments = await assessmentsDb.collection().get();
 
     const assessments = allAssessments.docs.reduce((acc, doc) => {
-      const assessment = toAssessmentResponse(doc);
+      const assessment = toAssessmentDto(doc);
       if (assessment) {
         acc.push(assessment);
       }
       return acc;
-    }, [] as AssessmentResponse[]);
+    }, [] as AssessmentDto[]);
 
     res.status(200).json({ data: { assessments } });
   },

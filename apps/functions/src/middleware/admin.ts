@@ -1,5 +1,5 @@
 import type { NextFunction } from "express";
-import { FirebaseFunctionRequest, FirebaseFunctionResponse } from "../types";
+import { FirebaseFunctionRequest, FirebaseFunctionResponse } from "../utils/express";
 import { ForbiddenError } from "./error";
 
 export function adminHandler(

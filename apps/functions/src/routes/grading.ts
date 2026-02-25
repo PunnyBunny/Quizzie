@@ -2,16 +2,16 @@ import express from "express";
 import { validate } from "../middleware/validation";
 import { NotFoundError } from "../middleware/error";
 import { FieldValue } from "../firebase";
+import type { Timestamp } from "firebase-admin/firestore";
+import { getAssessmentWithAuth, toAssessmentDto } from "../models/assessments";
 import {
   findStudentResponseRef,
-  getAssessmentWithAuth,
   getSignedUrl,
   isAudioStudentResponse,
   isMCStudentResponse,
-  type StudentResponseDoc,
-  studentResponsesCollection,
-  toAssessmentResponse,
-} from "../database";
+  type StudentResponseDto,
+  studentResponses as studentResponsesDb,
+} from "../models/student-responses";
 import {
   type GetAssessmentStudentResponsesInput,
   GetAssessmentStudentResponsesSchema,
@@ -19,7 +19,7 @@ import {
   type SubmitAudioGradeInput,
   SubmitAudioGradeSchema,
 } from "../validation";
-import { type FirebaseFunctionRequest, type FirebaseFunctionResponse } from "../types";
+import { type FirebaseFunctionRequest, type FirebaseFunctionResponse } from "../utils/express";
 
 export const router = express.Router();
 
@@ -36,28 +36,29 @@ router.post(
 
     const assessmentDoc = await getAssessmentWithAuth(assessmentId, callerEmail);
 
-    const assessment = toAssessmentResponse(assessmentDoc);
+    const assessment = toAssessmentDto(assessmentDoc);
     if (!assessment) {
       throw new NotFoundError();
     }
 
-    const studentResponsesSnapshot = await studentResponsesCollection()
+    const studentResponsesSnapshot = await studentResponsesDb
+      .collection()
       .where("assessment-id", "==", assessmentId)
       .get();
 
-    const studentResponses: Record<string, StudentResponseDoc> = {};
+    const studentResponses: Record<string, StudentResponseDto> = {};
 
     for (const doc of studentResponsesSnapshot.docs) {
       const data = doc.data();
 
       if (isMCStudentResponse(data)) {
+        const createdAt = data.createdAt as Timestamp;
         studentResponses[data.section.toString()] = {
-          "assessment-id": data["assessment-id"],
+          assessmentId: data["assessment-id"],
           section: data.section,
           type: "mc",
           studentResponses: data.studentResponses,
-          createdAt: data.createdAt,
-          updatedAt: data.updatedAt,
+          createdAtIsoTimestamp: createdAt.toDate().toISOString(),
         };
       } else if (isAudioStudentResponse(data)) {
         const signedUrls: Record<string, string> = {};
@@ -71,15 +72,15 @@ router.post(
           }
         }
 
+        const createdAt = data.createdAt as Timestamp;
         studentResponses[data.section.toString()] = {
-          "assessment-id": data["assessment-id"],
+          assessmentId: data["assessment-id"],
           section: data.section,
           type: "audio",
           files: signedUrls,
           transcripts: data.transcripts,
           grades: data.grades,
-          createdAt: data.createdAt,
-          updatedAt: data.updatedAt,
+          createdAtIsoTimestamp: createdAt.toDate().toISOString(),
         };
       }
     }

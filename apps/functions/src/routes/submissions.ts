@@ -1,18 +1,18 @@
 import express from "express";
 import { validate } from "../middleware/validation";
 import { FieldValue } from "../firebase";
+import { updateAssessmentProgress } from "../models/assessments";
 import {
-  updateAssessmentProgress,
   upsertAudioStudentResponseRef,
   upsertMCStudentResponseRef,
-} from "../database";
+} from "../models/student-responses";
 import {
   type AudioStudentResponseInput,
   AudioStudentResponseSchema,
   type MCStudentResponseInput,
   MCStudentResponseSchema,
 } from "../validation";
-import type { FirebaseFunctionRequest } from "../types";
+import type { FirebaseFunctionRequest } from "../utils/express";
 
 export const router = express.Router();
 

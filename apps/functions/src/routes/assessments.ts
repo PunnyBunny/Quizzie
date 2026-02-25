@@ -4,10 +4,10 @@ import { NotFoundError } from "../middleware/error";
 import { FieldValue } from "../firebase";
 import {
   type AssessmentDoc,
-  type AssessmentResponse,
-  assessmentsCollection,
-  toAssessmentResponse,
-} from "../database";
+  type AssessmentDto,
+  assessments as assessmentsDb,
+  toAssessmentDto,
+} from "../models/assessments";
 import {
   type AssessmentInput,
   AssessmentSchema,
@@ -17,7 +17,7 @@ import {
   GetAssessmentsSchema,
   type GetAssessmentsOutput,
 } from "../validation";
-import { type FirebaseFunctionRequest, type FirebaseFunctionResponse } from "../types";
+import { type FirebaseFunctionRequest, type FirebaseFunctionResponse } from "../utils/express";
 
 export const router = express.Router();
 
@@ -47,7 +47,7 @@ router.post(
       createdAt: FieldValue.serverTimestamp(),
     };
 
-    const ref = await assessmentsCollection().add(doc);
+    const ref = await assessmentsDb.collection().add(doc);
 
     console.info("Created assessment", ref.id);
     res.status(201).json({ data: { id: ref.id } });
@@ -66,14 +66,15 @@ router.post(
     const { finished } = req.body.data;
     const { callerEmail } = res.locals;
 
-    const allAssessments = await assessmentsCollection()
+    const allAssessments = await assessmentsDb
+      .collection()
       .where("creatorEmail", "==", callerEmail)
       .get();
 
     const assessments = allAssessments.docs
-      .map((doc) => toAssessmentResponse(doc))
+      .map((doc) => toAssessmentDto(doc))
       .filter(
-        (assessment): assessment is AssessmentResponse =>
+        (assessment): assessment is AssessmentDto =>
           assessment !== null && assessment.finished === finished,
       );
 
@@ -90,7 +91,7 @@ router.post(
     const { assessmentId } = req.body.data;
     const now = FieldValue.serverTimestamp();
 
-    const assessmentRef = assessmentsCollection().doc(assessmentId);
+    const assessmentRef = assessmentsDb.doc(assessmentId);
 
     const assessmentDoc = await assessmentRef.get();
     if (!assessmentDoc.exists) {
