@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useState } from "react";
 
 type LastAnsweredQuestion = {
   sectionIndex: number;
@@ -21,12 +21,4 @@ export function AnswerProvider({ children }: { children: React.ReactNode }) {
       {children}
     </AnswerContext.Provider>
   );
-}
-
-export function useAnswer() {
-  const context = useContext(AnswerContext);
-  if (context === undefined) {
-    throw new Error("useAnswer must be used within an AnswerProvider");
-  }
-  return context;
 }

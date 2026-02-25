@@ -26,7 +26,7 @@ export default function Login() {
     if (!loading && authenticated) {
       navigate("/", { replace: true });
     }
-  }, [loading, authenticated]);
+  }, [loading, authenticated, navigate]);
 
   if (loading) return <div>Loading...</div>;
 
@@ -44,11 +44,11 @@ export default function Login() {
       setSubmitting(true);
       await signInWithEmailAndPassword(auth, email, password);
       navigate("/", { replace: true });
-    } catch (err: any) {
+    } catch (err) {
       if (err instanceof FirebaseError) {
         setError(err.message);
       } else {
-        setError(`Unknown error: ${err.message}`);
+        setError(`Unknown error: ${String(err)}`);
       }
     } finally {
       setSubmitting(false);

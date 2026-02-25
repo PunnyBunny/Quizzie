@@ -1,26 +1,26 @@
 import React, { createContext, useContext } from "react";
 import questionsJson from "../assets/questions.json" with { type: "json" };
 
-export type Question = {
+export interface Question {
   kind: "audio" | "mc";
   question: string | null;
   choices: string[] | null;
   correctAnswer: string | null;
   image: string | null;
   audio: string;
-};
+}
 
-export type SectionInstruction = {
+export interface SectionInstruction {
   audio: string;
   text: string;
-};
+}
 
-export type Section = {
+export interface Section {
   title: string;
   goal: string;
   questions: Question[];
   instruction: SectionInstruction;
-};
+}
 
 const QuestionContext = createContext<Section[] | undefined>(undefined);
 
@@ -39,9 +39,9 @@ export function QuestionProvider({ children }: { children: React.ReactNode }) {
       instructions,
     }) => {
       const section: Section = { title, goal, instruction: instructions, questions: [] };
-      section["questions"] = Array.from({ length }).map((_, i) => {
+      section.questions = Array.from({ length }).map((_, i) => {
         return {
-          kind: (kind === "audio" || kind === "mc") ? kind : "mc",
+          kind: kind === "audio" || kind === "mc" ? kind : "mc",
           question: questions?.[i] ?? null,
           choices: choices?.[i] ?? [],
           correctAnswer: correctAnswers?.[i] ?? "",
