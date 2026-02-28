@@ -1,6 +1,6 @@
-import { FieldValue } from "../firebase";
+import { FieldValue } from "../../firebase";
 import type { Timestamp } from "firebase-admin/firestore";
-import type { Gender, LanguageEntry } from "../validation";
+import type { Gender, LanguageEntry } from "../common";
 import { BaseCollection } from "./base";
 
 /**

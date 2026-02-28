@@ -3,7 +3,7 @@ import { validate } from "../middleware/validation";
 import { NotFoundError } from "../middleware/error";
 import { FieldValue } from "../firebase";
 import type { Timestamp } from "firebase-admin/firestore";
-import { getAssessmentWithAuth, toAssessmentDto } from "../models/assessments";
+import { getAssessmentWithAuth, toAssessmentDto } from "../types/models/assessments";
 import {
   findStudentResponseRef,
   getSignedUrl,
@@ -11,14 +11,13 @@ import {
   isMCStudentResponse,
   type StudentResponseDto,
   studentResponses as studentResponsesDb,
-} from "../models/student-responses";
+} from "../types/models/student-responses";
 import {
   type GetAssessmentStudentResponsesInput,
   GetAssessmentStudentResponsesSchema,
-  type GetAssessmentStudentResponsesOutput,
-  type SubmitAudioGradeInput,
-  SubmitAudioGradeSchema,
-} from "../validation";
+} from "../types/zod/routes/submissions";
+import { type GetAssessmentStudentResponsesOutput } from "../types/submissions";
+import { type SubmitAudioGradeInput, SubmitAudioGradeSchema } from "../types/zod/routes/grading";
 import { type FirebaseFunctionRequest, type FirebaseFunctionResponse } from "../utils/express";
 
 export const router = express.Router();

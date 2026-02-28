@@ -1,5 +1,6 @@
-import React, { createContext, useContext } from "react";
-import questionsJson from "../assets/questions.json" with { type: "json" };
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { useHttpsCallable } from "react-firebase-hooks/functions";
+import { functions } from "../lib/firebase.ts";
 
 export interface Question {
   kind: "audio" | "mc";
@@ -22,29 +23,32 @@ export interface Section {
   instruction: SectionInstruction;
 }
 
-const QuestionContext = createContext<Section[] | undefined>(undefined);
+interface ApiSection {
+  title: string;
+  kind: string;
+  length: number;
+  goal: string;
+  questions: string[] | null;
+  audios: string[];
+  choices?: (string[] | null)[];
+  images?: (string | null)[];
+  instructions: SectionInstruction;
+}
 
-export function QuestionProvider({ children }: { children: React.ReactNode }) {
-  const sections = questionsJson.map(
-    ({
-      title,
-      kind,
-      length,
-      goal,
-      questions,
-      audios,
-      choices,
-      correctAnswers,
-      images,
-      instructions,
-    }) => {
+interface GetQuestionsResponse {
+  sections: ApiSection[];
+}
+
+function transformSections(apiSections: ApiSection[]): Section[] {
+  return apiSections.map(
+    ({ title, kind, length, goal, questions, audios, choices, images, instructions }) => {
       const section: Section = { title, goal, instruction: instructions, questions: [] };
       section.questions = Array.from({ length }).map((_, i) => {
         return {
           kind: kind === "audio" || kind === "mc" ? kind : "mc",
           question: questions?.[i] ?? null,
           choices: choices?.[i] ?? [],
-          correctAnswer: correctAnswers?.[i] ?? "",
+          correctAnswer: null,
           image: images?.[i] ?? null,
           audio: audios?.[i] ?? "",
         } satisfies Question;
@@ -52,6 +56,50 @@ export function QuestionProvider({ children }: { children: React.ReactNode }) {
       return section;
     },
   );
+}
+
+const QuestionContext = createContext<Section[] | undefined>(undefined);
+
+export function QuestionProvider({ children }: { children: React.ReactNode }) {
+  const [sections, setSections] = useState<Section[] | null>(null);
+  const [getQuestions, loading, error] = useHttpsCallable<void, GetQuestionsResponse>(
+    functions,
+    "api/get-questions",
+  );
+
+  useEffect(() => {
+    void getQuestions().then((response) => {
+      if (response?.data) {
+        setSections(transformSections(response.data.sections));
+      }
+    });
+  }, [getQuestions]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-gray-500">Loading questions...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
+          Error loading questions: {error.message}
+        </div>
+      </div>
+    );
+  }
+
+  if (!sections) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-gray-500">Loading questions...</div>
+      </div>
+    );
+  }
 
   return <QuestionContext.Provider value={sections}>{children}</QuestionContext.Provider>;
 }

@@ -2,7 +2,6 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useHttpsCallable } from "react-firebase-hooks/functions";
 import { functions } from "../lib/firebase.ts";
 import { useEffect, useState } from "react";
-import quizQuestions from "../assets/questions.json" with { type: "json" };
 
 function BackArrowIcon() {
   return (
@@ -94,6 +93,23 @@ interface SubmitAudioGradeRequest {
   grade: number;
 }
 
+interface QuizSection {
+  title: string;
+  kind: string;
+  length: number;
+  goal: string;
+  questions: string[] | null;
+  audios: string[];
+  choices?: (string[] | null)[];
+  correctAnswers?: (string | null)[];
+  images?: (string | null)[];
+  instructions: { audio: string; text: string };
+}
+
+interface GetQuestionsResponse {
+  sections: QuizSection[];
+}
+
 export default function GradeAssessment() {
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -106,6 +122,11 @@ export default function GradeAssessment() {
     GetAssessmentStudentResponsesResponse
   >(functions, "api/get-assessment-student-responses");
 
+  const [getQuestions, fetchingQuestions, fetchQuestionsError] = useHttpsCallable<
+    void,
+    GetQuestionsResponse
+  >(functions, "api/get-questions");
+
   const [submitAudioGrade, submitting, submitError] = useHttpsCallable<SubmitAudioGradeRequest>(
     functions,
     "api/submit-audio-grade",
@@ -113,10 +134,19 @@ export default function GradeAssessment() {
 
   const [studentResponseData, setStudentResponseData] =
     useState<GetAssessmentStudentResponsesResponse | null>(null);
+  const [quizQuestions, setQuizQuestions] = useState<QuizSection[] | null>(null);
   const [activeSectionIdx, setActiveSectionIdx] = useState(0);
   const [localAudioGrades, setLocalAudioGrades] = useState<Record<string, Record<string, number>>>(
     {},
   );
+
+  useEffect(() => {
+    void getQuestions().then((result) => {
+      if (result?.data) {
+        setQuizQuestions(result.data.sections);
+      }
+    });
+  }, [getQuestions]);
 
   useEffect(() => {
     void getAssessmentStudentResponses({ assessmentId: id }).then((httpResponse) => {
@@ -137,7 +167,7 @@ export default function GradeAssessment() {
     });
   }, [id, getAssessmentStudentResponses]);
 
-  if (fetching) {
+  if (fetching || fetchingQuestions) {
     return (
       <div className="p-6 flex justify-center">
         <div className="text-gray-500">Loading assessment...</div>
@@ -145,18 +175,19 @@ export default function GradeAssessment() {
     );
   }
 
-  if (fetchError || submitError) {
+  if (fetchError || fetchQuestionsError || submitError) {
     return (
       <div className="p-6">
         <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
           {fetchError && <div>Error loading assessment: {fetchError.message}</div>}
+          {fetchQuestionsError && <div>Error loading questions: {fetchQuestionsError.message}</div>}
           {submitError && <div>Error saving grade: {submitError.message}</div>}
         </div>
       </div>
     );
   }
 
-  if (!studentResponseData) {
+  if (!studentResponseData || !quizQuestions) {
     return (
       <div className="p-6">
         <div className="text-gray-500">Assessment not found.</div>

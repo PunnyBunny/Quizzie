@@ -7,7 +7,7 @@ import {
   type AssessmentDto,
   assessments as assessmentsDb,
   toAssessmentDto,
-} from "../models/assessments";
+} from "../types/models/assessments";
 import {
   type AssessmentInput,
   AssessmentSchema,
@@ -15,8 +15,8 @@ import {
   FinishAssessmentSchema,
   type GetAssessmentsInput,
   GetAssessmentsSchema,
-  type GetAssessmentsOutput,
-} from "../validation";
+} from "../types/zod/routes/assessments";
+import { type GetAssessmentsOutput } from "../types/assessments";
 import { type FirebaseFunctionRequest, type FirebaseFunctionResponse } from "../utils/express";
 
 export const router = express.Router();

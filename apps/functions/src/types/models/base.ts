@@ -1,4 +1,4 @@
-import { db } from "../firebase";
+import { db } from "../../firebase";
 export class BaseCollection<T extends FirebaseFirestore.DocumentData> {
   private readonly converter: FirebaseFirestore.FirestoreDataConverter<T>;
   constructor(

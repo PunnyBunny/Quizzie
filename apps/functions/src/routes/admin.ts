@@ -5,21 +5,23 @@ import {
   type AssessmentDto,
   assessments as assessmentsDb,
   toAssessmentDto,
-} from "../models/assessments";
+} from "../types/models/assessments";
 import {
   type AdminCreateUserInput,
   AdminCreateUserSchema,
+  type AdminRemoveUserInput,
+  AdminRemoveUserSchema,
+  type AdminResetPasswordInput,
+  AdminResetPasswordSchema,
+} from "../types/zod/routes/admin";
+import {
   type AdminCreateUserOutput,
   type AdminGetAssessmentsOutput,
   type AdminGetUsersOutput,
-  type AdminRemoveUserInput,
-  AdminRemoveUserSchema,
   type AdminRemoveUserOutput,
-  type AdminResetPasswordInput,
-  AdminResetPasswordSchema,
   type AdminResetPasswordOutput,
   type UserRecord,
-} from "../validation";
+} from "../types/admin";
 import { type FirebaseFunctionRequest, type FirebaseFunctionResponse } from "../utils/express";
 import { adminHandler } from "../middleware/admin";
 

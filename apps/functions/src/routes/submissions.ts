@@ -1,17 +1,17 @@
 import express from "express";
 import { validate } from "../middleware/validation";
 import { FieldValue } from "../firebase";
-import { updateAssessmentProgress } from "../models/assessments";
+import { updateAssessmentProgress } from "../types/models/assessments";
 import {
   upsertAudioStudentResponseRef,
   upsertMCStudentResponseRef,
-} from "../models/student-responses";
+} from "../types/models/student-responses";
 import {
   type AudioStudentResponseInput,
   AudioStudentResponseSchema,
   type MCStudentResponseInput,
   MCStudentResponseSchema,
-} from "../validation";
+} from "../types/zod/routes/submissions";
 import type { FirebaseFunctionRequest } from "../utils/express";
 
 export const router = express.Router();

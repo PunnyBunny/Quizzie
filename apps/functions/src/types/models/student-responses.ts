@@ -1,4 +1,4 @@
-import { FieldValue, admin } from "../firebase";
+import { FieldValue, admin } from "../../firebase";
 import type { Timestamp } from "firebase-admin/firestore";
 import { BaseCollection } from "./base";
 
