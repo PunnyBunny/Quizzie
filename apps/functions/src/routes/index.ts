@@ -10,3 +10,4 @@ router.use(assessmentRouter);
 router.use(submissionRouter);
 router.use(gradingRouter);
 router.use(adminRouter);
+router.use(questionsRouter);

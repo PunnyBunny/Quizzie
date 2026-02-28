@@ -100,8 +100,8 @@ interface QuizSection {
   goal: string;
   questions: string[] | null;
   audios: string[];
-  choices?: (string[] | null)[];
-  correctAnswers?: (string | null)[];
+  choices?: Record<string, string>[];
+  correctAnswers?: string[];
   images?: (string | null)[];
   instructions: { audio: string; text: string };
 }
@@ -233,14 +233,8 @@ export default function GradeAssessment() {
     let correct = 0;
     Object.entries(mcStudentResponse.studentResponses).forEach(([q, answerIndex]) => {
       const questionIndex = parseInt(q);
-      const choices = quizSection.choices?.[questionIndex];
-      const correctAnswer = quizSection.correctAnswers?.[questionIndex];
-      if (
-        choices &&
-        correctAnswer &&
-        answerIndex !== null &&
-        choices[answerIndex] === correctAnswer
-      ) {
+      const correctAnswerIdx = quizSection.correctAnswers?.[questionIndex];
+      if (correctAnswerIdx !== undefined && answerIndex !== null && answerIndex === Number(correctAnswerIdx)) {
         correct++;
       }
     });
@@ -341,10 +335,10 @@ export default function GradeAssessment() {
               {Array.from({ length: currentQuizSection.length }).map((_, questionIdx) => {
                 const studentMcChoiceIdx =
                   mcStudentResponse?.studentResponses[questionIdx.toString()];
-                // TODO: document the structure of studentResponses (currently, scetion index (string) -> response (string))
-                const choices = currentQuizSection.choices?.[questionIdx] ?? [];
-                const correctAnswer = currentQuizSection.correctAnswers?.[questionIdx];
-                const correctIdx = choices.findIndex((c) => c === correctAnswer);
+                const choicesMap = currentQuizSection.choices?.[questionIdx] ?? {};
+                const choiceEntries = Object.entries(choicesMap).sort(([a], [b]) => Number(a) - Number(b));
+                const correctAnswerIdx = currentQuizSection.correctAnswers?.[questionIdx];
+                const correctIdx = correctAnswerIdx !== undefined ? Number(correctAnswerIdx) : -1;
                 const isCorrect = studentMcChoiceIdx === correctIdx;
                 const questionText = currentQuizSection.questions?.[questionIdx];
 
@@ -357,7 +351,8 @@ export default function GradeAssessment() {
                       <div className="flex-1">
                         {questionText && <p className="mb-3 text-gray-800">{questionText}</p>}
                         <div className="grid gap-2">
-                          {choices.map((choice, cIdx) => {
+                          {choiceEntries.map(([key, choice]) => {
+                            const cIdx = Number(key);
                             const isUserChoice = studentMcChoiceIdx === cIdx;
                             const isCorrectChoice = cIdx === correctIdx;
 

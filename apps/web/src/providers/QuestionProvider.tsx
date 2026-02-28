@@ -30,7 +30,7 @@ interface ApiSection {
   goal: string;
   questions: string[] | null;
   audios: string[];
-  choices?: (string[] | null)[];
+  choices?: Record<string, string>[];
   images?: (string | null)[];
   instructions: SectionInstruction;
 }
@@ -47,7 +47,9 @@ function transformSections(apiSections: ApiSection[]): Section[] {
         return {
           kind: kind === "audio" || kind === "mc" ? kind : "mc",
           question: questions?.[i] ?? null,
-          choices: choices?.[i] ?? [],
+          choices: choices?.[i]
+            ? Object.entries(choices[i]).sort(([a], [b]) => Number(a) - Number(b)).map(([, v]) => v)
+            : [],
           correctAnswer: null,
           image: images?.[i] ?? null,
           audio: audios?.[i] ?? "",
