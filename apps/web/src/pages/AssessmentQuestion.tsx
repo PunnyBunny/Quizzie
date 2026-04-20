@@ -14,6 +14,7 @@ import { functions, storage } from "../lib/firebase.ts";
 import { ref as storageRef } from "firebase/storage";
 import mime from "mime";
 import { useUploadFile } from "react-firebase-hooks/storage";
+import { Alert } from "../components/Alert";
 
 function MicrophoneIcon() {
   return (
@@ -158,7 +159,7 @@ export function AssessmentQuestion() {
 
   const navigateToNext = () => {
     if (isLastQuestionInAssessment) {
-      navigate("/thank-you");
+      navigate(`/thank-you/${id}`);
     } else if (isLastQuestion) {
       navigate(`/assessment/${id}/s/${sectionIndex + 1}/instruction`);
     } else {
@@ -297,26 +298,10 @@ export function AssessmentQuestion() {
 
       <main className="w-full max-w-3xl flex flex-col p-6">
         <form className="flex flex-col gap-6" onSubmit={onSubmit}>
-          {submitMcAnswerError && (
-            <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-md">
-              {submitMcAnswerError.message}
-            </div>
-          )}
-          {submitAudioAnswerError && (
-            <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-md">
-              {submitAudioAnswerError.message}
-            </div>
-          )}
-          {finishAssessmentError && (
-            <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-md">
-              {finishAssessmentError.message}
-            </div>
-          )}
-          {uploadFileError && (
-            <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-md">
-              {uploadFileError.message}
-            </div>
-          )}
+          {submitMcAnswerError && <Alert kind="error">{submitMcAnswerError.message}</Alert>}
+          {submitAudioAnswerError && <Alert kind="error">{submitAudioAnswerError.message}</Alert>}
+          {finishAssessmentError && <Alert kind="error">{finishAssessmentError.message}</Alert>}
+          {uploadFileError && <Alert kind="error">{uploadFileError.message}</Alert>}
           <section className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
             {/* Image and audio, TODO: add heading to indicate this is question */}
             <section className="flex flex-col gap-4">
@@ -395,11 +380,7 @@ export function AssessmentQuestion() {
                   </button>
                 </div>
 
-                {error && (
-                  <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-md">
-                    {error}
-                  </div>
-                )}
+                {error && <Alert kind="error">{error}</Alert>}
 
                 {/* Live transcription display */}
                 <div className="mt-2">

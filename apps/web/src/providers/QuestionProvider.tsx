@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useHttpsCallable } from "react-firebase-hooks/functions";
 import { functions } from "../lib/firebase.ts";
+import { Alert } from "../components/Alert";
 
 export interface Question {
   kind: "audio" | "mc";
@@ -88,9 +89,7 @@ export function QuestionProvider({ children }: { children: React.ReactNode }) {
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
-          Error loading questions: {error.message}
-        </div>
+        <Alert kind="error">Error loading questions: {error.message}</Alert>
       </div>
     );
   }

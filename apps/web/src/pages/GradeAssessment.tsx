@@ -1,52 +1,13 @@
-import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
 import { useHttpsCallable } from "react-firebase-hooks/functions";
 import { functions } from "../lib/firebase.ts";
 import { useEffect, useState } from "react";
-
-function BackArrowIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-      strokeWidth={2}
-      stroke="currentColor"
-      className="w-6 h-6"
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-    </svg>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-      strokeWidth={2}
-      stroke="currentColor"
-      className="w-5 h-5 text-green-600"
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-    </svg>
-  );
-}
-
-function XIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-      strokeWidth={2}
-      stroke="currentColor"
-      className="w-5 h-5 text-red-600"
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-    </svg>
-  );
-}
+import ScoreModal from "../components/ScoreModal";
+import { PageHeader } from "../components/PageHeader";
+import { Button } from "../components/Button";
+import { Alert } from "../components/Alert";
+import { CheckIcon, XIcon } from "../components/icons";
+import type { QuizSection } from "../lib/scoring";
 
 interface LanguageEntry {
   language: "cantonese" | "mandarin" | "english" | "other";
@@ -93,26 +54,12 @@ interface SubmitAudioGradeRequest {
   grade: number;
 }
 
-interface QuizSection {
-  title: string;
-  kind: string;
-  length: number;
-  goal: string;
-  questions: string[] | null;
-  audios: string[];
-  choices?: Record<string, string>[];
-  correctAnswers?: string[];
-  images?: (string | null)[];
-  instructions: { audio: string; text: string };
-}
-
 interface GetQuestionsResponse {
   sections: QuizSection[];
 }
 
 export default function GradeAssessment() {
   const { id = "" } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const location = useLocation();
 
   if (!id) throw new Error("Assessment ID not provided");
@@ -139,6 +86,7 @@ export default function GradeAssessment() {
   const [localAudioGrades, setLocalAudioGrades] = useState<Record<string, Record<string, number>>>(
     {},
   );
+  const [showScore, setShowScore] = useState(false);
 
   useEffect(() => {
     void getQuestions().then((result) => {
@@ -178,11 +126,11 @@ export default function GradeAssessment() {
   if (fetchError || fetchQuestionsError || submitError) {
     return (
       <div className="p-6">
-        <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
+        <Alert kind="error">
           {fetchError && <div>Error loading assessment: {fetchError.message}</div>}
           {fetchQuestionsError && <div>Error loading questions: {fetchQuestionsError.message}</div>}
           {submitError && <div>Error saving grade: {submitError.message}</div>}
-        </div>
+        </Alert>
       </div>
     );
   }
@@ -268,25 +216,16 @@ export default function GradeAssessment() {
   return (
     <div className="p-6">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate(backPath)}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              aria-label="Go back"
-            >
-              <BackArrowIcon />
-            </button>
-            <div>
-              <h1 className="text-3xl font-bold">Grade Assessment</h1>
-              <p className="text-gray-600 mt-1">
-                {studentResponseData.assessment.name} • {studentResponseData.assessment.school} •
-                Grade {studentResponseData.assessment.grade}
-              </p>
-            </div>
-          </div>
-        </div>
+        <PageHeader
+          title="Grade Assessment"
+          subtitle={`${studentResponseData.assessment.name} • ${studentResponseData.assessment.school} • Grade ${studentResponseData.assessment.grade}`}
+          backTo={backPath}
+          actions={
+            <Button variant="primary" onClick={() => setShowScore(true)}>
+              View Score
+            </Button>
+          }
+        />
 
         {/* Section Tabs */}
         <div className="mb-6 border-b border-gray-200">
@@ -371,8 +310,8 @@ export default function GradeAssessment() {
                                   {String.fromCharCode(65 + cIdx)}.
                                 </span>
                                 <span>{choice}</span>
-                                {isCorrectChoice && <CheckIcon />}
-                                {isUserChoice && !isCorrect && <XIcon />}
+                                {isCorrectChoice && <CheckIcon className="w-5 h-5 text-green-600" />}
+                                {isUserChoice && !isCorrect && <XIcon className="w-5 h-5 text-red-600" />}
                               </div>
                             );
                           })}
@@ -477,6 +416,10 @@ export default function GradeAssessment() {
           )}
         </div>
       </div>
+
+      {showScore && (
+        <ScoreModal assessmentId={id} onClose={() => setShowScore(false)} />
+      )}
     </div>
   );
 }

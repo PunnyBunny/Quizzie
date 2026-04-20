@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useHttpsCallable } from "react-firebase-hooks/functions";
 import { functions } from "../lib/firebase.ts";
+import { PageHeader } from "../components/PageHeader";
+import { Button } from "../components/Button";
+import { Modal } from "../components/Modal";
+import { Alert } from "../components/Alert";
+import { AddUserIcon, CloseIcon, SearchIcon } from "../components/icons";
 
 interface User {
   email?: string;
@@ -39,23 +43,10 @@ interface AdminRemoveUserOutput {
   email: string;
 }
 
-function BackArrowIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-      strokeWidth={2}
-      stroke="currentColor"
-      className="w-6 h-6"
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-    </svg>
-  );
-}
+const INPUT_CLASSES =
+  "w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-blue-500 focus:ring-blue-500 shadow-sm";
 
 export default function AdminUserManagement() {
-  const navigate = useNavigate();
   const [getUsers, gettingUsers, getUsersError] = useHttpsCallable<{}, AdminGetUsersResponse>(
     functions,
     "api/admin/get-users",
@@ -75,9 +66,7 @@ export default function AdminUserManagement() {
 
   const [users, setUsers] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [formData, setFormData] = useState({
-    email: "",
-  });
+  const [formData, setFormData] = useState({ email: "" });
   const [createUserSuccess, setCreateUserSuccess] = useState(false);
   const [resetLinkPopup, setResetLinkPopup] = useState<{
     email: string;
@@ -100,12 +89,9 @@ export default function AdminUserManagement() {
     setCreateUserSuccess(false);
 
     try {
-      const result = await createUser({
-        email: formData.email,
-      });
+      const result = await createUser({ email: formData.email });
 
       if (result?.data) {
-        // Show popup with reset link
         setResetLinkPopup({
           email: result.data.email,
           resetLink: result.data.resetLink,
@@ -113,12 +99,10 @@ export default function AdminUserManagement() {
           message: `User ${result.data.email} has been created. Share the password reset link below with the user so they can set their password.`,
         });
 
-        // Clear form and refresh users list
         setFormData({ email: "" });
         setCreateUserSuccess(true);
         setTimeout(() => setCreateUserSuccess(false), 3000);
 
-        // Refresh the users list
         const response = await getUsers();
         if (response?.data?.users) {
           setUsers(response.data.users);
@@ -167,10 +151,8 @@ export default function AdminUserManagement() {
     try {
       const result = await removeUser({ email });
       if (result?.data) {
-        // Show success message
         confirm(`User ${result.data.email} has been successfully removed.`);
 
-        // Refresh the users list
         const response = await getUsers();
         if (response?.data?.users) {
           setUsers(response.data.users);
@@ -187,98 +169,60 @@ export default function AdminUserManagement() {
 
   return (
     <div className="p-6">
-      {/* ...existing code... */}
-
-      {/* Reset Link Popup Modal */}
       {resetLinkPopup && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 max-w-lg w-full mx-4">
-            <div className="flex justify-between items-start mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">{resetLinkPopup.title}</h3>
-              <button onClick={closePopup} className="text-gray-400 hover:text-gray-600">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
+        <Modal onClose={closePopup} maxWidth="lg">
+          <div className="flex justify-between items-start mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">{resetLinkPopup.title}</h3>
+            <button
+              type="button"
+              onClick={closePopup}
+              className="text-gray-400 hover:text-gray-600"
+              aria-label="Close"
+            >
+              <CloseIcon />
+            </button>
+          </div>
 
-            <p className="text-gray-600 mb-4">{resetLinkPopup.message}</p>
+          <p className="text-gray-600 mb-4">{resetLinkPopup.message}</p>
 
-            <div className="bg-gray-50 border border-gray-200 rounded-md p-3 mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Password Reset Link
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  readOnly
-                  value={resetLinkPopup.resetLink}
-                  className="flex-1 text-sm bg-white border border-gray-300 rounded px-3 py-2 text-gray-700"
-                />
-                <button
-                  onClick={handleCopyLink}
-                  className={`px-4 py-2 text-sm font-medium rounded transition-colors ${
-                    copied ? "bg-green-600 text-white" : "bg-blue-600 text-white hover:bg-blue-700"
-                  }`}
-                >
-                  {copied ? "Copied!" : "Copy"}
-                </button>
-              </div>
-            </div>
-
-            <div className="flex justify-end">
-              <button
-                onClick={closePopup}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200"
-              >
-                Close
-              </button>
+          <div className="bg-gray-50 border border-gray-200 rounded-md p-3 mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Password Reset Link
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                readOnly
+                value={resetLinkPopup.resetLink}
+                className="flex-1 text-sm bg-white border border-gray-300 rounded px-3 py-2 text-gray-700"
+              />
+              <Button variant={copied ? "success" : "primary"} onClick={handleCopyLink}>
+                {copied ? "Copied!" : "Copy"}
+              </Button>
             </div>
           </div>
-        </div>
+
+          <div className="flex justify-end">
+            <Button variant="secondary" onClick={closePopup}>
+              Close
+            </Button>
+          </div>
+        </Modal>
       )}
 
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate("/admin")}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              aria-label="Go back"
-            >
-              <BackArrowIcon />
-            </button>
-            <div>
-              <h1 className="text-3xl font-bold">User Management</h1>
-              <p className="text-gray-600 mt-1">Manage platform users, roles, and permissions</p>
-            </div>
-          </div>
-        </div>
+        <PageHeader
+          title="User Management"
+          subtitle="Manage platform users, roles, and permissions"
+          backTo="/admin"
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Create User Form */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg border shadow-sm p-6 sticky top-6">
               <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <svg
-                  className="w-5 h-5 text-green-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
-                  />
-                </svg>
+                <AddUserIcon className="w-5 h-5 text-green-600" />
                 Add New User
               </h3>
 
@@ -291,31 +235,26 @@ export default function AdminUserManagement() {
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ email: e.target.value })}
-                    className="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border"
+                    className={INPUT_CLASSES}
                     placeholder="user@example.com"
                     required
                   />
                 </div>
 
                 {createUserError && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-600">
-                    Error: {createUserError.message}
-                  </div>
+                  <Alert kind="error">Error: {createUserError.message}</Alert>
                 )}
 
-                {createUserSuccess && (
-                  <div className="p-3 bg-green-50 border border-green-200 rounded-md text-sm text-green-600">
-                    User created successfully!
-                  </div>
-                )}
+                {createUserSuccess && <Alert kind="success">User created successfully!</Alert>}
 
-                <button
+                <Button
                   type="submit"
+                  variant="success"
                   disabled={creatingUser}
-                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full"
                 >
                   {creatingUser ? "Creating..." : "Create User"}
-                </button>
+                </Button>
               </form>
             </div>
           </div>
@@ -333,19 +272,9 @@ export default function AdminUserManagement() {
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-8 pr-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
-                  <svg
-                    className="w-4 h-4 text-gray-400 absolute left-2.5 top-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                    />
-                  </svg>
+                  <div className="absolute left-2.5 top-2 text-gray-400">
+                    <SearchIcon />
+                  </div>
                 </div>
               </div>
 
@@ -384,8 +313,8 @@ export default function AdminUserManagement() {
                     ) : (
                       filteredUsers.map((user, index) => (
                         <tr key={index}>
-                          <td className="px-6 py-4 font-medium text-gray-900">{user.email}</td>
-                          <td className="px-6 py-4">
+                          <td className="px-6 py-3 font-medium text-gray-900">{user.email}</td>
+                          <td className="px-6 py-3">
                             <span
                               className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                                 user.isAdmin
@@ -396,31 +325,33 @@ export default function AdminUserManagement() {
                               {user.isAdmin ? "Admin" : "User"}
                             </span>
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-6 py-3">
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                               Active
                             </span>
                           </td>
-                          <td className="px-6 py-4 space-x-3">
+                          <td className="px-6 py-3 space-x-2">
                             {user.isAdmin ? (
                               "N/A"
                             ) : (
-                              <div>
-                                <button
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="primary"
                                   onClick={() => user.email && handleResetPassword(user.email)}
                                   disabled={resettingPassword || !user.email}
-                                  className="m-1 px-2 py-1 text-xs font-medium shadow-sm text-white bg-blue-600 hover:bg-blue-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                   Reset Pwd
-                                </button>
-                                <button
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="danger"
                                   onClick={() => user.email && handleRemoveUser(user.email)}
                                   disabled={removingUser || !user.email}
-                                  className="m-1 px-2 py-1 text-xs font-medium shadow-sm text-white bg-red-600 hover:bg-red-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                   Remove
-                                </button>
-                              </div>
+                                </Button>
+                              </>
                             )}
                           </td>
                         </tr>
