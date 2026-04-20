@@ -1,28 +1,13 @@
 import { BaseCollection } from "./base";
+import type { QuestionSectionDto } from "./questions-dto";
 
-export interface SectionInstruction {
-  audio: string;
-  text: string;
-}
+export type { SectionInstruction, QuestionSectionDto } from "./questions-dto";
 
 /**
  * Question section document stored in Firestore.
  * Each document represents one section (doc ID = section index "0"–"6").
  */
-export interface QuestionSectionDoc {
-  title: string;
-  kind: "mc" | "audio";
-  length: number;
-  goal: string;
-  questions: string[] | null;
-  audios: string[];
-  choices?: Record<string, string>[];
-  correctAnswers?: string[];
-  images?: (string | null)[];
-  instructions: SectionInstruction;
-}
-
-export type QuestionSectionDto = QuestionSectionDoc;
+export type QuestionSectionDoc = QuestionSectionDto;
 
 export const questionSections = new BaseCollection<QuestionSectionDoc>(
   "questions",
