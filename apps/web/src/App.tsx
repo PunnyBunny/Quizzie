@@ -95,7 +95,7 @@ function App() {
               />
             </Route>
 
-            <Route path="/thank-you" element={<ThankYou />} />
+            <Route path="/thank-you/:id" element={<ThankYou />} />
 
             <Route path="*" element={<NotFound />} />
           </Route>
