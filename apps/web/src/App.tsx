@@ -16,6 +16,7 @@ import ThankYou from "./pages/ThankYou.tsx";
 import AdminHome from "./pages/AdminHome.tsx";
 import AdminViewAssessments from "./pages/AdminViewAssessments.tsx";
 import AdminUserManagement from "./pages/AdminUserManagement.tsx";
+import AdminSubtasks from "./pages/AdminSubtasks.tsx";
 import useAuth from "./hooks/useAuth.tsx";
 
 interface ProtectedRouteProps {
@@ -59,6 +60,7 @@ function App() {
               <Route path="admin/assessments" element={<AdminViewAssessments />} />
               <Route path="admin/grade/:id" element={<GradeAssessment />} />{" "}
               <Route path="admin/users" element={<AdminUserManagement />} />
+              <Route path="admin/subtasks" element={<AdminSubtasks />} />
             </Route>
           </Route>
 
