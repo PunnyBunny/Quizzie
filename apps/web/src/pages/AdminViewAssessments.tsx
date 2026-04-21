@@ -28,6 +28,8 @@ interface Assessment {
   otherLanguages: LanguageEntry[];
   createdAtIsoTimestamp: string;
   creatorEmail: string;
+  currentSection: number;
+  currentQuestion: number;
   finished: boolean;
 }
 
@@ -351,9 +353,15 @@ export default function AdminViewAssessments() {
                             Finished
                           </span>
                         ) : (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
-                            In Progress
-                          </span>
+                          <div className="flex flex-col gap-1">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 w-fit">
+                              In Progress
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              Section {assessment.currentSection + 1}, Question{" "}
+                              {assessment.currentQuestion + 1}
+                            </span>
+                          </div>
                         )}
                       </td>
                       <td className="px-4 py-3 text-right whitespace-nowrap">
