@@ -4,6 +4,7 @@ export interface SectionInstruction {
 }
 
 export interface QuestionSectionDto {
+  id: string;
   title: string;
   kind: "mc" | "audio";
   length: number;
