@@ -274,11 +274,13 @@ export default function GradeAssessment() {
               {Array.from({ length: currentQuizSection.length }).map((_, questionIdx) => {
                 const studentMcChoiceIdx =
                   mcStudentResponse?.studentResponses[questionIdx.toString()];
+                const hasAnswer =
+                  studentMcChoiceIdx !== undefined && studentMcChoiceIdx !== null;
                 const choicesMap = currentQuizSection.choices?.[questionIdx] ?? {};
                 const choiceEntries = Object.entries(choicesMap).sort(([a], [b]) => Number(a) - Number(b));
                 const correctAnswerIdx = currentQuizSection.correctAnswers?.[questionIdx];
                 const correctIdx = correctAnswerIdx !== undefined ? Number(correctAnswerIdx) : -1;
-                const isCorrect = studentMcChoiceIdx === correctIdx;
+                const isCorrect = hasAnswer && studentMcChoiceIdx === correctIdx;
                 const questionText = currentQuizSection.questions?.[questionIdx];
 
                 return (
@@ -289,36 +291,46 @@ export default function GradeAssessment() {
                       </span>
                       <div className="flex-1">
                         {questionText && <p className="mb-3 text-gray-800">{questionText}</p>}
+                        {!hasAnswer && (
+                          <div className="mb-3 p-2 bg-amber-50 border border-amber-200 rounded-md text-sm text-amber-800">
+                            No answer provided
+                          </div>
+                        )}
                         <div className="grid gap-2">
                           {choiceEntries.map(([key, choice]) => {
                             const cIdx = Number(key);
-                            const isUserChoice = studentMcChoiceIdx === cIdx;
+                            const isUserChoice = hasAnswer && studentMcChoiceIdx === cIdx;
                             const isCorrectChoice = cIdx === correctIdx;
+
+                            let choiceClass = "bg-gray-50";
+                            if (isCorrectChoice && hasAnswer) {
+                              choiceClass = "bg-green-50 border border-green-200";
+                            } else if (isCorrectChoice && !hasAnswer) {
+                              choiceClass = "bg-amber-50 border border-amber-200";
+                            } else if (isUserChoice && !isCorrect) {
+                              choiceClass = "bg-red-50 border border-red-200";
+                            }
 
                             return (
                               <div
                                 key={cIdx}
-                                className={`flex items-center gap-2 p-2 rounded-md ${
-                                  isCorrectChoice
-                                    ? "bg-green-50 border border-green-200"
-                                    : isUserChoice && !isCorrect
-                                      ? "bg-red-50 border border-red-200"
-                                      : "bg-gray-50"
-                                }`}
+                                className={`flex items-center gap-2 p-2 rounded-md ${choiceClass}`}
                               >
                                 <span className="font-medium text-gray-500">
                                   {String.fromCharCode(65 + cIdx)}.
                                 </span>
                                 <span>{choice}</span>
-                                {isCorrectChoice && <CheckIcon className="w-5 h-5 text-green-600" />}
+                                {isCorrectChoice && hasAnswer && (
+                                  <CheckIcon className="w-5 h-5 text-green-600" />
+                                )}
+                                {isCorrectChoice && !hasAnswer && (
+                                  <span className="text-xs text-amber-700 ml-auto">Correct answer</span>
+                                )}
                                 {isUserChoice && !isCorrect && <XIcon className="w-5 h-5 text-red-600" />}
                               </div>
                             );
                           })}
                         </div>
-                        {(studentMcChoiceIdx === undefined || studentMcChoiceIdx === null) && (
-                          <p className="mt-2 text-sm text-gray-400 italic">No answer provided</p>
-                        )}
                       </div>
                     </div>
                   </div>
