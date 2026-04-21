@@ -6,6 +6,7 @@ import {
   ChartBarIcon,
   PencilSquareIcon,
   ClipboardIcon,
+  ClipboardCheckIcon,
 } from "../components/icons";
 
 interface AdminSection {
@@ -40,6 +41,13 @@ export default function AdminHome() {
       description: "Define scoring subtasks and enter normative data by grade",
       buttonLabel: "Manage Subtasks",
       to: "/admin/subtasks",
+    },
+    {
+      icon: <ClipboardCheckIcon />,
+      title: "Questions",
+      description: "Edit assessment sections, questions, choices, and audio/image paths",
+      buttonLabel: "Manage Questions",
+      to: "/admin/questions",
     },
   ];
 
