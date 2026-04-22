@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { useHttpsCallable } from "react-firebase-hooks/functions";
-import { functions } from "../lib/firebase";
+import { useCallable } from "../lib/firebase-hooks";
+import { toUserMessage } from "../lib/errors";
 import type {
   GetQuestionsOutput,
   SaveQuestionSectionOutput,
@@ -167,14 +167,12 @@ function buildInput(form: FormState): {
 }
 
 export default function AdminQuestions() {
-  const [getQuestions, loadingSections] = useHttpsCallable<void, GetQuestionsOutput>(
-    functions,
+  const [getQuestions, loadingSections] = useCallable<void, GetQuestionsOutput>(
     "api/get-questions",
   );
-  const [saveSection, saving] = useHttpsCallable<
-    SaveQuestionSectionInput,
-    SaveQuestionSectionOutput
-  >(functions, "api/admin/save-question-section");
+  const [saveSection, saving] = useCallable<SaveQuestionSectionInput, SaveQuestionSectionOutput>(
+    "api/admin/save-question-section",
+  );
 
   const [sections, setSections] = useState<QuestionSectionDto[]>([]);
   const [editing, setEditing] = useState<{ isNew: boolean } | null>(null);
@@ -197,9 +195,12 @@ export default function AdminQuestions() {
   }, []);
 
   const refresh = async () => {
-    const res = await getQuestions();
-    if (!res?.data) return;
-    setSections(res.data.sections);
+    try {
+      const res = await getQuestions();
+      setSections(res.data.sections);
+    } catch (err) {
+      setError(toUserMessage(err, "Could not load sections."));
+    }
   };
 
   const openNew = () => {
@@ -305,7 +306,7 @@ export default function AdminQuestions() {
       closeModal();
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save.");
+      setError(toUserMessage(err, "Could not save section."));
     }
   };
 

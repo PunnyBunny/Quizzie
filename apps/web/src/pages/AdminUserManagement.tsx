@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { useHttpsCallable } from "react-firebase-hooks/functions";
-import { functions } from "../lib/firebase.ts";
+import { useCallable } from "../lib/firebase-hooks.ts";
+import { toUserMessage } from "../lib/errors";
 import { PageHeader } from "../components/PageHeader";
 import { Button } from "../components/Button";
 import { Modal } from "../components/Modal";
@@ -47,20 +47,15 @@ const INPUT_CLASSES =
   "w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-blue-500 focus:ring-blue-500 shadow-sm";
 
 export default function AdminUserManagement() {
-  const [getUsers, gettingUsers, getUsersError] = useHttpsCallable<{}, AdminGetUsersResponse>(
-    functions,
-    "api/admin/get-users",
+  const [getUsers, gettingUsers] = useCallable<{}, AdminGetUsersResponse>("api/admin/get-users");
+  const [createUser, creatingUser] = useCallable<AdminCreateUserInput, AdminCreateUserOutput>(
+    "api/admin/create-user",
   );
-  const [createUser, creatingUser, createUserError] = useHttpsCallable<
-    AdminCreateUserInput,
-    AdminCreateUserOutput
-  >(functions, "api/admin/create-user");
-  const [resetPassword, resettingPassword] = useHttpsCallable<
+  const [resetPassword, resettingPassword] = useCallable<
     AdminResetPasswordInput,
     AdminResetPasswordOutput
-  >(functions, "api/admin/reset-password");
-  const [removeUser, removingUser] = useHttpsCallable<AdminRemoveUserInput, AdminRemoveUserOutput>(
-    functions,
+  >("api/admin/reset-password");
+  const [removeUser, removingUser] = useCallable<AdminRemoveUserInput, AdminRemoveUserOutput>(
     "api/admin/remove-user",
   );
 
@@ -68,6 +63,10 @@ export default function AdminUserManagement() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [formData, setFormData] = useState({ email: "" });
   const [createUserSuccess, setCreateUserSuccess] = useState(false);
+  const [createUserErrorMsg, setCreateUserErrorMsg] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const [loadUsersError, setLoadUsersError] = useState<string | null>(null);
   const [resetLinkPopup, setResetLinkPopup] = useState<{
     email: string;
     resetLink: string;
@@ -77,39 +76,39 @@ export default function AdminUserManagement() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    void getUsers().then((response) => {
-      if (response?.data?.users) {
+    void getUsers()
+      .then((response) => {
         setUsers(response.data.users);
-      }
-    });
+        setLoadUsersError(null);
+      })
+      .catch((err) => {
+        setLoadUsersError(toUserMessage(err, "Could not load users."));
+      });
   }, [getUsers]);
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreateUserSuccess(false);
+    setCreateUserErrorMsg(null);
 
     try {
       const result = await createUser({ email: formData.email });
+      setResetLinkPopup({
+        email: result.data.email,
+        resetLink: result.data.resetLink,
+        title: "User Created Successfully",
+        message: `User ${result.data.email} has been created. Share the password reset link below with the user so they can set their password.`,
+      });
 
-      if (result?.data) {
-        setResetLinkPopup({
-          email: result.data.email,
-          resetLink: result.data.resetLink,
-          title: "User Created Successfully",
-          message: `User ${result.data.email} has been created. Share the password reset link below with the user so they can set their password.`,
-        });
+      setFormData({ email: "" });
+      setCreateUserSuccess(true);
+      setTimeout(() => setCreateUserSuccess(false), 3000);
 
-        setFormData({ email: "" });
-        setCreateUserSuccess(true);
-        setTimeout(() => setCreateUserSuccess(false), 3000);
-
-        const response = await getUsers();
-        if (response?.data?.users) {
-          setUsers(response.data.users);
-        }
-      }
+      const response = await getUsers();
+      setUsers(response.data.users);
     } catch (error) {
       console.error("Failed to create user:", error);
+      setCreateUserErrorMsg(toUserMessage(error, "Could not create user."));
     }
   };
 
@@ -127,18 +126,19 @@ export default function AdminUserManagement() {
   };
 
   const handleResetPassword = async (email: string) => {
+    setActionError(null);
+    setActionSuccess(null);
     try {
       const result = await resetPassword({ email });
-      if (result?.data) {
-        setResetLinkPopup({
-          email: result.data.email,
-          resetLink: result.data.resetLink,
-          title: "Password Reset Link Generated",
-          message: `A password reset link has been generated for ${result.data.email}. Share this link with the user so they can reset their password.`,
-        });
-      }
+      setResetLinkPopup({
+        email: result.data.email,
+        resetLink: result.data.resetLink,
+        title: "Password Reset Link Generated",
+        message: `A password reset link has been generated for ${result.data.email}. Share this link with the user so they can reset their password.`,
+      });
     } catch (error) {
       console.error("Failed to reset password:", error);
+      setActionError(toUserMessage(error, "Could not generate a reset link."));
     }
   };
 
@@ -148,18 +148,18 @@ export default function AdminUserManagement() {
     );
     if (!confirmed) return;
 
+    setActionError(null);
+    setActionSuccess(null);
     try {
       const result = await removeUser({ email });
-      if (result?.data) {
-        confirm(`User ${result.data.email} has been successfully removed.`);
+      setActionSuccess(`User ${result.data.email} has been removed.`);
+      setTimeout(() => setActionSuccess(null), 4000);
 
-        const response = await getUsers();
-        if (response?.data?.users) {
-          setUsers(response.data.users);
-        }
-      }
+      const response = await getUsers();
+      setUsers(response.data.users);
     } catch (error) {
       console.error("Failed to remove user:", error);
+      setActionError(toUserMessage(error, "Could not remove user."));
     }
   };
 
@@ -241,9 +241,7 @@ export default function AdminUserManagement() {
                   />
                 </div>
 
-                {createUserError && (
-                  <Alert kind="error">Error: {createUserError.message}</Alert>
-                )}
+                {createUserErrorMsg && <Alert kind="error">{createUserErrorMsg}</Alert>}
 
                 {createUserSuccess && <Alert kind="success">User created successfully!</Alert>}
 
@@ -260,7 +258,9 @@ export default function AdminUserManagement() {
           </div>
 
           {/* User List */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 space-y-3">
+            {actionError && <Alert kind="error">{actionError}</Alert>}
+            {actionSuccess && <Alert kind="success">{actionSuccess}</Alert>}
             <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
                 <h3 className="font-semibold text-gray-900">System Users</h3>
@@ -295,15 +295,15 @@ export default function AdminUserManagement() {
                       </td>
                     </tr>
                   )}
-                  {getUsersError && (
+                  {loadUsersError && (
                     <tr>
                       <td colSpan={4} className="px-6 py-8 text-center text-red-600">
-                        Error loading users: {getUsersError.message}
+                        {loadUsersError}
                       </td>
                     </tr>
                   )}
                   {!gettingUsers &&
-                    !getUsersError &&
+                    !loadUsersError &&
                     (filteredUsers.length === 0 ? (
                       <tr>
                         <td colSpan={4} className="px-6 py-8 text-center text-gray-500">

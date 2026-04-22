@@ -1,4 +1,4 @@
-import { useAuthState } from "react-firebase-hooks/auth";
+import { useAuthState } from "../lib/firebase-hooks.ts";
 import { auth } from "../lib/firebase.ts";
 import useIsAdmin from "./useIsAdmin.tsx";
 

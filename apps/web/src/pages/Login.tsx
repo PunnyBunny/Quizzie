@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
-import { auth, FirebaseError, signInWithEmailAndPassword } from "../lib/firebase";
+import { auth, signInWithEmailAndPassword } from "../lib/firebase";
 import { useNavigate } from "react-router-dom";
 import SimpleReactValidator from "simple-react-validator";
-import { useAuthState } from "react-firebase-hooks/auth";
+import { useAuthState } from "../lib/firebase-hooks";
 import useForceUpdate from "use-force-update";
+import { toUserMessage } from "../lib/errors";
+import { Alert } from "../components/Alert";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -45,11 +47,7 @@ export default function Login() {
       await signInWithEmailAndPassword(auth, email, password);
       navigate("/", { replace: true });
     } catch (err) {
-      if (err instanceof FirebaseError) {
-        setError(err.message);
-      } else {
-        setError(`Unknown error: ${String(err)}`);
-      }
+      setError(toUserMessage(err, "Could not sign in. Please try again."));
     } finally {
       setSubmitting(false);
     }
@@ -102,11 +100,7 @@ export default function Login() {
           </span>
         </div>
 
-        {error && (
-          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 text-red-700 px-3 py-2 text-sm">
-            {error}
-          </div>
-        )}
+        {error && <Alert kind="error">{error}</Alert>}
 
         <button
           type="submit"

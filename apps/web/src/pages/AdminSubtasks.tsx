@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useHttpsCallable } from "react-firebase-hooks/functions";
-import { functions } from "../lib/firebase";
+import { useCallable } from "../lib/firebase-hooks";
 import type { NormStats, SubtaskDef, QuizSection } from "../lib/scoring";
 import type {
   GetSubtasksOutput,
@@ -15,6 +14,7 @@ import { PageHeader } from "../components/PageHeader";
 import { Button } from "../components/Button";
 import { Modal } from "../components/Modal";
 import { Alert } from "../components/Alert";
+import { toUserMessage } from "../lib/errors";
 
 type NormGrade = "S1" | "S3" | "S5";
 const NORM_GRADES: NormGrade[] = ["S1", "S3", "S5"];
@@ -31,26 +31,18 @@ const INPUT_CLASSES =
 
 export default function AdminSubtasks() {
 
-  const [getSubtasks, loadingSubtasks] = useHttpsCallable<{}, GetSubtasksOutput>(
-    functions,
-    "api/get-subtasks",
-  );
-  const [saveSubtask, saving] = useHttpsCallable<SaveSubtaskInput, SaveSubtaskOutput>(
-    functions,
+  const [getSubtasks, loadingSubtasks] = useCallable<{}, GetSubtasksOutput>("api/get-subtasks");
+  const [saveSubtask, saving] = useCallable<SaveSubtaskInput, SaveSubtaskOutput>(
     "api/admin/save-subtask",
   );
-  const [deleteSubtask, deleting] = useHttpsCallable<DeleteSubtaskInput>(
-    functions,
-    "api/admin/delete-subtask",
-  );
-  const [getQuestions] = useHttpsCallable<void, GetQuestionsOutput>(
-    functions,
-    "api/get-questions",
-  );
+  const [deleteSubtask, deleting] = useCallable<DeleteSubtaskInput>("api/admin/delete-subtask");
+  const [getQuestions] = useCallable<void, GetQuestionsOutput>("api/get-questions");
 
   const [subtasks, setSubtasks] = useState<SubtaskDef[]>([]);
   const [sections, setSections] = useState<QuizSection[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [listError, setListError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Edit modal state
   const [editing, setEditing] = useState<SubtaskDef | null>(null); // null = closed, empty id = new
@@ -66,15 +58,20 @@ export default function AdminSubtasks() {
   });
 
   useEffect(() => {
-    void Promise.all([getSubtasks({}), getQuestions()]).then(([subtasksRes, questionsRes]) => {
-      if (subtasksRes?.data) setSubtasks(subtasksRes.data.subtasks);
-      if (questionsRes?.data) setSections(questionsRes.data.sections);
-    });
+    void Promise.all([getSubtasks({}), getQuestions()])
+      .then(([subtasksRes, questionsRes]) => {
+        setSubtasks(subtasksRes.data.subtasks);
+        setSections(questionsRes.data.sections);
+        setLoadError(null);
+      })
+      .catch((err) => {
+        setLoadError(toUserMessage(err, "Could not load subtasks."));
+      });
   }, [getSubtasks, getQuestions]);
 
   const refreshSubtasks = async () => {
     const res = await getSubtasks({});
-    if (res?.data) setSubtasks(res.data.subtasks);
+    setSubtasks(res.data.subtasks);
   };
 
   const openNew = () => {
@@ -202,17 +199,19 @@ export default function AdminSubtasks() {
       closeModal();
       await refreshSubtasks();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save.");
+      setError(toUserMessage(err, "Could not save subtask."));
     }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this subtask?")) return;
+    setListError(null);
     try {
       await deleteSubtask({ id });
       await refreshSubtasks();
     } catch (err) {
       console.error("Failed to delete subtask:", err);
+      setListError(toUserMessage(err, "Could not delete subtask."));
     }
   };
 
@@ -235,6 +234,17 @@ export default function AdminSubtasks() {
         <div className="mb-4 flex justify-end">
           <Button onClick={openNew}>New Subtask</Button>
         </div>
+
+        {loadError && (
+          <div className="mb-4">
+            <Alert kind="error">{loadError}</Alert>
+          </div>
+        )}
+        {listError && (
+          <div className="mb-4">
+            <Alert kind="error">{listError}</Alert>
+          </div>
+        )}
 
         {/* Subtask list */}
         <div className="bg-white rounded-lg border shadow-sm overflow-hidden">

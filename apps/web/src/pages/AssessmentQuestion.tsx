@@ -9,11 +9,11 @@ import {
 } from "../providers/RecordingSessionProvider.tsx";
 import H5AudioPlayer, { RHAP_UI } from "react-h5-audio-player";
 import "react-h5-audio-player/lib/styles.css";
-import { useHttpsCallable } from "react-firebase-hooks/functions";
-import { functions, storage } from "../lib/firebase.ts";
-import { ref as storageRef } from "firebase/storage";
+import { useCallable } from "../lib/firebase-hooks.ts";
+import { storage } from "../lib/firebase.ts";
+import { ref as storageRef, uploadBytes } from "firebase/storage";
 import mime from "mime";
-import { useUploadFile } from "react-firebase-hooks/storage";
+import { toUserMessage } from "../lib/errors.ts";
 import { Alert } from "../components/Alert";
 
 function MicrophoneIcon() {
@@ -146,16 +146,23 @@ export function AssessmentQuestion() {
 
   const navigate = useNavigate();
 
-  const [submitMcAnswerFunc, submittingMcAnswer, submitMcAnswerError] =
-    useHttpsCallable<SubmitMcAnswerRequest>(functions, "api/submit-mc-answer");
+  const [submitMcAnswerFunc, submittingMcAnswer] = useCallable<SubmitMcAnswerRequest>(
+    "api/submit-mc-answer",
+  );
 
-  const [submitAudioAnswerFunc, submittingAudioAnswer, submitAudioAnswerError] =
-    useHttpsCallable<SubmitAudioAnswerRequest>(functions, "api/submit-audio-answer");
+  const [submitAudioAnswerFunc, submittingAudioAnswer] = useCallable<SubmitAudioAnswerRequest>(
+    "api/submit-audio-answer",
+  );
 
-  const [finishAssessmentFunc, finishingAssessment, finishAssessmentError] =
-    useHttpsCallable<FinishAssessmentRequest>(functions, "api/finish-assessment");
+  const [finishAssessmentFunc, finishingAssessment] = useCallable<FinishAssessmentRequest>(
+    "api/finish-assessment",
+  );
 
-  const [uploadFileFunc, uploadingFile, , uploadFileError] = useUploadFile();
+  const [uploading, setUploading] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const busy =
+    submittingMcAnswer || submittingAudioAnswer || uploading || finishingAssessment;
 
   const navigateToNext = () => {
     if (isLastQuestionInAssessment) {
@@ -172,92 +179,89 @@ export function AssessmentQuestion() {
       return;
     }
 
-    if (question.kind === "mc") {
-      await submitMcAnswerFunc({
-        assessmentId: id,
-        section: sectionIndex,
-        question: questionIndex,
-        answer: null,
-      });
-      console.log("MC Answer skipped");
-    } else if (question.kind === "audio") {
-      await submitAudioAnswerFunc({
-        assessmentId: id,
-        section: sectionIndex,
-        question: questionIndex,
-        transcript: null,
-        gsUri: null,
-      });
-      console.log("Audio answer skipped");
-    }
+    setSubmitError(null);
+    try {
+      if (question.kind === "mc") {
+        await submitMcAnswerFunc({
+          assessmentId: id,
+          section: sectionIndex,
+          question: questionIndex,
+          answer: null,
+        });
+      } else if (question.kind === "audio") {
+        await submitAudioAnswerFunc({
+          assessmentId: id,
+          section: sectionIndex,
+          question: questionIndex,
+          transcript: null,
+          gsUri: null,
+        });
+      }
 
-    if (isLastQuestionInAssessment) {
-      await finishAssessmentFunc({
-        assessmentId: id,
-      });
-    }
+      if (isLastQuestionInAssessment) {
+        await finishAssessmentFunc({ assessmentId: id });
+      }
 
-    if (submitMcAnswerError || submitAudioAnswerError || finishAssessmentError) {
-      return;
+      navigateToNext();
+    } catch (err) {
+      console.error("Failed to skip question:", err);
+      setSubmitError(toUserMessage(err, "Could not skip this question."));
     }
-
-    navigateToNext();
   };
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // TODO: print score
-    if (question.kind === "mc") {
-      if (selectedIndex == null) {
-        alert("Please select an answer.");
-        return;
-      }
-
-      await submitMcAnswerFunc({
-        assessmentId: id,
-        section: sectionIndex,
-        question: questionIndex,
-        answer: selectedIndex,
-      });
-
-      console.log("MC Answer saved: " + selectedIndex);
-    } else if (question.kind === "audio") {
-      if (audioBlob == null) {
-        alert("Please record your answer.");
-        return;
-      }
-
-      const path = `assessments/${id}/${sectionIndex}/${questionIndex}.${mime.getExtension(audioBlob.type)}`;
-      const fileRef = storageRef(storage, path);
-      const res = await uploadFileFunc(fileRef, audioBlob, {
-        contentType: audioBlob.type,
-      });
-
-      if (!res) return;
-
-      await submitAudioAnswerFunc({
-        assessmentId: id,
-        section: sectionIndex,
-        question: questionIndex,
-        transcript: transcript ?? "",
-        gsUri: `gs://${res.metadata.bucket}/${res.metadata.fullPath}`,
-      });
-
-      console.log("Audio answer saved:", audioBlob);
-    }
-
-    if (isLastQuestionInAssessment) {
-      await finishAssessmentFunc({
-        assessmentId: id,
-      });
-    }
-
-    if (submitMcAnswerError || submitAudioAnswerError || finishAssessmentError || uploadFileError) {
+    if (question.kind === "mc" && selectedIndex == null) {
+      alert("Please select an answer.");
       return;
     }
 
-    navigateToNext();
+    if (question.kind === "audio" && audioBlob == null) {
+      alert("Please record your answer.");
+      return;
+    }
+
+    setSubmitError(null);
+    try {
+      if (question.kind === "mc") {
+        await submitMcAnswerFunc({
+          assessmentId: id,
+          section: sectionIndex,
+          question: questionIndex,
+          answer: selectedIndex,
+        });
+      } else if (question.kind === "audio" && audioBlob != null) {
+        const path = `assessments/${id}/${sectionIndex}/${questionIndex}.${mime.getExtension(audioBlob.type)}`;
+        const fileRef = storageRef(storage, path);
+        setUploading(true);
+        let uploadResult;
+        try {
+          uploadResult = await uploadBytes(fileRef, audioBlob, {
+            contentType: audioBlob.type,
+          });
+        } finally {
+          setUploading(false);
+        }
+
+        await submitAudioAnswerFunc({
+          assessmentId: id,
+          section: sectionIndex,
+          question: questionIndex,
+          transcript: transcript ?? "",
+          gsUri: `gs://${uploadResult.metadata.bucket}/${uploadResult.metadata.fullPath}`,
+        });
+      }
+
+      if (isLastQuestionInAssessment) {
+        await finishAssessmentFunc({ assessmentId: id });
+      }
+
+      navigateToNext();
+    } catch (err) {
+      console.error("Failed to submit answer:", err);
+      setSubmitError(toUserMessage(err, "Could not submit your answer."));
+    }
   };
 
   const title = section?.title ?? "Section";
@@ -298,10 +302,7 @@ export function AssessmentQuestion() {
 
       <main className="w-full max-w-3xl flex flex-col p-6">
         <form className="flex flex-col gap-6" onSubmit={onSubmit}>
-          {submitMcAnswerError && <Alert kind="error">{submitMcAnswerError.message}</Alert>}
-          {submitAudioAnswerError && <Alert kind="error">{submitAudioAnswerError.message}</Alert>}
-          {finishAssessmentError && <Alert kind="error">{finishAssessmentError.message}</Alert>}
-          {uploadFileError && <Alert kind="error">{uploadFileError.message}</Alert>}
+          {submitError && <Alert kind="error">{submitError}</Alert>}
           <section className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
             {/* Image and audio, TODO: add heading to indicate this is question */}
             <section className="flex flex-col gap-4">
@@ -438,12 +439,7 @@ export function AssessmentQuestion() {
                   type="button"
                   className="px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50"
                   onClick={handleSkip}
-                  disabled={
-                    submittingMcAnswer ||
-                    submittingAudioAnswer ||
-                    uploadingFile ||
-                    finishingAssessment
-                  }
+                  disabled={busy}
                 >
                   Skip
                 </button>
@@ -454,18 +450,10 @@ export function AssessmentQuestion() {
                   disabled={
                     (question.kind === "mc" && selectedIndex == null) ||
                     (question.kind === "audio" && audioBlob == null) ||
-                    submittingMcAnswer ||
-                    submittingAudioAnswer ||
-                    uploadingFile ||
-                    finishingAssessment
+                    busy
                   }
                 >
-                  {submittingMcAnswer ||
-                  submittingAudioAnswer ||
-                  uploadingFile ||
-                  finishingAssessment
-                    ? "Loading..."
-                    : "Next"}
+                  {busy ? "Loading..." : "Next"}
                 </button>
               </div>
             </div>

@@ -1,6 +1,6 @@
 import { useParams, useLocation } from "react-router-dom";
-import { useHttpsCallable } from "react-firebase-hooks/functions";
-import { functions } from "../lib/firebase.ts";
+import { useCallable } from "../lib/firebase-hooks.ts";
+import { toUserMessage } from "../lib/errors.ts";
 import { useEffect, useState } from "react";
 import ScoreModal from "../components/ScoreModal";
 import { PageHeader } from "../components/PageHeader";
@@ -64,18 +64,16 @@ export default function GradeAssessment() {
 
   if (!id) throw new Error("Assessment ID not provided");
 
-  const [getAssessmentStudentResponses, fetching, fetchError] = useHttpsCallable<
+  const [getAssessmentStudentResponses, fetching] = useCallable<
     GetAssessmentStudentResponsesRequest,
     GetAssessmentStudentResponsesResponse
-  >(functions, "api/get-assessment-student-responses");
+  >("api/get-assessment-student-responses");
 
-  const [getQuestions, fetchingQuestions, fetchQuestionsError] = useHttpsCallable<
-    void,
-    GetQuestionsResponse
-  >(functions, "api/get-questions");
+  const [getQuestions, fetchingQuestions] = useCallable<void, GetQuestionsResponse>(
+    "api/get-questions",
+  );
 
-  const [submitAudioGrade, submitting, submitError] = useHttpsCallable<SubmitAudioGradeRequest>(
-    functions,
+  const [submitAudioGrade, submitting] = useCallable<SubmitAudioGradeRequest>(
     "api/submit-audio-grade",
   );
 
@@ -87,21 +85,20 @@ export default function GradeAssessment() {
     {},
   );
   const [showScore, setShowScore] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [gradeError, setGradeError] = useState<string | null>(null);
 
   useEffect(() => {
-    void getQuestions().then((result) => {
-      if (result?.data) {
-        setQuizQuestions(result.data.sections);
-      }
-    });
+    void getQuestions()
+      .then((result) => setQuizQuestions(result.data.sections))
+      .catch((err) => setLoadError(toUserMessage(err, "Could not load questions.")));
   }, [getQuestions]);
 
   useEffect(() => {
-    void getAssessmentStudentResponses({ assessmentId: id }).then((httpResponse) => {
-      if (httpResponse?.data) {
+    void getAssessmentStudentResponses({ assessmentId: id })
+      .then((httpResponse) => {
         setStudentResponseData(httpResponse.data);
 
-        // Initialize local audio grades from server data
         const initialAudioGrades: Record<string, Record<string, number>> = {};
         for (const [sectionIdx, answers] of Object.entries(
           httpResponse.data.studentResponsesBySection,
@@ -111,8 +108,8 @@ export default function GradeAssessment() {
           }
         }
         setLocalAudioGrades(initialAudioGrades);
-      }
-    });
+      })
+      .catch((err) => setLoadError(toUserMessage(err, "Could not load assessment.")));
   }, [id, getAssessmentStudentResponses]);
 
   if (fetching || fetchingQuestions) {
@@ -123,14 +120,10 @@ export default function GradeAssessment() {
     );
   }
 
-  if (fetchError || fetchQuestionsError || submitError) {
+  if (loadError) {
     return (
       <div className="p-6">
-        <Alert kind="error">
-          {fetchError && <div>Error loading assessment: {fetchError.message}</div>}
-          {fetchQuestionsError && <div>Error loading questions: {fetchQuestionsError.message}</div>}
-          {submitError && <div>Error saving grade: {submitError.message}</div>}
-        </Alert>
+        <Alert kind="error">{loadError}</Alert>
       </div>
     );
   }
@@ -144,6 +137,7 @@ export default function GradeAssessment() {
   }
 
   const changeGrade = async (section: number, question: number, grade: number) => {
+    const previous = localAudioGrades[section]?.[question];
     setLocalAudioGrades((prev) => ({
       ...prev,
       [section]: {
@@ -151,13 +145,27 @@ export default function GradeAssessment() {
         [question]: grade,
       },
     }));
+    setGradeError(null);
 
-    await submitAudioGrade({
-      assessmentId: id,
-      section,
-      question,
-      grade,
-    });
+    try {
+      await submitAudioGrade({
+        assessmentId: id,
+        section,
+        question,
+        grade,
+      });
+    } catch (err) {
+      setGradeError(toUserMessage(err, "Could not save grade."));
+      setLocalAudioGrades((prev) => {
+        const prevSection: Record<string, number> = { ...prev[section] };
+        if (previous === undefined) {
+          delete prevSection[question];
+        } else {
+          prevSection[question] = previous;
+        }
+        return { ...prev, [section]: prevSection };
+      });
+    }
   };
 
   const getMcStudentResponse = (sectionIndex: number) => {
@@ -226,6 +234,12 @@ export default function GradeAssessment() {
             </Button>
           }
         />
+
+        {gradeError && (
+          <Alert kind="error" className="mb-4">
+            {gradeError}
+          </Alert>
+        )}
 
         {/* Section Tabs */}
         <div className="mb-6 border-b border-gray-200">

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useHttpsCallable } from "react-firebase-hooks/functions";
-import { functions } from "../lib/firebase.ts";
+import { useCallable } from "../lib/firebase-hooks.ts";
+import { toUserMessage } from "../lib/errors.ts";
 import { PageHeader } from "../components/PageHeader";
 import { Button } from "../components/Button";
 import { Alert } from "../components/Alert";
@@ -49,12 +49,12 @@ function SortGlyph({ active, order }: { active: boolean; order: "asc" | "desc" }
 export default function AdminViewAssessments() {
   const navigate = useNavigate();
 
-  const [adminGetAssessments, loading, error] = useHttpsCallable<{}, AdminGetAssessmentsResponse>(
-    functions,
+  const [adminGetAssessments, loading] = useCallable<{}, AdminGetAssessmentsResponse>(
     "api/admin/get-assessments",
   );
 
   const [assessments, setAssessments] = useState<Assessment[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const [filterSchool, setFilterSchool] = useState<string>("all");
   const [filterCreator, setFilterCreator] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<"all" | "finished" | "in-progress">("all");
@@ -62,11 +62,14 @@ export default function AdminViewAssessments() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   useEffect(() => {
-    void adminGetAssessments().then((response) => {
-      if (response?.data?.assessments) {
+    void adminGetAssessments()
+      .then((response) => {
         setAssessments(response.data.assessments);
-      }
-    });
+        setError(null);
+      })
+      .catch((err) => {
+        setError(toUserMessage(err, "Could not load assessments."));
+      });
   }, [adminGetAssessments]);
 
   const schools = useMemo(() => {
@@ -272,7 +275,7 @@ export default function AdminViewAssessments() {
 
         {error && (
           <Alert kind="error" className="mb-6">
-            Error loading assessments: {error.message}
+            {error}
           </Alert>
         )}
 

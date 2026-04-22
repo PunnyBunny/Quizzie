@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { useHttpsCallable } from "react-firebase-hooks/functions";
-import { functions } from "../lib/firebase.ts";
+import { useCallable } from "../lib/firebase-hooks.ts";
+import { toUserMessage } from "../lib/errors.ts";
 import { Alert } from "../components/Alert";
 
 export interface Question {
@@ -65,36 +65,24 @@ const QuestionContext = createContext<Section[] | undefined>(undefined);
 
 export function QuestionProvider({ children }: { children: React.ReactNode }) {
   const [sections, setSections] = useState<Section[] | null>(null);
-  const [getQuestions, loading, error] = useHttpsCallable<void, GetQuestionsResponse>(
-    functions,
-    "api/get-questions",
-  );
+  const [error, setError] = useState<string | null>(null);
+  const [getQuestions, loading] = useCallable<void, GetQuestionsResponse>("api/get-questions");
 
   useEffect(() => {
-    void getQuestions().then((response) => {
-      if (response?.data) {
-        setSections(transformSections(response.data.sections));
-      }
-    });
+    void getQuestions()
+      .then((response) => setSections(transformSections(response.data.sections)))
+      .catch((err) => setError(toUserMessage(err, "Could not load questions.")));
   }, [getQuestions]);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-gray-500">Loading questions...</div>
-      </div>
-    );
-  }
 
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Alert kind="error">Error loading questions: {error.message}</Alert>
+        <Alert kind="error">{error}</Alert>
       </div>
     );
   }
 
-  if (!sections) {
+  if (loading || !sections) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-gray-500">Loading questions...</div>

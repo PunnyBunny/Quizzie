@@ -2,8 +2,9 @@ import React, { useRef, useState } from "react";
 import SimpleReactValidator from "simple-react-validator";
 import useForceUpdate from "use-force-update";
 import { useBrowserSupport } from "../providers/RecordingSessionProvider.tsx";
-import { useHttpsCallable } from "react-firebase-hooks/functions";
-import { functions } from "../lib/firebase.ts";
+import { useCallable } from "../lib/firebase-hooks.ts";
+import { toUserMessage } from "../lib/errors.ts";
+import { Alert } from "../components/Alert.tsx";
 
 type Language = "cantonese" | "mandarin" | "english" | "other";
 type Gender = "male" | "female";
@@ -65,23 +66,26 @@ export default function NewAssessment() {
     }),
   );
 
-  const [createAssessmentFunc, , error] = useHttpsCallable<
-    CreateAssessmentRequest,
-    CreateAssessmentResponse
-  >(functions, "api/create-assessment");
+  const [createAssessmentFunc] = useCallable<CreateAssessmentRequest, CreateAssessmentResponse>(
+    "api/create-assessment",
+  );
 
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const formValid = validator.current.allValid(); // note: messages are only revealed on submit
 
   const submitForm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitError(null);
+
+    if (!formValid) {
+      validator.current.showMessages();
+      return;
+    }
+
     try {
-      e.preventDefault();
       setSubmitting(true);
-      if (!formValid) {
-        validator.current.showMessages();
-        return;
-      }
 
       // Build mother tongue with otherSpecify if needed
       const finalMotherTongue: LanguageEntry = {
@@ -100,16 +104,12 @@ export default function NewAssessment() {
         motherTongue: finalMotherTongue,
         otherLanguages,
       });
-      if (!response) {
-        // TODO: handle error
-        throw new Error("Failed to create assessment");
-      }
 
       const { id: assessmentId } = response.data;
-
-      console.log("Created new assessment. ID:", assessmentId);
-
       window.location.href = `/assessment/${assessmentId}/s/0/instruction`;
+    } catch (err) {
+      console.error("Failed to create assessment:", err);
+      setSubmitError(toUserMessage(err, "Could not start the assessment. Please try again."));
     } finally {
       setSubmitting(false);
     }
@@ -124,9 +124,9 @@ export default function NewAssessment() {
             <p className="text-gray-600 mt-1">Please enter the student's details to begin</p>
           </div>
 
-          {error && (
-            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 text-red-700 px-3 py-2 text-sm">
-              {error.message}
+          {submitError && (
+            <div className="mb-4">
+              <Alert kind="error">{submitError}</Alert>
             </div>
           )}
 

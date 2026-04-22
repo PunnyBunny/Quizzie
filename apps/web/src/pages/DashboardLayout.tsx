@@ -1,28 +1,30 @@
+import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { useSignOut } from "react-firebase-hooks/auth";
+import { signOut } from "firebase/auth";
 import { auth } from "../lib/firebase.ts";
+import { toUserMessage } from "../lib/errors.ts";
 
 function LogoutButton() {
   const navigate = useNavigate();
-  const [signOut, loading, error] = useSignOut(auth);
+  const [loading, setLoading] = useState(false);
 
-  if (error) {
-    alert("Error signing out: " + error.message);
-    return;
-  }
+  const handleClick = async () => {
+    setLoading(true);
+    try {
+      await signOut(auth);
+      navigate("/login");
+    } catch (err) {
+      alert(toUserMessage(err, "Failed to sign out."));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="flex items-center gap-2">
       <button
         type="button"
-        onClick={async () => {
-          const success = await signOut();
-          if (success) {
-            navigate("/login");
-          } else {
-            alert("Failed to sign out");
-          }
-        }}
+        onClick={handleClick}
         disabled={loading}
         className="px-3 py-1.5 rounded-md text-sm font-medium bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-50"
       >

@@ -1,4 +1,4 @@
-import { Outlet, Route, Routes, useNavigate } from "react-router-dom";
+import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
@@ -19,30 +19,53 @@ import AdminUserManagement from "./pages/AdminUserManagement.tsx";
 import AdminSubtasks from "./pages/AdminSubtasks.tsx";
 import AdminQuestions from "./pages/AdminQuestions.tsx";
 import useAuth from "./hooks/useAuth.tsx";
+import { Alert } from "./components/Alert";
+import { Button } from "./components/Button";
+import { toUserMessage } from "./lib/errors";
 
 interface ProtectedRouteProps {
   isAdminRoute: boolean;
 }
 
+const CenteredMessage = ({ children }: { children: React.ReactNode }) => (
+  <div className="min-h-screen flex items-center justify-center p-6">
+    <div className="max-w-md w-full space-y-4">{children}</div>
+  </div>
+);
+
 const ProtectedRoute = ({ isAdminRoute }: ProtectedRouteProps) => {
   const { user, loading, error, isAdmin } = useAuth();
 
-  const navigate = useNavigate();
-
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error.message}</div>;
-
-  // Got auth state, [user == null] means not logged in
-  if (user == null) {
-    navigate("/login");
-    return null;
+  if (loading) {
+    return (
+      <CenteredMessage>
+        <p className="text-gray-600 text-center">Loading…</p>
+      </CenteredMessage>
+    );
   }
 
-  // User is logged in
-  if (!isAdminRoute) return <Outlet />;
+  if (error) {
+    return (
+      <CenteredMessage>
+        <Alert kind="error">{toUserMessage(error, "Could not verify your session.")}</Alert>
+        <Button variant="primary" onClick={() => window.location.reload()} className="w-full">
+          Retry
+        </Button>
+      </CenteredMessage>
+    );
+  }
 
-  if (!isAdmin) {
-    return <div>Not authorized</div>;
+  if (user == null) return <Navigate to="/login" replace />;
+
+  if (isAdminRoute && !isAdmin) {
+    return (
+      <CenteredMessage>
+        <Alert kind="error">You don't have permission to view this page.</Alert>
+        <Button variant="secondary" onClick={() => (window.location.href = "/")} className="w-full">
+          Go home
+        </Button>
+      </CenteredMessage>
+    );
   }
 
   return <Outlet />;

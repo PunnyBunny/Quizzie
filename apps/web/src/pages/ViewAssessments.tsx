@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
-import { useHttpsCallable } from "react-firebase-hooks/functions";
-import { functions } from "../lib/firebase.ts";
+import { useCallable } from "../lib/firebase-hooks.ts";
+import { toUserMessage } from "../lib/errors.ts";
 import { useEffect, useState } from "react";
 import ScoreModal from "../components/ScoreModal";
 import { PageHeader } from "../components/PageHeader";
@@ -38,20 +38,18 @@ interface GetAssessmentsResponse {
 export default function ViewAssessments() {
   const navigate = useNavigate();
 
-  const [getAssessments, loading, error] = useHttpsCallable<
-    GetAssessmentsRequest,
-    GetAssessmentsResponse
-  >(functions, "api/get-assessments");
+  const [getAssessments, loading] = useCallable<GetAssessmentsRequest, GetAssessmentsResponse>(
+    "api/get-assessments",
+  );
 
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [scoreModalId, setScoreModalId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    void getAssessments({ finished: false }).then((response) => {
-      if (response?.data?.assessments) {
-        setAssessments(response.data.assessments);
-      }
-    });
+    void getAssessments({ finished: false })
+      .then((response) => setAssessments(response.data.assessments))
+      .catch((err) => setError(toUserMessage(err, "Could not load assessments.")));
   }, [getAssessments]);
 
   const formatDate = (dateString: string) => {
@@ -77,7 +75,7 @@ export default function ViewAssessments() {
         {error && (
           <Alert kind="error" className="mb-4">
             <p className="font-medium">Error loading assessments</p>
-            <p className="text-sm mt-1">{error.message}</p>
+            <p className="text-sm mt-1">{error}</p>
           </Alert>
         )}
 

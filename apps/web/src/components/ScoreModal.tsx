@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useHttpsCallable } from "react-firebase-hooks/functions";
-import { functions } from "../lib/firebase";
+import { useCallable } from "../lib/firebase-hooks";
+import { toUserMessage } from "../lib/errors";
 import { Modal } from "./Modal";
 import { Button } from "./Button";
 import { Alert } from "./Alert";
@@ -41,20 +41,14 @@ interface ScoreModalProps {
 }
 
 export default function ScoreModal({ assessmentId, onClose, onGoToGrading }: ScoreModalProps) {
-  const [getResponses] = useHttpsCallable<
+  const [getResponses] = useCallable<
     { assessmentId: string },
     GetAssessmentStudentResponsesResponse
-  >(functions, "api/get-assessment-student-responses");
+  >("api/get-assessment-student-responses");
 
-  const [getQuestions] = useHttpsCallable<void, GetQuestionsResponse>(
-    functions,
-    "api/get-questions",
-  );
+  const [getQuestions] = useCallable<void, GetQuestionsResponse>("api/get-questions");
 
-  const [getSubtasks] = useHttpsCallable<{}, GetSubtasksResponse>(
-    functions,
-    "api/get-subtasks",
-  );
+  const [getSubtasks] = useCallable<{}, GetSubtasksResponse>("api/get-subtasks");
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -75,17 +69,12 @@ export default function ScoreModal({ assessmentId, onClose, onGoToGrading }: Sco
           getSubtasks({}),
         ]);
 
-        if (!responsesResult?.data || !questionsResult?.data) {
-          setError("Failed to load assessment data.");
-          return;
-        }
-
         setAssessment(responsesResult.data.assessment);
         setResponsesBySection(responsesResult.data.studentResponsesBySection);
         setSections(questionsResult.data.sections);
-        setSubtaskDefs(subtasksResult?.data?.subtasks ?? []);
+        setSubtaskDefs(subtasksResult.data.subtasks);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "An error occurred.");
+        setError(toUserMessage(e, "Could not load assessment data."));
       } finally {
         setLoading(false);
       }
