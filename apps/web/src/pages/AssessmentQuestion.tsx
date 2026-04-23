@@ -15,6 +15,8 @@ import { ref as storageRef, uploadBytes } from "firebase/storage";
 import mime from "mime";
 import { toUserMessage } from "../lib/errors.ts";
 import { Alert } from "../components/Alert";
+import { useStorageUrl } from "../hooks/useStorageUrl.ts";
+import { audioStoragePath, imageStoragePath } from "../lib/asset-paths.ts";
 
 function MicrophoneIcon() {
   return (
@@ -103,6 +105,9 @@ export function AssessmentQuestion() {
       `Question ${questionIndex} not found in section ${sectionIndex} of assessment ${id}.`,
     );
   }
+
+  const questionImage = useStorageUrl(question.image ? imageStoragePath(question.image) : null);
+  const questionAudio = useStorageUrl(question.audio ? audioStoragePath(question.audio) : null);
 
   const totalQuestions = section?.questions?.length ?? 0;
   const progressPercentage =
@@ -306,15 +311,15 @@ export function AssessmentQuestion() {
           <section className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
             {/* Image and audio, TODO: add heading to indicate this is question */}
             <section className="flex flex-col gap-4">
-              {question.image != null && (
+              {question.image != null && questionImage.url && (
                 <img
-                  src={`/src/assets/images/${question.image}`}
+                  src={questionImage.url}
                   alt={questionText ? questionText : "Question image"}
                   className="w-full max-h-72 object-contain"
                 />
               )}
-              {question.audio != null && (
-                <audio controls src={`/src/assets/audios/${question.audio}`} className="w-full">
+              {question.audio != null && questionAudio.url && (
+                <audio controls src={questionAudio.url} className="w-full">
                   Your browser does not support the audio element.
                 </audio>
               )}

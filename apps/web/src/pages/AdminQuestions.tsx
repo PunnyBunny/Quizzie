@@ -14,6 +14,7 @@ import { PageHeader } from "../components/PageHeader";
 import { Button } from "../components/Button";
 import { Modal } from "../components/Modal";
 import { Alert } from "../components/Alert";
+import { AssetUploader } from "../components/AssetUploader";
 
 type Kind = "mc" | "audio";
 const KINDS: Kind[] = ["mc", "audio"];
@@ -458,13 +459,13 @@ export default function AdminQuestions() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Instructions: audio path
+                      Instructions: audio
                     </label>
-                    <input
-                      type="text"
+                    <AssetUploader
+                      kind="audio"
+                      sectionId={form.id || "instructions"}
                       value={form.instructionAudio}
-                      onChange={(e) => updateForm("instructionAudio", e.target.value)}
-                      className={INPUT_CLASSES}
+                      onChange={(p) => updateForm("instructionAudio", p)}
                       placeholder="e.g. instructions/section-0.mp3"
                     />
                   </div>
@@ -565,13 +566,13 @@ export default function AdminQuestions() {
 
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">
-                        Audio path
+                        Audio
                       </label>
-                      <input
-                        type="text"
+                      <AssetUploader
+                        kind="audio"
+                        sectionId={form.id}
                         value={row.audio}
-                        onChange={(e) => updateRow(rowIdx, { audio: e.target.value })}
-                        className={INPUT_CLASSES}
+                        onChange={(p) => updateRow(rowIdx, { audio: p })}
                         placeholder="e.g. section-0/q1.mp3"
                       />
                     </div>
@@ -579,13 +580,13 @@ export default function AdminQuestions() {
                     {form.imagesEnabled && (
                       <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">
-                          Image path (blank = null)
+                          Image (blank = null)
                         </label>
-                        <input
-                          type="text"
+                        <AssetUploader
+                          kind="image"
+                          sectionId={form.id}
                           value={row.image}
-                          onChange={(e) => updateRow(rowIdx, { image: e.target.value })}
-                          className={INPUT_CLASSES}
+                          onChange={(p) => updateRow(rowIdx, { image: p })}
                         />
                       </div>
                     )}

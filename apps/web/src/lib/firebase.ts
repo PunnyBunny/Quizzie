@@ -16,7 +16,7 @@ const testFirebaseConfig = {
 const isTest = window.location.hostname === "localhost";
 
 // Initialize Firebase
-export const app = isTest ? initializeApp(testFirebaseConfig) : initializeApp();
+export const app = initializeApp(testFirebaseConfig);
 
 // Initialize Firebase Authentication and export it for use in the app
 export const auth = getAuth(app);
