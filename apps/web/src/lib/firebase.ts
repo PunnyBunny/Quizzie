@@ -3,7 +3,7 @@ import { getAuth } from "firebase/auth";
 import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
 import { getStorage } from "firebase/storage";
 
-const firebaseConfig = {
+const testFirebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
@@ -13,8 +13,10 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
+const isTest = window.location.hostname === "localhost";
+
 // Initialize Firebase
-export const app = initializeApp(firebaseConfig);
+export const app = isTest ? initializeApp(testFirebaseConfig) : initializeApp();
 
 // Initialize Firebase Authentication and export it for use in the app
 export const auth = getAuth(app);
@@ -23,7 +25,7 @@ export { signInWithEmailAndPassword } from "firebase/auth";
 
 export const functions = getFunctions(app);
 
-if (window.location.hostname === "localhost") {
+if (isTest) {
   connectFunctionsEmulator(functions, "127.0.0.1", 5001);
 }
 
