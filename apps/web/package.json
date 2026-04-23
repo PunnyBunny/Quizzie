@@ -8,7 +8,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "preview": "vite preview",
-    "start": "node server.mjs"
+    "start": "node index.js"
   },
   "dependencies": {
     "@types/dom-speech-recognition": "^0.0.6",
