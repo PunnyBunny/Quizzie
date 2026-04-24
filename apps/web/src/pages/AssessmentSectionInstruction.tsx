@@ -1,5 +1,6 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useSection } from "../providers/QuestionProvider.tsx";
+import { AssessmentHeader } from "../components/AssessmentHeader";
 
 export default function AssessmentSectionInstruction() {
   const { id = "", section: sectionIndexStr = "" } = useParams<{ id: string; section: string }>();
@@ -18,13 +19,7 @@ export default function AssessmentSectionInstruction() {
 
   return (
     <div className="flex flex-col items-center bg-gray-50">
-      {/*TODO: share header with assessment*/}
-      <header className="flex flex-col gap-1 w-full items-start bg-white shadow p-6">
-        <h1 className="text-3xl font-bold text-gray-900">{title}</h1>
-        <p className="text-sm text-gray-500">
-          Assessment ID {id} • Section {sectionIndex + 1}
-        </p>
-      </header>
+      <AssessmentHeader title={title} assessmentId={id} sectionIndex={sectionIndex} />
 
       <main className="flex flex-col w-full max-w-3xl gap-6 p-8">
         <section className="flex flex-col">

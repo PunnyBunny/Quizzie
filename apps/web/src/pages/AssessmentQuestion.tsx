@@ -15,6 +15,8 @@ import { ref as storageRef, uploadBytes } from "firebase/storage";
 import mime from "mime";
 import { toUserMessage } from "../lib/errors.ts";
 import { Alert } from "../components/Alert";
+import { AssessmentHeader } from "../components/AssessmentHeader";
+import { Modal } from "../components/Modal";
 import { useStorageUrl } from "../hooks/useStorageUrl.ts";
 import { audioStoragePath, imageStoragePath } from "../lib/asset-paths.ts";
 
@@ -165,6 +167,7 @@ export function AssessmentQuestion() {
 
   const [uploading, setUploading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [showInstructions, setShowInstructions] = useState(false);
 
   const busy =
     submittingMcAnswer || submittingAudioAnswer || uploading || finishingAssessment;
@@ -274,36 +277,42 @@ export function AssessmentQuestion() {
 
   return (
     <div className="flex flex-col items-center bg-gray-50">
-      {/* Header */}
-      <header className="w-full flex flex-col gap-6 p-6 bg-white shadow">
-        <div className="w-full flex justify-between mx-auto">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">{title}</h1>
-            <p className="text-sm text-gray-500 mt-1">
-              Assessment ID {id} • Section {sectionIndex + 1} • Question {questionIndex + 1}
-            </p>
-          </div>
-          <div className="flex flex-col items-end self-end">
-            <div className="text-md text-gray-600">
-              Question {questionIndex + 1} of {section.questions.length}
-            </div>
-            <div className="text-sm text-gray-500">{progressPercentage}% complete</div>
-          </div>
-        </div>
-
-        {/* Progress bar */}
-        <div className="w-full">
-          <div className="mx-auto w-full">
-            <div className="h-2 rounded bg-gray-300 overflow-hidden">
-              <div
-                className="h-2 bg-blue-600 transition-all duration-300"
-                style={{ width: `${progressPercentage}%` }}
-                role="progressbar"
-              />
+      <AssessmentHeader
+        title={title}
+        assessmentId={id}
+        sectionIndex={sectionIndex}
+        questionIndex={questionIndex}
+        right={
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => setShowInstructions(true)}
+              className="px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+            >
+              View Instructions
+            </button>
+            <div className="flex flex-col items-end self-end">
+              <div className="text-md text-gray-600">
+                Question {questionIndex + 1} of {section.questions.length}
+              </div>
+              <div className="text-sm text-gray-500">{progressPercentage}% complete</div>
             </div>
           </div>
-        </div>
-      </header>
+        }
+        below={
+          <div className="w-full">
+            <div className="mx-auto w-full">
+              <div className="h-2 rounded bg-gray-300 overflow-hidden">
+                <div
+                  className="h-2 bg-blue-600 transition-all duration-300"
+                  style={{ width: `${progressPercentage}%` }}
+                  role="progressbar"
+                />
+              </div>
+            </div>
+          </div>
+        }
+      />
 
       <main className="w-full max-w-3xl flex flex-col p-6">
         <form className="flex flex-col gap-6" onSubmit={onSubmit}>
@@ -465,6 +474,17 @@ export function AssessmentQuestion() {
           </section>
         </form>
       </main>
+
+      {showInstructions && (
+        <Modal onClose={() => setShowInstructions(false)}>
+          <div className="flex flex-col gap-4 pr-8">
+            <h2 className="text-2xl font-bold text-gray-900">Section Instructions</h2>
+            <p className="text-base text-gray-800 leading-7 whitespace-pre-line">
+              {section.instruction?.text ?? "No instructions provided for this section."}
+            </p>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
