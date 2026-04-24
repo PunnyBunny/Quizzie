@@ -1,6 +1,8 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useSection } from "../providers/QuestionProvider.tsx";
 import { AssessmentHeader } from "../components/AssessmentHeader";
+import { useStorageUrl } from "../hooks/useStorageUrl.ts";
+import { audioStoragePath } from "../lib/asset-paths.ts";
 
 export default function AssessmentSectionInstruction() {
   const { id = "", section: sectionIndexStr = "" } = useParams<{ id: string; section: string }>();
@@ -16,6 +18,9 @@ export default function AssessmentSectionInstruction() {
   const goal = section?.goal ?? "No goal provided.";
   const instructionText =
     section?.instruction?.text ?? "No instructions provided for this section.";
+  const instructionAudio = useStorageUrl(
+    section?.instruction?.audio ? audioStoragePath(section.instruction.audio) : null,
+  );
 
   return (
     <div className="flex flex-col items-center bg-gray-50">
@@ -27,8 +32,13 @@ export default function AssessmentSectionInstruction() {
           <p className="text-xl text-gray-800 leading-8 whitespace-pre-line">{goal}</p>
         </section>
 
-        <section className="flex flex-col">
+        <section className="flex flex-col gap-4">
           <h1 className="text-4xl font-semibold text-gray-800 mb-3">Instructions</h1>
+          {instructionAudio.url && (
+            <audio controls src={instructionAudio.url} className="w-full">
+              Your browser does not support the audio element.
+            </audio>
+          )}
           <div className="prose max-w-none text-gray-800">
             <p className="text-xl leading-8 whitespace-pre-line">{instructionText}</p>
           </div>
