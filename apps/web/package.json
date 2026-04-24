@@ -1,6 +1,9 @@
 {
   "name": "quizzie",
   "private": true,
+  "engines": {
+    "node": "22"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
