@@ -17,6 +17,7 @@ import { toUserMessage } from "../lib/errors.ts";
 import { Alert } from "../components/Alert";
 import { AssessmentHeader } from "../components/AssessmentHeader";
 import { Modal } from "../components/Modal";
+import { SectionInstructionBody } from "../components/SectionInstructionBody";
 import { useStorageUrl } from "../hooks/useStorageUrl.ts";
 import { audioStoragePath, imageStoragePath } from "../lib/asset-paths.ts";
 
@@ -479,9 +480,7 @@ export function AssessmentQuestion() {
         <Modal onClose={() => setShowInstructions(false)}>
           <div className="flex flex-col gap-4 pr-8">
             <h2 className="text-2xl font-bold text-gray-900">Section Instructions</h2>
-            <p className="text-base text-gray-800 leading-7 whitespace-pre-line">
-              {section.instruction?.text ?? "No instructions provided for this section."}
-            </p>
+            <SectionInstructionBody instruction={section.instruction} />
           </div>
         </Modal>
       )}
