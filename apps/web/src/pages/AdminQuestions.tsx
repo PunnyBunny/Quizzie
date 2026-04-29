@@ -358,11 +358,8 @@ export default function AdminQuestions() {
                   <td className="px-4 sm:px-6 py-3 font-medium text-gray-900">{section.title}</td>
                   <td className="px-4 sm:px-6 py-3 uppercase text-xs">{section.kind}</td>
                   <td className="px-4 sm:px-6 py-3 text-center">{section.length}</td>
-                  <td className="px-4 sm:px-6 py-3 text-gray-600">
-                    <div
-                      className="max-w-[160px] sm:max-w-[260px] md:max-w-[380px] lg:max-w-none overflow-hidden whitespace-nowrap"
-                      title={section.goal}
-                    >
+                  <td className="px-4 sm:px-6 py-3 text-gray-600 align-top">
+                    <div className="max-w-[200px] sm:max-w-[320px] md:max-w-[480px] lg:max-w-none break-words">
                       {section.goal}
                     </div>
                   </td>
