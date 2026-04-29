@@ -20,6 +20,7 @@ import { Modal } from "../components/Modal";
 import { SectionInstructionBody } from "../components/SectionInstructionBody";
 import { useStorageUrl } from "../hooks/useStorageUrl.ts";
 import { audioStoragePath, imageStoragePath } from "../lib/asset-paths.ts";
+import { useTranslation } from "../hooks/useTranslation";
 
 function MicrophoneIcon() {
   return (
@@ -79,6 +80,7 @@ interface FinishAssessmentRequest {
 }
 
 export function AssessmentQuestion() {
+  const { t } = useTranslation();
   const {
     id = "",
     section: sectionIndexStr = "",
@@ -184,7 +186,7 @@ export function AssessmentQuestion() {
   };
 
   const handleSkip = async () => {
-    if (!window.confirm("Are you sure you want to skip this question? You can't go back.")) {
+    if (!window.confirm(t("question.confirmSkip"))) {
       return;
     }
 
@@ -214,7 +216,7 @@ export function AssessmentQuestion() {
       navigateToNext();
     } catch (err) {
       console.error("Failed to skip question:", err);
-      setSubmitError(toUserMessage(err, "Could not skip this question."));
+      setSubmitError(toUserMessage(err, t("question.errorSkip")));
     }
   };
 
@@ -222,12 +224,12 @@ export function AssessmentQuestion() {
     e.preventDefault();
 
     if (question.kind === "mc" && selectedIndex == null) {
-      alert("Please select an answer.");
+      alert(t("question.alertSelect"));
       return;
     }
 
     if (question.kind === "audio" && audioBlob == null) {
-      alert("Please record your answer.");
+      alert(t("question.alertRecord"));
       return;
     }
 
@@ -269,11 +271,11 @@ export function AssessmentQuestion() {
       navigateToNext();
     } catch (err) {
       console.error("Failed to submit answer:", err);
-      setSubmitError(toUserMessage(err, "Could not submit your answer."));
+      setSubmitError(toUserMessage(err, t("question.errorSubmit")));
     }
   };
 
-  const title = section?.title ?? "Section";
+  const title = section?.title ?? t("instruction.section");
   const questionText = question.question ?? "";
 
   return (
@@ -290,14 +292,17 @@ export function AssessmentQuestion() {
               onClick={() => setShowInstructions(true)}
               className="px-3 sm:px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 text-sm sm:text-base whitespace-nowrap self-start sm:self-auto"
             >
-              View Instructions
+              {t("question.viewInstructions")}
             </button>
             <div className="flex flex-col sm:items-end">
               <div className="text-sm sm:text-md text-gray-600">
-                Question {questionIndex + 1} of {section.questions.length}
+                {t("question.questionXofY", {
+                  current: questionIndex + 1,
+                  total: section.questions.length,
+                })}
               </div>
               <div className="text-xs sm:text-sm text-gray-500">
-                {progressPercentage}% complete
+                {t("question.percentComplete", { percent: progressPercentage })}
               </div>
             </div>
           </div>
@@ -326,13 +331,13 @@ export function AssessmentQuestion() {
               {question.image != null && questionImage.url && (
                 <img
                   src={questionImage.url}
-                  alt={questionText ? questionText : "Question image"}
+                  alt={questionText ? questionText : t("question.questionImageAlt")}
                   className="w-full max-h-72 object-contain"
                 />
               )}
               {question.audio != null && questionAudio.url && (
                 <audio controls src={questionAudio.url} className="w-full">
-                  Your browser does not support the audio element.
+                  {t("question.audioFallback")}
                 </audio>
               )}
             </section>
@@ -384,7 +389,7 @@ export function AssessmentQuestion() {
                     className="px-4 py-2 rounded-md text-white shadow flex items-center justify-center gap-2 bg-gray-600 disabled:opacity-50"
                   >
                     <MicrophoneIcon />
-                    Start Recording
+                    {t("question.startRecording")}
                   </button>
 
                   <button
@@ -394,7 +399,7 @@ export function AssessmentQuestion() {
                     className="px-4 py-2 rounded-md text-white shadow flex items-center justify-center gap-2 bg-red-600 disabled:opacity-50"
                   >
                     <StopIcon />
-                    Stop Recording
+                    {t("question.stopRecording")}
                   </button>
                 </div>
 
@@ -402,7 +407,7 @@ export function AssessmentQuestion() {
 
                 {/* Live transcription display */}
                 <div className="mt-2">
-                  <h3 className="font-medium text-gray-700 mb-2">Transcription:</h3>
+                  <h3 className="font-medium text-gray-700 mb-2">{t("question.transcription")}</h3>
                   <div className="p-4 bg-gray-50 border border-gray-200 rounded-md min-h-[100px] max-h-[200px] overflow-y-auto">
                     {transcript && <p className="text-gray-800">{transcript}</p>}
                     {interimTranscript && (
@@ -411,8 +416,8 @@ export function AssessmentQuestion() {
                     {!transcript && !interimTranscript && (
                       <p className="text-gray-400">
                         {status === "recording"
-                          ? "Listening... Start speaking to see transcription."
-                          : "Recording will appear here..."}
+                          ? t("question.listening")
+                          : t("question.recordingPlaceholder")}
                       </p>
                     )}
                   </div>
@@ -421,7 +426,7 @@ export function AssessmentQuestion() {
                 {/* Display audio playback if available */}
                 {audioBlob && (
                   <div className="mt-2">
-                    <h3 className="font-medium text-gray-700 mb-2">Your Recording:</h3>
+                    <h3 className="font-medium text-gray-700 mb-2">{t("question.yourRecording")}</h3>
                     <H5AudioPlayer
                       src={audioBlobUrl}
                       showSkipControls
@@ -440,14 +445,12 @@ export function AssessmentQuestion() {
               type="button"
               className="px-3 sm:px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 text-sm sm:text-base whitespace-nowrap"
               onClick={() => {
-                if (
-                  window.confirm("Are you sure you want to exit? Your progress will be saved.")
-                ) {
+                if (window.confirm(t("common.confirmExit"))) {
                   navigate("/");
                 }
               }}
             >
-              Save & Exit
+              {t("common.saveAndExit")}
             </button>
 
             <div className="flex gap-2 sm:gap-3">
@@ -457,7 +460,7 @@ export function AssessmentQuestion() {
                 onClick={handleSkip}
                 disabled={busy}
               >
-                Skip
+                {t("common.skip")}
               </button>
 
               <button
@@ -469,7 +472,7 @@ export function AssessmentQuestion() {
                   busy
                 }
               >
-                {busy ? "Loading..." : "Next"}
+                {busy ? t("common.loadingDots") : t("common.next")}
               </button>
             </div>
           </section>
@@ -479,7 +482,7 @@ export function AssessmentQuestion() {
       {showInstructions && (
         <Modal onClose={() => setShowInstructions(false)}>
           <div className="flex flex-col gap-4 pr-8">
-            <h2 className="text-2xl font-bold text-gray-900">Section Instructions</h2>
+            <h2 className="text-2xl font-bold text-gray-900">{t("question.sectionInstructions")}</h2>
             <SectionInstructionBody instruction={section.instruction} />
           </div>
         </Modal>

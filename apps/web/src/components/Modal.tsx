@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { CloseIcon } from "./icons";
+import { useTranslation } from "../hooks/useTranslation";
 
 type MaxWidth = "sm" | "md" | "lg" | "xl" | "2xl" | "3xl";
 
@@ -19,6 +20,7 @@ interface ModalProps {
 }
 
 export function Modal({ onClose, children, maxWidth = "3xl" }: ModalProps) {
+  const { t } = useTranslation();
   return (
     <div
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4"
@@ -31,7 +33,7 @@ export function Modal({ onClose, children, maxWidth = "3xl" }: ModalProps) {
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close"
+          aria-label={t("common.close")}
           className="absolute top-3 right-3 p-1.5 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
         >
           <CloseIcon />

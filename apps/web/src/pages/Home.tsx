@@ -8,6 +8,7 @@ import {
   PencilSquareIcon,
   ShieldCheckIcon,
 } from "../components/icons";
+import { useTranslation } from "../hooks/useTranslation";
 
 interface HomeCard {
   icon: ReactNode;
@@ -18,35 +19,35 @@ interface HomeCard {
   variant?: "dark" | "primary";
 }
 
-// TODO: strip transcript
 export default function Home() {
   const navigate = useNavigate();
   const { loading, isAdmin } = useAuth();
+  const { t } = useTranslation();
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <div>{t("common.loadingDots")}</div>;
 
   const cards: HomeCard[] = [
     {
       icon: <AddUserIcon />,
-      title: "Start New Test",
-      description: "Begin assessment for a new student",
-      buttonLabel: "Start New Assessment",
+      title: t("home.startNew.title"),
+      description: t("home.startNew.description"),
+      buttonLabel: t("home.startNew.button"),
       onClick: () => window.open("/new-assessment", "_blank", "noopener,noreferrer"),
       variant: "dark",
     },
     {
       icon: <EyeIcon />,
-      title: "View existing assessments",
-      description: "View unfinished assessments from previous sessions",
-      buttonLabel: "View Assessments",
+      title: t("home.view.title"),
+      description: t("home.view.description"),
+      buttonLabel: t("home.view.button"),
       onClick: () => navigate("/view-assessments"),
       variant: "dark",
     },
     {
       icon: <PencilSquareIcon />,
-      title: "Grade finished assessments",
-      description: "View and grade finished assessments from previous sessions",
-      buttonLabel: "Grade Assessments",
+      title: t("home.grade.title"),
+      description: t("home.grade.description"),
+      buttonLabel: t("home.grade.button"),
       onClick: () => navigate("/grade-assessments"),
       variant: "dark",
     },
@@ -55,9 +56,9 @@ export default function Home() {
   if (isAdmin) {
     cards.push({
       icon: <ShieldCheckIcon />,
-      title: "Admin Panel",
-      description: "Manage users, view all results, and override grades",
-      buttonLabel: "Open Admin Panel",
+      title: t("home.admin.title"),
+      description: t("home.admin.description"),
+      buttonLabel: t("home.admin.button"),
       onClick: () => navigate("/admin"),
       variant: "primary",
     });

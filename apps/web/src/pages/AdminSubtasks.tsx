@@ -15,6 +15,7 @@ import { Button } from "../components/Button";
 import { Modal } from "../components/Modal";
 import { Alert } from "../components/Alert";
 import { toUserMessage } from "../lib/errors";
+import { useTranslation } from "../hooks/useTranslation";
 
 type NormGrade = "S1" | "S3" | "S5";
 const NORM_GRADES: NormGrade[] = ["S1", "S3", "S5"];
@@ -30,6 +31,7 @@ const INPUT_CLASSES =
   "w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-blue-500 focus:ring-blue-500";
 
 export default function AdminSubtasks() {
+  const { t } = useTranslation();
 
   const [getSubtasks, loadingSubtasks] = useCallable<{}, GetSubtasksOutput>("api/get-subtasks");
   const [saveSubtask, saving] = useCallable<SaveSubtaskInput, SaveSubtaskOutput>(
@@ -65,9 +67,9 @@ export default function AdminSubtasks() {
         setLoadError(null);
       })
       .catch((err) => {
-        setLoadError(toUserMessage(err, "Could not load subtasks."));
+        setLoadError(toUserMessage(err, t("adminSubtasks.errorLoad")));
       });
-  }, [getSubtasks, getQuestions]);
+  }, [getSubtasks, getQuestions, t]);
 
   const refreshSubtasks = async () => {
     const res = await getSubtasks({});
@@ -178,11 +180,11 @@ export default function AdminSubtasks() {
     setError(null);
 
     if (!formName.trim()) {
-      setError("Name is required.");
+      setError(t("adminSubtasks.errorNameRequired"));
       return;
     }
     if (formQuestionIds.length === 0) {
-      setError("Select at least one question.");
+      setError(t("adminSubtasks.errorPickQuestion"));
       return;
     }
 
@@ -199,19 +201,19 @@ export default function AdminSubtasks() {
       closeModal();
       await refreshSubtasks();
     } catch (err) {
-      setError(toUserMessage(err, "Could not save subtask."));
+      setError(toUserMessage(err, t("adminSubtasks.errorSave")));
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this subtask?")) return;
+    if (!confirm(t("adminSubtasks.confirmDelete"))) return;
     setListError(null);
     try {
       await deleteSubtask({ id });
       await refreshSubtasks();
     } catch (err) {
       console.error("Failed to delete subtask:", err);
-      setListError(toUserMessage(err, "Could not delete subtask."));
+      setListError(toUserMessage(err, t("adminSubtasks.errorDelete")));
     }
   };
 
@@ -226,13 +228,13 @@ export default function AdminSubtasks() {
     <div className="p-4 sm:p-6">
       <div className="max-w-6xl mx-auto">
         <PageHeader
-          title="Subtasks & Norms"
-          subtitle="Define scoring subtasks and enter normative data by grade"
+          title={t("admin.subtasks.title")}
+          subtitle={t("admin.subtasks.description")}
           backTo="/admin"
         />
 
         <div className="mb-4 flex justify-end">
-          <Button onClick={openNew}>New Subtask</Button>
+          <Button onClick={openNew}>{t("adminSubtasks.new")}</Button>
         </div>
 
         {loadError && (
@@ -252,28 +254,28 @@ export default function AdminSubtasks() {
             <table className="w-full text-left text-sm">
               <thead className="bg-gray-50 text-gray-500">
                 <tr>
-                  <th className="px-4 sm:px-6 py-3 font-medium">Name</th>
+                  <th className="px-4 sm:px-6 py-3 font-medium">{t("adminSubtasks.col.name")}</th>
                   <th className="px-3 sm:px-6 py-3 font-medium text-center whitespace-nowrap">
-                    # Questions
+                    {t("adminSubtasks.col.numQuestions")}
                   </th>
                   <th className="px-2 sm:px-6 py-3 font-medium text-center">S1</th>
                   <th className="px-2 sm:px-6 py-3 font-medium text-center">S3</th>
                   <th className="px-2 sm:px-6 py-3 font-medium text-center">S5</th>
-                  <th className="px-4 sm:px-6 py-3 font-medium">Actions</th>
+                  <th className="px-4 sm:px-6 py-3 font-medium">{t("adminUsers.col.actions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {loadingSubtasks && (
                   <tr>
                     <td colSpan={6} className="px-4 sm:px-6 py-8 text-center text-gray-500">
-                      Loading...
+                      {t("common.loadingDots")}
                     </td>
                   </tr>
                 )}
                 {!loadingSubtasks && subtasks.length === 0 && (
                   <tr>
                     <td colSpan={6} className="px-4 sm:px-6 py-8 text-center text-gray-500">
-                      No subtasks defined yet.
+                      {t("adminSubtasks.empty")}
                     </td>
                   </tr>
                 )}
@@ -292,7 +294,7 @@ export default function AdminSubtasks() {
                     </td>
                     <td className="px-4 sm:px-6 py-3 whitespace-nowrap space-x-2">
                       <Button size="sm" onClick={() => openEdit(st)}>
-                        Edit
+                        {t("common.edit")}
                       </Button>
                       <Button
                         size="sm"
@@ -300,7 +302,7 @@ export default function AdminSubtasks() {
                         disabled={deleting}
                         onClick={() => handleDelete(st.id)}
                       >
-                        Delete
+                        {t("common.delete")}
                       </Button>
                     </td>
                   </tr>
@@ -315,19 +317,19 @@ export default function AdminSubtasks() {
       {editing && (
         <Modal onClose={closeModal}>
           <h2 className="text-xl font-semibold mb-4">
-            {editing.id ? "Edit Subtask" : "New Subtask"}
+            {editing.id ? t("adminSubtasks.editTitle") : t("adminSubtasks.newTitle")}
           </h2>
 
           <form onSubmit={handleSave} className="space-y-6">
             {/* Name */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("adminSubtasks.col.name")}</label>
               <input
                 type="text"
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
                 className={INPUT_CLASSES}
-                placeholder="e.g. Vocabulary"
+                placeholder={t("adminSubtasks.namePlaceholder")}
                 required
               />
             </div>
@@ -335,7 +337,7 @@ export default function AdminSubtasks() {
             {/* Question picker */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Questions ({formQuestionIds.length} selected)
+                {t("adminSubtasks.questionsLabel", { count: formQuestionIds.length })}
               </label>
               <div className="border border-gray-200 rounded-lg max-h-64 overflow-y-auto">
                 {sections.map((section, sIdx) => {
@@ -359,8 +361,14 @@ export default function AdminSubtasks() {
                         <span className="text-sm font-medium text-gray-700">
                           {section.title}{" "}
                           <span className="text-gray-400 font-normal">
-                            ({section.kind.toUpperCase()}, {section.length}q
-                            {selectedCount > 0 && ` — ${selectedCount} selected`})
+                            {t("adminSubtasks.sectionMeta", {
+                              kind: section.kind.toUpperCase(),
+                              count: section.length,
+                              selected:
+                                selectedCount > 0
+                                  ? t("adminSubtasks.selectedSuffix", { count: selectedCount })
+                                  : "",
+                            })}
                           </span>
                         </span>
                       </div>
@@ -389,18 +397,18 @@ export default function AdminSubtasks() {
             {/* Norm stats grid */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Normative Data (leave blank if unavailable)
+                {t("adminSubtasks.normsLabel")}
               </label>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="pb-1 text-gray-500">
-                      <th className="pr-2 text-left font-medium">Grade</th>
-                      <th className="px-1 text-left font-medium">Min</th>
-                      <th className="px-1 text-left font-medium">Max</th>
-                      <th className="px-1 text-left font-medium">N</th>
-                      <th className="px-1 text-left font-medium">Std Dev</th>
-                      <th className="px-1 text-left font-medium">Mean</th>
+                      <th className="pr-2 text-left font-medium">{t("adminSubtasks.col.grade")}</th>
+                      <th className="px-1 text-left font-medium">{t("adminSubtasks.col.min")}</th>
+                      <th className="px-1 text-left font-medium">{t("adminSubtasks.col.max")}</th>
+                      <th className="px-1 text-left font-medium">{t("adminSubtasks.col.n")}</th>
+                      <th className="px-1 text-left font-medium">{t("adminSubtasks.col.std")}</th>
+                      <th className="px-1 text-left font-medium">{t("adminSubtasks.col.mean")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -432,10 +440,10 @@ export default function AdminSubtasks() {
 
             <div className="flex justify-end gap-3">
               <Button type="button" variant="secondary" onClick={closeModal}>
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button type="submit" variant="primary" disabled={saving}>
-                {saving ? "Saving..." : "Save"}
+                {saving ? t("common.saving") : t("common.save")}
               </Button>
             </div>
           </form>

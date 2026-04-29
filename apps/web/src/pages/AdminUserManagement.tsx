@@ -6,6 +6,7 @@ import { Button } from "../components/Button";
 import { Modal } from "../components/Modal";
 import { Alert } from "../components/Alert";
 import { AddUserIcon, CloseIcon, SearchIcon } from "../components/icons";
+import { useTranslation } from "../hooks/useTranslation";
 
 interface User {
   email?: string;
@@ -47,6 +48,7 @@ const INPUT_CLASSES =
   "w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-blue-500 focus:ring-blue-500 shadow-sm";
 
 export default function AdminUserManagement() {
+  const { t } = useTranslation();
   const [getUsers, gettingUsers] = useCallable<{}, AdminGetUsersResponse>("api/admin/get-users");
   const [createUser, creatingUser] = useCallable<AdminCreateUserInput, AdminCreateUserOutput>(
     "api/admin/create-user",
@@ -82,9 +84,9 @@ export default function AdminUserManagement() {
         setLoadUsersError(null);
       })
       .catch((err) => {
-        setLoadUsersError(toUserMessage(err, "Could not load users."));
+        setLoadUsersError(toUserMessage(err, t("adminUsers.errorLoad")));
       });
-  }, [getUsers]);
+  }, [getUsers, t]);
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,8 +98,8 @@ export default function AdminUserManagement() {
       setResetLinkPopup({
         email: result.data.email,
         resetLink: result.data.resetLink,
-        title: "User Created Successfully",
-        message: `User ${result.data.email} has been created. Share the password reset link below with the user so they can set their password.`,
+        title: t("adminUsers.popup.createdTitle"),
+        message: t("adminUsers.popup.createdMessage", { email: result.data.email }),
       });
 
       setFormData({ email: "" });
@@ -108,7 +110,7 @@ export default function AdminUserManagement() {
       setUsers(response.data.users);
     } catch (error) {
       console.error("Failed to create user:", error);
-      setCreateUserErrorMsg(toUserMessage(error, "Could not create user."));
+      setCreateUserErrorMsg(toUserMessage(error, t("adminUsers.errorCreate")));
     }
   };
 
@@ -133,33 +135,31 @@ export default function AdminUserManagement() {
       setResetLinkPopup({
         email: result.data.email,
         resetLink: result.data.resetLink,
-        title: "Password Reset Link Generated",
-        message: `A password reset link has been generated for ${result.data.email}. Share this link with the user so they can reset their password.`,
+        title: t("adminUsers.popup.resetTitle"),
+        message: t("adminUsers.popup.resetMessage", { email: result.data.email }),
       });
     } catch (error) {
       console.error("Failed to reset password:", error);
-      setActionError(toUserMessage(error, "Could not generate a reset link."));
+      setActionError(toUserMessage(error, t("adminUsers.errorReset")));
     }
   };
 
   const handleRemoveUser = async (email: string) => {
-    const confirmed = confirm(
-      `Are you sure you want to remove ${email}? This action cannot be undone.`,
-    );
+    const confirmed = confirm(t("adminUsers.confirmRemove", { email }));
     if (!confirmed) return;
 
     setActionError(null);
     setActionSuccess(null);
     try {
       const result = await removeUser({ email });
-      setActionSuccess(`User ${result.data.email} has been removed.`);
+      setActionSuccess(t("adminUsers.removed", { email: result.data.email }));
       setTimeout(() => setActionSuccess(null), 4000);
 
       const response = await getUsers();
       setUsers(response.data.users);
     } catch (error) {
       console.error("Failed to remove user:", error);
-      setActionError(toUserMessage(error, "Could not remove user."));
+      setActionError(toUserMessage(error, t("adminUsers.errorRemove")));
     }
   };
 
@@ -177,7 +177,7 @@ export default function AdminUserManagement() {
               type="button"
               onClick={closePopup}
               className="text-gray-400 hover:text-gray-600"
-              aria-label="Close"
+              aria-label={t("common.close")}
             >
               <CloseIcon />
             </button>
@@ -187,7 +187,7 @@ export default function AdminUserManagement() {
 
           <div className="bg-gray-50 border border-gray-200 rounded-md p-3 mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Password Reset Link
+              {t("adminUsers.popup.linkLabel")}
             </label>
             <div className="flex gap-2">
               <input
@@ -197,14 +197,14 @@ export default function AdminUserManagement() {
                 className="flex-1 text-sm bg-white border border-gray-300 rounded px-3 py-2 text-gray-700"
               />
               <Button variant={copied ? "success" : "primary"} onClick={handleCopyLink}>
-                {copied ? "Copied!" : "Copy"}
+                {copied ? t("common.copied") : t("common.copy")}
               </Button>
             </div>
           </div>
 
           <div className="flex justify-end">
             <Button variant="secondary" onClick={closePopup}>
-              Close
+              {t("common.close")}
             </Button>
           </div>
         </Modal>
@@ -212,8 +212,8 @@ export default function AdminUserManagement() {
 
       <div className="max-w-6xl mx-auto">
         <PageHeader
-          title="User Management"
-          subtitle="Manage platform users, roles, and permissions"
+          title={t("admin.users.title")}
+          subtitle={t("adminUsers.subtitle")}
           backTo="/admin"
         />
 
@@ -223,27 +223,27 @@ export default function AdminUserManagement() {
             <div className="bg-white rounded-lg border shadow-sm p-4 sm:p-6 lg:sticky lg:top-20">
               <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <AddUserIcon className="w-5 h-5 text-green-600" />
-                Add New User
+                {t("adminUsers.add")}
               </h3>
 
               <form className="space-y-4" onSubmit={handleCreateUser}>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email Address
+                    {t("adminUsers.email")}
                   </label>
                   <input
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ email: e.target.value })}
                     className={INPUT_CLASSES}
-                    placeholder="user@example.com"
+                    placeholder={t("adminUsers.email.placeholder")}
                     required
                   />
                 </div>
 
                 {createUserErrorMsg && <Alert kind="error">{createUserErrorMsg}</Alert>}
 
-                {createUserSuccess && <Alert kind="success">User created successfully!</Alert>}
+                {createUserSuccess && <Alert kind="success">{t("adminUsers.created")}</Alert>}
 
                 <Button
                   type="submit"
@@ -251,7 +251,7 @@ export default function AdminUserManagement() {
                   disabled={creatingUser}
                   className="w-full"
                 >
-                  {creatingUser ? "Creating..." : "Create User"}
+                  {creatingUser ? t("adminUsers.creating") : t("adminUsers.create")}
                 </Button>
               </form>
             </div>
@@ -263,11 +263,11 @@ export default function AdminUserManagement() {
             {actionSuccess && <Alert kind="success">{actionSuccess}</Alert>}
             <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
               <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 bg-gray-50 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-                <h3 className="font-semibold text-gray-900">System Users</h3>
+                <h3 className="font-semibold text-gray-900">{t("adminUsers.systemUsers")}</h3>
                 <div className="relative">
                   <input
                     type="text"
-                    placeholder="Search users..."
+                    placeholder={t("adminUsers.search")}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full sm:w-auto pl-8 pr-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -281,7 +281,7 @@ export default function AdminUserManagement() {
               {/* Mobile: stacked card list */}
               <div className="sm:hidden divide-y divide-gray-200">
                 {gettingUsers && (
-                  <div className="px-4 py-8 text-center text-gray-500">Loading users...</div>
+                  <div className="px-4 py-8 text-center text-gray-500">{t("adminUsers.loading")}</div>
                 )}
                 {loadUsersError && (
                   <div className="px-4 py-8 text-center text-red-600">{loadUsersError}</div>
@@ -290,7 +290,7 @@ export default function AdminUserManagement() {
                   !loadUsersError &&
                   (filteredUsers.length === 0 ? (
                     <div className="px-4 py-8 text-center text-gray-500">
-                      {users.length === 0 ? "No users found" : "No users match your search"}
+                      {users.length === 0 ? t("adminUsers.noUsers") : t("adminUsers.noMatch")}
                     </div>
                   ) : (
                     filteredUsers.map((user, index) => (
@@ -304,10 +304,10 @@ export default function AdminUserManagement() {
                                 : "bg-gray-100 text-gray-800"
                             }`}
                           >
-                            {user.isAdmin ? "Admin" : "User"}
+                            {user.isAdmin ? t("adminUsers.role.admin") : t("adminUsers.role.user")}
                           </span>
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            Active
+                            {t("adminUsers.statusActive")}
                           </span>
                         </div>
                         {!user.isAdmin && (
@@ -318,7 +318,7 @@ export default function AdminUserManagement() {
                               onClick={() => user.email && handleResetPassword(user.email)}
                               disabled={resettingPassword || !user.email}
                             >
-                              Reset Pwd
+                              {t("adminUsers.resetPwd")}
                             </Button>
                             <Button
                               size="sm"
@@ -326,7 +326,7 @@ export default function AdminUserManagement() {
                               onClick={() => user.email && handleRemoveUser(user.email)}
                               disabled={removingUser || !user.email}
                             >
-                              Remove
+                              {t("adminUsers.removeBtn")}
                             </Button>
                           </div>
                         )}
@@ -340,17 +340,17 @@ export default function AdminUserManagement() {
                 <table className="w-full text-left text-sm">
                   <thead className="bg-gray-50 text-gray-500">
                     <tr>
-                      <th className="px-4 sm:px-6 py-3 font-medium">User</th>
-                      <th className="px-4 sm:px-6 py-3 font-medium">Role</th>
-                      <th className="px-4 sm:px-6 py-3 font-medium">Status</th>
-                      <th className="px-4 sm:px-6 py-3 font-medium">Actions</th>
+                      <th className="px-4 sm:px-6 py-3 font-medium">{t("adminUsers.col.user")}</th>
+                      <th className="px-4 sm:px-6 py-3 font-medium">{t("adminUsers.col.role")}</th>
+                      <th className="px-4 sm:px-6 py-3 font-medium">{t("adminUsers.col.status")}</th>
+                      <th className="px-4 sm:px-6 py-3 font-medium">{t("adminUsers.col.actions")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {gettingUsers && (
                       <tr>
                         <td colSpan={4} className="px-4 sm:px-6 py-8 text-center text-gray-500">
-                          Loading users...
+                          {t("adminUsers.loading")}
                         </td>
                       </tr>
                     )}
@@ -366,7 +366,7 @@ export default function AdminUserManagement() {
                       (filteredUsers.length === 0 ? (
                         <tr>
                           <td colSpan={4} className="px-4 sm:px-6 py-8 text-center text-gray-500">
-                            {users.length === 0 ? "No users found" : "No users match your search"}
+                            {users.length === 0 ? t("adminUsers.noUsers") : t("adminUsers.noMatch")}
                           </td>
                         </tr>
                       ) : (
@@ -388,12 +388,12 @@ export default function AdminUserManagement() {
                                     : "bg-gray-100 text-gray-800"
                                 }`}
                               >
-                                {user.isAdmin ? "Admin" : "User"}
+                                {user.isAdmin ? t("adminUsers.role.admin") : t("adminUsers.role.user")}
                               </span>
                             </td>
                             <td className="px-4 sm:px-6 py-3">
                               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                Active
+                                {t("adminUsers.statusActive")}
                               </span>
                             </td>
                             <td className="px-4 sm:px-6 py-3 whitespace-nowrap space-x-2">
@@ -407,7 +407,7 @@ export default function AdminUserManagement() {
                                     onClick={() => user.email && handleResetPassword(user.email)}
                                     disabled={resettingPassword || !user.email}
                                   >
-                                    Reset Pwd
+                                    {t("adminUsers.resetPwd")}
                                   </Button>
                                   <Button
                                     size="sm"
@@ -415,7 +415,7 @@ export default function AdminUserManagement() {
                                     onClick={() => user.email && handleRemoveUser(user.email)}
                                     disabled={removingUser || !user.email}
                                   >
-                                    Remove
+                                    {t("adminUsers.removeBtn")}
                                   </Button>
                                 </>
                               )}

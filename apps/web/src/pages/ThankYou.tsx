@@ -2,24 +2,26 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import ScoreModal from "../components/ScoreModal";
 import { Button } from "../components/Button";
+import { useTranslation } from "../hooks/useTranslation";
 
 export default function ThankYou() {
   const navigate = useNavigate();
   const { id = "" } = useParams<{ id: string }>();
   const [showScore, setShowScore] = useState(false);
+  const { t } = useTranslation();
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4 sm:p-6">
       <div className="text-center w-full max-w-sm">
-        <h1 className="text-2xl sm:text-3xl font-semibold mb-6">Thank you!</h1>
+        <h1 className="text-2xl sm:text-3xl font-semibold mb-6">{t("thankYou.title")}</h1>
         <div className="flex flex-col gap-3">
           {id && (
             <Button onClick={() => setShowScore(true)} className="w-full">
-              View Scores
+              {t("thankYou.viewScores")}
             </Button>
           )}
           <Button variant="dark" onClick={() => navigate("/")} className="w-full">
-            Return Home
+            {t("thankYou.returnHome")}
           </Button>
         </div>
       </div>
