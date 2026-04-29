@@ -358,7 +358,7 @@ export default function AdminQuestions() {
                   <td className="px-4 sm:px-6 py-3 font-medium text-gray-900">{section.title}</td>
                   <td className="px-4 sm:px-6 py-3 uppercase text-xs">{section.kind}</td>
                   <td className="px-4 sm:px-6 py-3 text-center">{section.length}</td>
-                  <td className="px-4 sm:px-6 py-3 text-gray-600 truncate max-w-xs" title={section.goal}>
+                  <td className="px-4 sm:px-6 py-3 text-gray-600 break-words">
                     {section.goal}
                   </td>
                   <td className="px-4 sm:px-6 py-3">

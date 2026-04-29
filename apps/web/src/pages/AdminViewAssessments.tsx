@@ -339,13 +339,8 @@ export default function AdminViewAssessments() {
                       <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
                         {assessment.birthDate}
                       </td>
-                      <td className="px-4 py-3 text-gray-600">
-                        <span
-                          className="block max-w-[180px] truncate"
-                          title={assessment.creatorEmail}
-                        >
-                          {assessment.creatorEmail}
-                        </span>
+                      <td className="px-4 py-3 text-gray-600 break-all">
+                        {assessment.creatorEmail}
                       </td>
                       <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
                         {formatDate(assessment.createdAtIsoTimestamp)}
