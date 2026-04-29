@@ -17,22 +17,22 @@ export function PageHeader({ title, subtitle, backTo, actions }: PageHeaderProps
     typeof backTo === "function" ? backTo : backTo ? () => navigate(backTo) : undefined;
 
   return (
-    <div className="mb-6 flex items-center gap-3">
+    <div className="mb-4 sm:mb-6 flex flex-wrap items-start gap-2 sm:gap-3">
       {handleBack && (
         <button
           type="button"
           onClick={handleBack}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
           aria-label={t("common.goHome")}
         >
           <BackArrowIcon />
         </button>
       )}
-      <div className="flex-1">
-        <h1 className="text-3xl font-bold">{title}</h1>
-        {subtitle && <p className="text-gray-600 mt-1">{subtitle}</p>}
+      <div className="flex-1 min-w-0">
+        <h1 className="text-2xl sm:text-3xl font-bold break-words">{title}</h1>
+        {subtitle && <p className="text-sm sm:text-base text-gray-600 mt-1">{subtitle}</p>}
       </div>
-      {actions}
+      {actions && <div className="w-full sm:w-auto flex flex-wrap gap-2">{actions}</div>}
     </div>
   );
 }

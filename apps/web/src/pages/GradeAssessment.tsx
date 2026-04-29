@@ -116,7 +116,7 @@ export default function GradeAssessment() {
 
   if (fetching || fetchingQuestions) {
     return (
-      <div className="p-6 flex justify-center">
+      <div className="p-4 sm:p-6 flex justify-center">
         <div className="text-gray-500">{t("gradeAssessment.loading")}</div>
       </div>
     );
@@ -124,7 +124,7 @@ export default function GradeAssessment() {
 
   if (loadError) {
     return (
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         <Alert kind="error">{loadError}</Alert>
       </div>
     );
@@ -132,7 +132,7 @@ export default function GradeAssessment() {
 
   if (!studentResponseData || !quizQuestions) {
     return (
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         <div className="text-gray-500">{t("gradeAssessment.notFound")}</div>
       </div>
     );
@@ -224,7 +224,7 @@ export default function GradeAssessment() {
   const backPath = isAdminRoute ? "/admin/assessments" : "/grade-assessments";
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="max-w-6xl mx-auto">
         <PageHeader
           title={t("gradeAssessment.title")}
@@ -406,7 +406,7 @@ export default function GradeAssessment() {
                               <label className="text-sm font-medium text-gray-700 mb-2 block">
                                 {t("gradeAssessment.gradeRange")}
                               </label>
-                              <div className="flex items-center gap-2">
+                              <div className="flex flex-wrap items-center gap-2">
                                 {[0, 1, 2, 3, 4, 5].map((grade) => (
                                   <button
                                     key={grade}
@@ -414,7 +414,7 @@ export default function GradeAssessment() {
                                       changeGrade(activeSectionIdx, questionIdx, grade)
                                     }
                                     disabled={submitting}
-                                    className={`w-10 h-10 rounded-full font-medium transition-colors ${
+                                    className={`w-10 h-10 rounded-full font-medium transition-colors flex-shrink-0 ${
                                       currentGrade === grade
                                         ? "bg-blue-600 text-white"
                                         : "bg-gray-100 text-gray-700 hover:bg-gray-200"

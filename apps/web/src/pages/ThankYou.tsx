@@ -11,14 +11,16 @@ export default function ThankYou() {
   const { t } = useTranslation();
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
-      <div className="text-center">
-        <h1 className="text-3xl font-semibold mb-6">{t("thankYou.title")}</h1>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4 sm:p-6">
+      <div className="text-center w-full max-w-sm">
+        <h1 className="text-2xl sm:text-3xl font-semibold mb-6">{t("thankYou.title")}</h1>
         <div className="flex flex-col gap-3">
           {id && (
-            <Button onClick={() => setShowScore(true)}>{t("thankYou.viewScores")}</Button>
+            <Button onClick={() => setShowScore(true)} className="w-full">
+              {t("thankYou.viewScores")}
+            </Button>
           )}
-          <Button variant="dark" onClick={() => navigate("/")}>
+          <Button variant="dark" onClick={() => navigate("/")} className="w-full">
             {t("thankYou.returnHome")}
           </Button>
         </div>

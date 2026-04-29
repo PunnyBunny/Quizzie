@@ -225,7 +225,7 @@ export default function AdminSubtasks() {
     );
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="max-w-6xl mx-auto">
         <PageHeader
           title={t("admin.subtasks.title")}
@@ -250,56 +250,66 @@ export default function AdminSubtasks() {
 
         {/* Subtask list */}
         <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-gray-50 text-gray-500">
-              <tr>
-                <th className="px-6 py-3 font-medium">{t("adminSubtasks.col.name")}</th>
-                <th className="px-6 py-3 font-medium text-center">{t("adminSubtasks.col.numQuestions")}</th>
-                <th className="px-6 py-3 font-medium text-center">S1</th>
-                <th className="px-6 py-3 font-medium text-center">S3</th>
-                <th className="px-6 py-3 font-medium text-center">S5</th>
-                <th className="px-6 py-3 font-medium">{t("adminUsers.col.actions")}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {loadingSubtasks && (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-gray-50 text-gray-500">
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
-                    {t("common.loadingDots")}
-                  </td>
+                  <th className="px-4 sm:px-6 py-3 font-medium">{t("adminSubtasks.col.name")}</th>
+                  <th className="px-3 sm:px-6 py-3 font-medium text-center whitespace-nowrap">
+                    {t("adminSubtasks.col.numQuestions")}
+                  </th>
+                  <th className="px-2 sm:px-6 py-3 font-medium text-center">S1</th>
+                  <th className="px-2 sm:px-6 py-3 font-medium text-center">S3</th>
+                  <th className="px-2 sm:px-6 py-3 font-medium text-center">S5</th>
+                  <th className="px-4 sm:px-6 py-3 font-medium">{t("adminUsers.col.actions")}</th>
                 </tr>
-              )}
-              {!loadingSubtasks && subtasks.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
-                    {t("adminSubtasks.empty")}
-                  </td>
-                </tr>
-              )}
-              {subtasks.map((st) => (
-                <tr key={st.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-3 font-medium text-gray-900">{st.name}</td>
-                  <td className="px-6 py-3 text-center">{st.questionIds.length}</td>
-                  <td className="px-6 py-3 text-center">{normConfiguredBadge(st.norms, "S1")}</td>
-                  <td className="px-6 py-3 text-center">{normConfiguredBadge(st.norms, "S3")}</td>
-                  <td className="px-6 py-3 text-center">{normConfiguredBadge(st.norms, "S5")}</td>
-                  <td className="px-6 py-3 space-x-2">
-                    <Button size="sm" onClick={() => openEdit(st)}>
-                      {t("common.edit")}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="danger"
-                      disabled={deleting}
-                      onClick={() => handleDelete(st.id)}
-                    >
-                      {t("common.delete")}
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {loadingSubtasks && (
+                  <tr>
+                    <td colSpan={6} className="px-4 sm:px-6 py-8 text-center text-gray-500">
+                      {t("common.loadingDots")}
+                    </td>
+                  </tr>
+                )}
+                {!loadingSubtasks && subtasks.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-4 sm:px-6 py-8 text-center text-gray-500">
+                      {t("adminSubtasks.empty")}
+                    </td>
+                  </tr>
+                )}
+                {subtasks.map((st) => (
+                  <tr key={st.id} className="hover:bg-gray-50">
+                    <td className="px-4 sm:px-6 py-3 font-medium text-gray-900">{st.name}</td>
+                    <td className="px-3 sm:px-6 py-3 text-center">{st.questionIds.length}</td>
+                    <td className="px-2 sm:px-6 py-3 text-center">
+                      {normConfiguredBadge(st.norms, "S1")}
+                    </td>
+                    <td className="px-2 sm:px-6 py-3 text-center">
+                      {normConfiguredBadge(st.norms, "S3")}
+                    </td>
+                    <td className="px-2 sm:px-6 py-3 text-center">
+                      {normConfiguredBadge(st.norms, "S5")}
+                    </td>
+                    <td className="px-4 sm:px-6 py-3 whitespace-nowrap space-x-2">
+                      <Button size="sm" onClick={() => openEdit(st)}>
+                        {t("common.edit")}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        disabled={deleting}
+                        onClick={() => handleDelete(st.id)}
+                      >
+                        {t("common.delete")}
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 

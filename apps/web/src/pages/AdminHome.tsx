@@ -54,8 +54,8 @@ export default function AdminHome() {
   ];
 
   return (
-    <div className="p-6">
-      <div className="max-w-6xl mx-auto flex flex-col gap-6">
+    <div className="p-4 sm:p-6">
+      <div className="max-w-6xl mx-auto flex flex-col gap-4 sm:gap-6">
         <PageHeader
           title={t("admin.title")}
           subtitle={t("admin.subtitle")}
@@ -67,16 +67,18 @@ export default function AdminHome() {
             key={section.to}
             className="bg-white rounded-xl shadow border border-gray-100 overflow-hidden"
           >
-            <div className="p-6 flex flex-col gap-4">
-              <div className="flex items-center gap-3">
-                <div className="rounded-xl bg-gray-200 p-2">{section.icon}</div>
-                <div>
-                  <h2 className="text-2xl font-semibold">{section.title}</h2>
-                  <p className="text-gray-600">{section.description}</p>
+            <div className="p-4 sm:p-6 flex flex-col gap-4">
+              <div className="flex items-start sm:items-center gap-3">
+                <div className="rounded-xl bg-gray-200 p-2 flex-shrink-0">{section.icon}</div>
+                <div className="min-w-0">
+                  <h2 className="text-lg sm:text-2xl font-semibold">{section.title}</h2>
+                  <p className="text-sm sm:text-base text-gray-600">{section.description}</p>
                 </div>
               </div>
               <div>
-                <Button onClick={() => navigate(section.to)}>{section.buttonLabel}</Button>
+                <Button onClick={() => navigate(section.to)} className="w-full sm:w-auto">
+                  {section.buttonLabel}
+                </Button>
               </div>
             </div>
           </div>

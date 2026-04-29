@@ -279,29 +279,29 @@ export function AssessmentQuestion() {
   const questionText = question.question ?? "";
 
   return (
-    <div className="flex flex-col items-center bg-gray-50">
+    <div className="flex flex-col items-center bg-gray-50 min-h-screen">
       <AssessmentHeader
         title={title}
         assessmentId={id}
         sectionIndex={sectionIndex}
         questionIndex={questionIndex}
         right={
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
             <button
               type="button"
               onClick={() => setShowInstructions(true)}
-              className="px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+              className="px-3 sm:px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 text-sm sm:text-base whitespace-nowrap self-start sm:self-auto"
             >
               {t("question.viewInstructions")}
             </button>
-            <div className="flex flex-col items-end self-end">
-              <div className="text-md text-gray-600">
+            <div className="flex flex-col sm:items-end">
+              <div className="text-sm sm:text-md text-gray-600">
                 {t("question.questionXofY", {
                   current: questionIndex + 1,
                   total: section.questions.length,
                 })}
               </div>
-              <div className="text-sm text-gray-500">
+              <div className="text-xs sm:text-sm text-gray-500">
                 {t("question.percentComplete", { percent: progressPercentage })}
               </div>
             </div>
@@ -322,7 +322,7 @@ export function AssessmentQuestion() {
         }
       />
 
-      <main className="w-full max-w-3xl flex flex-col p-6">
+      <main className="w-full max-w-3xl flex flex-col p-4 sm:p-6">
         <form className="flex flex-col gap-6" onSubmit={onSubmit}>
           {submitError && <Alert kind="error">{submitError}</Alert>}
           <section className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
@@ -344,8 +344,8 @@ export function AssessmentQuestion() {
 
             {/* Question text */}
             {questionText && (
-              <section className="self-center">
-                <h1 className="text-3xl font-semibold text-gray-800 whitespace-pre-wrap">
+              <section className="self-center w-full">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold text-gray-800 whitespace-pre-wrap break-words">
                   {questionText}
                 </h1>
               </section>
@@ -381,7 +381,7 @@ export function AssessmentQuestion() {
           {question.kind == "audio" && (
             <section className="flex flex-col gap-4 p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
               <div className="flex flex-col gap-4">
-                <div className="flex gap-3 self-center">
+                <div className="flex flex-col sm:flex-row gap-3 sm:self-center">
                   <button
                     type="button"
                     onClick={handleStartRecording}
@@ -440,42 +440,40 @@ export function AssessmentQuestion() {
           )}
 
           {/* Bottom actions */}
-          <section className="w-full max-w-2xl py-6 flex items-center justify-between">
-            <div className="w-full flex items-center justify-between">
+          <section className="w-full py-4 sm:py-6 flex flex-wrap gap-3 items-center justify-between">
+            <button
+              type="button"
+              className="px-3 sm:px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 text-sm sm:text-base whitespace-nowrap"
+              onClick={() => {
+                if (window.confirm(t("common.confirmExit"))) {
+                  navigate("/");
+                }
+              }}
+            >
+              {t("common.saveAndExit")}
+            </button>
+
+            <div className="flex gap-2 sm:gap-3">
               <button
                 type="button"
-                className="px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-                onClick={() => {
-                  if (window.confirm(t("common.confirmExit"))) {
-                    navigate("/");
-                  }
-                }}
+                className="px-3 sm:px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 text-sm sm:text-base"
+                onClick={handleSkip}
+                disabled={busy}
               >
-                {t("common.saveAndExit")}
+                {t("common.skip")}
               </button>
 
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  className="px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-                  onClick={handleSkip}
-                  disabled={busy}
-                >
-                  {t("common.skip")}
-                </button>
-
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 shadow disabled:opacity-50"
-                  disabled={
-                    (question.kind === "mc" && selectedIndex == null) ||
-                    (question.kind === "audio" && audioBlob == null) ||
-                    busy
-                  }
-                >
-                  {busy ? t("common.loadingDots") : t("common.next")}
-                </button>
-              </div>
+              <button
+                type="submit"
+                className="px-4 sm:px-6 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 shadow disabled:opacity-50 text-sm sm:text-base"
+                disabled={
+                  (question.kind === "mc" && selectedIndex == null) ||
+                  (question.kind === "audio" && audioBlob == null) ||
+                  busy
+                }
+              >
+                {busy ? t("common.loadingDots") : t("common.next")}
+              </button>
             </div>
           </section>
         </form>

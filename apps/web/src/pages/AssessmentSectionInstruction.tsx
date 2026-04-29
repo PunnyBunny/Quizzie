@@ -19,44 +19,48 @@ export default function AssessmentSectionInstruction() {
   const goal = section?.goal ?? t("instruction.noGoal");
 
   return (
-    <div className="flex flex-col items-center bg-gray-50">
+    <div className="flex flex-col items-center bg-gray-50 min-h-screen">
       <AssessmentHeader title={title} assessmentId={id} sectionIndex={sectionIndex} />
 
-      <main className="flex flex-col w-full max-w-3xl gap-6 p-8">
+      <main className="flex flex-col w-full max-w-3xl gap-6 p-4 sm:p-6 md:p-8">
         <section className="flex flex-col">
-          <h1 className="text-5xl font-semibold text-gray-800 mb-3">{t("instruction.goal")}</h1>
-          <p className="text-xl text-gray-800 leading-8 whitespace-pre-line">{goal}</p>
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-semibold text-gray-800 mb-3">
+            {t("instruction.goal")}
+          </h1>
+          <p className="text-base sm:text-lg md:text-xl text-gray-800 leading-relaxed sm:leading-8 whitespace-pre-line">
+            {goal}
+          </p>
         </section>
 
         <section className="flex flex-col">
-          <h1 className="text-4xl font-semibold text-gray-800 mb-3">{t("instruction.title")}</h1>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-gray-800 mb-3">
+            {t("instruction.title")}
+          </h1>
           <SectionInstructionBody instruction={section?.instruction} />
         </section>
 
-        <section className="w-full max-w-2xl py-6 flex items-center justify-between">
-          <div className="w-full flex items-center justify-between">
-            <button
-              type="button"
-              className="px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-              onClick={() => {
-                if (window.confirm(t("common.confirmExit"))) {
-                  navigate("/");
-                }
-              }}
-            >
-              {t("common.saveAndExit")}
-            </button>
+        <section className="w-full py-4 sm:py-6 flex items-center justify-between gap-3">
+          <button
+            type="button"
+            className="px-3 sm:px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 text-sm sm:text-base whitespace-nowrap"
+            onClick={() => {
+              if (window.confirm(t("common.confirmExit"))) {
+                navigate("/");
+              }
+            }}
+          >
+            {t("common.saveAndExit")}
+          </button>
 
-            <button
-              type="button"
-              className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 shadow disabled:opacity-50"
-              onClick={() => {
-                navigate(`/assessment/${id}/s/${sectionIndex}/q/0`);
-              }}
-            >
-              {t("common.next")}
-            </button>
-          </div>
+          <button
+            type="button"
+            className="px-4 sm:px-6 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 shadow disabled:opacity-50 text-sm sm:text-base"
+            onClick={() => {
+              navigate(`/assessment/${id}/s/${sectionIndex}/q/0`);
+            }}
+          >
+            {t("common.next")}
+          </button>
         </section>
       </main>
     </div>

@@ -57,7 +57,7 @@ export default function Login() {
   };
 
   return (
-    <div className="max-w-md mx-auto mt-10 bg-white shadow rounded-xl p-6">
+    <div className="max-w-md mx-4 sm:mx-auto mt-6 sm:mt-10 bg-white shadow rounded-xl p-6">
       <div className="flex items-start justify-between mb-1">
         <h1 className="text-2xl font-semibold">{t("login.title")}</h1>
         <LanguageSwitcher />
