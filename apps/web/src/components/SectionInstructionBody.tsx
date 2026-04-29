@@ -18,7 +18,9 @@ export function SectionInstructionBody({ instruction }: SectionInstructionBodyPr
         </audio>
       )}
       <div className="prose max-w-none text-gray-800">
-        <p className="text-xl leading-8 whitespace-pre-line">{text}</p>
+        <p className="text-base sm:text-lg md:text-xl leading-relaxed sm:leading-8 whitespace-pre-line">
+          {text}
+        </p>
       </div>
     </div>
   );

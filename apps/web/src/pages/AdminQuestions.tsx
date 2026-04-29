@@ -312,7 +312,7 @@ export default function AdminQuestions() {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="max-w-6xl mx-auto">
         <PageHeader
           title="Questions"
@@ -325,42 +325,43 @@ export default function AdminQuestions() {
         </div>
 
         <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-gray-50 text-gray-500">
               <tr>
-                <th className="px-6 py-3 font-medium">ID</th>
-                <th className="px-6 py-3 font-medium">Title</th>
-                <th className="px-6 py-3 font-medium">Kind</th>
-                <th className="px-6 py-3 font-medium text-center">Length</th>
-                <th className="px-6 py-3 font-medium">Goal</th>
-                <th className="px-6 py-3 font-medium">Actions</th>
+                <th className="px-4 sm:px-6 py-3 font-medium">ID</th>
+                <th className="px-4 sm:px-6 py-3 font-medium">Title</th>
+                <th className="px-4 sm:px-6 py-3 font-medium">Kind</th>
+                <th className="px-4 sm:px-6 py-3 font-medium text-center">Length</th>
+                <th className="px-4 sm:px-6 py-3 font-medium">Goal</th>
+                <th className="px-4 sm:px-6 py-3 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {loadingSections && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={6} className="px-4 sm:px-6 py-8 text-center text-gray-500">
                     Loading...
                   </td>
                 </tr>
               )}
               {!loadingSections && sections.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={6} className="px-4 sm:px-6 py-8 text-center text-gray-500">
                     No sections yet.
                   </td>
                 </tr>
               )}
               {sections.map((section) => (
                 <tr key={section.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-3 font-mono text-xs text-gray-500">{section.id}</td>
-                  <td className="px-6 py-3 font-medium text-gray-900">{section.title}</td>
-                  <td className="px-6 py-3 uppercase text-xs">{section.kind}</td>
-                  <td className="px-6 py-3 text-center">{section.length}</td>
-                  <td className="px-6 py-3 text-gray-600 truncate max-w-xs" title={section.goal}>
+                  <td className="px-4 sm:px-6 py-3 font-mono text-xs text-gray-500">{section.id}</td>
+                  <td className="px-4 sm:px-6 py-3 font-medium text-gray-900">{section.title}</td>
+                  <td className="px-4 sm:px-6 py-3 uppercase text-xs">{section.kind}</td>
+                  <td className="px-4 sm:px-6 py-3 text-center">{section.length}</td>
+                  <td className="px-4 sm:px-6 py-3 text-gray-600 truncate max-w-xs" title={section.goal}>
                     {section.goal}
                   </td>
-                  <td className="px-6 py-3">
+                  <td className="px-4 sm:px-6 py-3">
                     <Button size="sm" onClick={() => openEdit(section)}>
                       Edit
                     </Button>
@@ -369,6 +370,7 @@ export default function AdminQuestions() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
 
@@ -394,7 +396,7 @@ export default function AdminQuestions() {
 
               {showSettings && (
                 <div className="border-t border-gray-200 px-4 py-4 space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Section ID (doc key)
