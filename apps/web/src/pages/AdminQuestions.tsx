@@ -326,7 +326,7 @@ export default function AdminQuestions() {
 
         <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+          <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="bg-gray-50 text-gray-500">
               <tr>
                 <th className="px-4 sm:px-6 py-3 font-medium">ID</th>
@@ -356,14 +356,14 @@ export default function AdminQuestions() {
                 <tr key={section.id} className="hover:bg-gray-50">
                   <td className="px-4 sm:px-6 py-3 font-mono text-xs text-gray-500">{section.id}</td>
                   <td className="px-4 sm:px-6 py-3 font-medium text-gray-900 align-top">
-                    <div className="max-w-[140px] sm:max-w-[220px] md:max-w-[320px] lg:max-w-none break-words">
+                    <div className="max-w-[180px] md:max-w-[260px] lg:max-w-none break-words">
                       {section.title}
                     </div>
                   </td>
                   <td className="px-4 sm:px-6 py-3 uppercase text-xs">{section.kind}</td>
                   <td className="px-4 sm:px-6 py-3 text-center">{section.length}</td>
                   <td className="px-4 sm:px-6 py-3 text-gray-600 align-top">
-                    <div className="max-w-[200px] sm:max-w-[320px] md:max-w-[480px] lg:max-w-none break-words">
+                    <div className="max-w-[280px] md:max-w-[420px] lg:max-w-none break-words">
                       {section.goal}
                     </div>
                   </td>
