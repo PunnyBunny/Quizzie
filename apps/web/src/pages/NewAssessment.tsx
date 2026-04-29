@@ -19,9 +19,9 @@ function BrowserSupportCheck({ children }: { children: React.ReactNode }) {
 
   if (!browserSupport) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen">
-        <h1 className="text-3xl mb-4">Browser Not Supported</h1>
-        <p className="text-lg mb-4">
+      <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center">
+        <h1 className="text-2xl sm:text-3xl font-semibold mb-4">Browser Not Supported</h1>
+        <p className="text-base sm:text-lg mb-4 max-w-md">
           Please use the latest versions of Chrome or Edge. Using a mobile browser is currently not
           supported.
         </p>
@@ -117,11 +117,13 @@ export default function NewAssessment() {
 
   return (
     <BrowserSupportCheck>
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         <div className="max-w-4xl mx-auto">
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold">Student Information</h1>
-            <p className="text-gray-600 mt-1">Please enter the student's details to begin</p>
+          <div className="mb-4 sm:mb-6">
+            <h1 className="text-2xl sm:text-3xl font-bold">Student Information</h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-1">
+              Please enter the student's details to begin
+            </p>
           </div>
 
           {submitError && (
@@ -131,7 +133,7 @@ export default function NewAssessment() {
           )}
 
           <div className="bg-white rounded-2xl shadow border border-gray-200">
-            <form onSubmit={submitForm} noValidate className="p-6 md:p-8 flex flex-col gap-4">
+            <form onSubmit={submitForm} noValidate className="p-4 sm:p-6 md:p-8 flex flex-col gap-4">
               <h2 className="text-lg font-semibold">Participant Details</h2>
 
               <div className="space-y-1">

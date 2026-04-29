@@ -54,7 +54,7 @@ export default function Login() {
   };
 
   return (
-    <div className="max-w-md mx-auto mt-10 bg-white shadow rounded-xl p-6">
+    <div className="max-w-md mx-4 sm:mx-auto mt-6 sm:mt-10 bg-white shadow rounded-xl p-6">
       <h1 className="text-2xl font-semibold mb-1">Sign in</h1>
       <p className="text-sm text-gray-600 mb-6">Use your email and password to continue.</p>
       <form onSubmit={submitForm} noValidate className="space-y-4">

@@ -141,7 +141,7 @@ export default function AdminViewAssessments() {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="max-w-6xl mx-auto">
         <PageHeader
           title="Assessment Management"
@@ -149,7 +149,7 @@ export default function AdminViewAssessments() {
           backTo="/admin"
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
           <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
             <div className="text-sm text-blue-600 font-medium mb-1">Total Assessments</div>
             <div className="text-2xl font-bold text-gray-900">{assessments.length}</div>
@@ -164,10 +164,10 @@ export default function AdminViewAssessments() {
           </div>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6">
+        <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4 sm:mb-6">
           <h2 className="text-sm font-semibold text-gray-700 mb-3">Filters</h2>
-          <div className="flex flex-wrap gap-4">
-            <div className="flex-1 min-w-[200px]">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+            <div className="min-w-0">
               <label className="block text-sm font-medium text-gray-700 mb-1">School</label>
               <select
                 value={filterSchool}
@@ -183,7 +183,7 @@ export default function AdminViewAssessments() {
               </select>
             </div>
 
-            <div className="flex-1 min-w-[200px]">
+            <div className="min-w-0">
               <label className="block text-sm font-medium text-gray-700 mb-1">Creator</label>
               <select
                 value={filterCreator}
@@ -199,7 +199,7 @@ export default function AdminViewAssessments() {
               </select>
             </div>
 
-            <div className="flex-1 min-w-[200px]">
+            <div className="min-w-0">
               <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
               <select
                 value={filterStatus}

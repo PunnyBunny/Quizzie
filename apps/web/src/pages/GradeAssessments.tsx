@@ -62,7 +62,7 @@ export default function GradeAssessments() {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="max-w-6xl mx-auto">
         <PageHeader
           title="Completed Assessments"
@@ -102,24 +102,26 @@ export default function GradeAssessments() {
                 className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
                 onClick={() => navigate(`/grade/${assessment.id}`)}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="p-2 bg-green-100 rounded-lg">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="flex items-start gap-3 sm:gap-4 min-w-0 flex-1">
+                    <div className="p-2 bg-green-100 rounded-lg flex-shrink-0">
                       <ClipboardCheckIcon />
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-lg">{assessment.name}</h3>
-                      <p className="text-gray-500 text-sm">
+                    <div className="min-w-0">
+                      <h3 className="font-semibold text-base sm:text-lg break-words">
+                        {assessment.name}
+                      </h3>
+                      <p className="text-gray-500 text-sm break-words">
                         {assessment.school} • Grade {assessment.grade} • Born{" "}
                         {assessment.birthDate}
                       </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm text-gray-500">
+                  <div className="sm:text-right flex flex-col sm:items-end gap-2 sm:flex-shrink-0">
+                    <p className="text-xs sm:text-sm text-gray-500">
                       {formatDate(assessment.createdAtIsoTimestamp)}
                     </p>
-                    <div className="flex gap-2 mt-2">
+                    <div className="flex gap-2">
                       <Button
                         size="sm"
                         onClick={(e) => {

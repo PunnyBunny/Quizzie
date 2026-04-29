@@ -64,7 +64,7 @@ export default function ViewAssessments() {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="max-w-6xl mx-auto">
         <PageHeader
           title="Unfinished Assessments"
@@ -105,14 +105,16 @@ export default function ViewAssessments() {
                 key={assessment.id}
                 className="bg-white rounded-xl shadow border border-gray-100 overflow-hidden hover:border-gray-300 transition-colors"
               >
-                <div className="p-6">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex gap-4 flex-1">
-                      <div className="rounded-xl bg-gray-100 p-3 h-fit">
+                <div className="p-4 sm:p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                    <div className="flex gap-3 sm:gap-4 flex-1 min-w-0">
+                      <div className="rounded-xl bg-gray-100 p-2 sm:p-3 h-fit flex-shrink-0">
                         <ClipboardIcon />
                       </div>
-                      <div className="flex-1">
-                        <h3 className="text-xl font-semibold mb-1">{assessment.name}</h3>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-lg sm:text-xl font-semibold mb-1 break-words">
+                          {assessment.name}
+                        </h3>
                         <div className="text-sm text-gray-600 space-y-1">
                           <p>
                             <span className="font-medium">Birth Date:</span>{" "}
@@ -121,7 +123,7 @@ export default function ViewAssessments() {
                           <p>
                             <span className="font-medium">Grade:</span> {assessment.grade}
                           </p>
-                          <p>
+                          <p className="break-words">
                             <span className="font-medium">School:</span> {assessment.school}
                           </p>
                           <p>
@@ -139,10 +141,10 @@ export default function ViewAssessments() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-col gap-2 sm:flex-shrink-0">
                       <Button
                         variant="dark"
-                        className="whitespace-nowrap"
+                        className="w-full sm:w-auto whitespace-nowrap"
                         onClick={() =>
                           window.open(
                             `/assessment/${assessment.id}/s/${assessment.currentSection}/q/${assessment.currentQuestion}`,
@@ -155,7 +157,7 @@ export default function ViewAssessments() {
                       </Button>
                       <Button
                         variant="muted"
-                        className="whitespace-nowrap"
+                        className="w-full sm:w-auto whitespace-nowrap"
                         onClick={() => setScoreModalId(assessment.id)}
                       >
                         View Score

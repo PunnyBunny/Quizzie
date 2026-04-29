@@ -168,7 +168,7 @@ export default function AdminUserManagement() {
   );
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       {resetLinkPopup && (
         <Modal onClose={closePopup} maxWidth="lg">
           <div className="flex justify-between items-start mb-4">
@@ -217,10 +217,10 @@ export default function AdminUserManagement() {
           backTo="/admin"
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Create User Form */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg border shadow-sm p-6 sticky top-6">
+            <div className="bg-white rounded-lg border shadow-sm p-4 sm:p-6 lg:sticky lg:top-20">
               <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <AddUserIcon className="w-5 h-5 text-green-600" />
                 Add New User
@@ -262,7 +262,7 @@ export default function AdminUserManagement() {
             {actionError && <Alert kind="error">{actionError}</Alert>}
             {actionSuccess && <Alert kind="success">{actionSuccess}</Alert>}
             <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+              <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 bg-gray-50 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
                 <h3 className="font-semibold text-gray-900">System Users</h3>
                 <div className="relative">
                   <input
@@ -270,7 +270,7 @@ export default function AdminUserManagement() {
                     placeholder="Search users..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-8 pr-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full sm:w-auto pl-8 pr-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                   <div className="absolute left-2.5 top-2 text-gray-400">
                     <SearchIcon />
@@ -278,87 +278,91 @@ export default function AdminUserManagement() {
                 </div>
               </div>
 
-              <table className="w-full text-left text-sm">
-                <thead className="bg-gray-50 text-gray-500">
-                  <tr>
-                    <th className="px-6 py-3 font-medium">User</th>
-                    <th className="px-6 py-3 font-medium">Role</th>
-                    <th className="px-6 py-3 font-medium">Status</th>
-                    <th className="px-6 py-3 font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {gettingUsers && (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-gray-50 text-gray-500">
                     <tr>
-                      <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
-                        Loading users...
-                      </td>
+                      <th className="px-4 sm:px-6 py-3 font-medium">User</th>
+                      <th className="px-4 sm:px-6 py-3 font-medium">Role</th>
+                      <th className="px-4 sm:px-6 py-3 font-medium">Status</th>
+                      <th className="px-4 sm:px-6 py-3 font-medium">Actions</th>
                     </tr>
-                  )}
-                  {loadUsersError && (
-                    <tr>
-                      <td colSpan={4} className="px-6 py-8 text-center text-red-600">
-                        {loadUsersError}
-                      </td>
-                    </tr>
-                  )}
-                  {!gettingUsers &&
-                    !loadUsersError &&
-                    (filteredUsers.length === 0 ? (
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {gettingUsers && (
                       <tr>
-                        <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
-                          {users.length === 0 ? "No users found" : "No users match your search"}
+                        <td colSpan={4} className="px-4 sm:px-6 py-8 text-center text-gray-500">
+                          Loading users...
                         </td>
                       </tr>
-                    ) : (
-                      filteredUsers.map((user, index) => (
-                        <tr key={index}>
-                          <td className="px-6 py-3 font-medium text-gray-900">{user.email}</td>
-                          <td className="px-6 py-3">
-                            <span
-                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                user.isAdmin
-                                  ? "bg-purple-100 text-purple-800"
-                                  : "bg-gray-100 text-gray-800"
-                              }`}
-                            >
-                              {user.isAdmin ? "Admin" : "User"}
-                            </span>
-                          </td>
-                          <td className="px-6 py-3">
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                              Active
-                            </span>
-                          </td>
-                          <td className="px-6 py-3 space-x-2">
-                            {user.isAdmin ? (
-                              "N/A"
-                            ) : (
-                              <>
-                                <Button
-                                  size="sm"
-                                  variant="primary"
-                                  onClick={() => user.email && handleResetPassword(user.email)}
-                                  disabled={resettingPassword || !user.email}
-                                >
-                                  Reset Pwd
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="danger"
-                                  onClick={() => user.email && handleRemoveUser(user.email)}
-                                  disabled={removingUser || !user.email}
-                                >
-                                  Remove
-                                </Button>
-                              </>
-                            )}
+                    )}
+                    {loadUsersError && (
+                      <tr>
+                        <td colSpan={4} className="px-4 sm:px-6 py-8 text-center text-red-600">
+                          {loadUsersError}
+                        </td>
+                      </tr>
+                    )}
+                    {!gettingUsers &&
+                      !loadUsersError &&
+                      (filteredUsers.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="px-4 sm:px-6 py-8 text-center text-gray-500">
+                            {users.length === 0 ? "No users found" : "No users match your search"}
                           </td>
                         </tr>
-                      ))
-                    ))}
-                </tbody>
-              </table>
+                      ) : (
+                        filteredUsers.map((user, index) => (
+                          <tr key={index}>
+                            <td className="px-4 sm:px-6 py-3 font-medium text-gray-900 break-all">
+                              {user.email}
+                            </td>
+                            <td className="px-4 sm:px-6 py-3">
+                              <span
+                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                  user.isAdmin
+                                    ? "bg-purple-100 text-purple-800"
+                                    : "bg-gray-100 text-gray-800"
+                                }`}
+                              >
+                                {user.isAdmin ? "Admin" : "User"}
+                              </span>
+                            </td>
+                            <td className="px-4 sm:px-6 py-3">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                Active
+                              </span>
+                            </td>
+                            <td className="px-4 sm:px-6 py-3 whitespace-nowrap space-x-2">
+                              {user.isAdmin ? (
+                                "N/A"
+                              ) : (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="primary"
+                                    onClick={() => user.email && handleResetPassword(user.email)}
+                                    disabled={resettingPassword || !user.email}
+                                  >
+                                    Reset Pwd
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="danger"
+                                    onClick={() => user.email && handleRemoveUser(user.email)}
+                                    disabled={removingUser || !user.email}
+                                  >
+                                    Remove
+                                  </Button>
+                                </>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>

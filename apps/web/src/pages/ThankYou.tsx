@@ -9,14 +9,16 @@ export default function ThankYou() {
   const [showScore, setShowScore] = useState(false);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
-      <div className="text-center">
-        <h1 className="text-3xl font-semibold mb-6">Thank you!</h1>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4 sm:p-6">
+      <div className="text-center w-full max-w-sm">
+        <h1 className="text-2xl sm:text-3xl font-semibold mb-6">Thank you!</h1>
         <div className="flex flex-col gap-3">
           {id && (
-            <Button onClick={() => setShowScore(true)}>View Scores</Button>
+            <Button onClick={() => setShowScore(true)} className="w-full">
+              View Scores
+            </Button>
           )}
-          <Button variant="dark" onClick={() => navigate("/")}>
+          <Button variant="dark" onClick={() => navigate("/")} className="w-full">
             Return Home
           </Button>
         </div>
