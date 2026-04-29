@@ -24,14 +24,22 @@ interface RecordingSessionContextType {
 
 const RecordingSessionContext = createContext<RecordingSessionContextType | undefined>(undefined);
 
+function hasSpeechRecognition(): boolean {
+  return Boolean(
+    (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition,
+  );
+}
+
 // Hacky workaround until the feature detection of [start(MediaStreamTrack)] is reliable
 // https://github.com/WebAudio/web-speech-api/issues/126#issuecomment-3320824852
-function isMediaStreamTrackArgInSpeechRecognitionStartSupported() {
+function supportsStartWithTrack(): boolean {
   const frame = document.body.appendChild(document.createElement("iframe"));
   const contentWindow = frame.contentWindow;
   const SpeechRecognition =
-    (contentWindow as any).SpeechRecognition || (contentWindow as any).webkitSpeechRecognition;
+    (contentWindow as any)?.SpeechRecognition ||
+    (contentWindow as any)?.webkitSpeechRecognition;
   if (!SpeechRecognition) {
+    frame.remove();
     return false;
   }
 
@@ -53,9 +61,10 @@ export function RecordingSessionProvider({ children }: { children: React.ReactNo
   const [interimTranscript, setInterimTranscript] = useState("");
   const [error, setError] = useState("");
   const [status, setStatus] = useState<RecordingStatus>("idle");
-  const browserSupport = useMemo(
-    () => isMediaStreamTrackArgInSpeechRecognitionStartSupported(),
-    [],
+  const browserSupport = useMemo(() => hasSpeechRecognition(), []);
+  const canPassTrack = useMemo(
+    () => browserSupport && supportsStartWithTrack(),
+    [browserSupport],
   );
 
   // Audio recording state
@@ -210,8 +219,15 @@ export function RecordingSessionProvider({ children }: { children: React.ReactNo
 
       recognitionRef.current = recognition;
 
-      const audioTrack = stream.getAudioTracks()[0];
-      recognition.start(audioTrack);
+      if (canPassTrack) {
+        const audioTrack = stream.getAudioTracks()[0];
+        recognition.start(audioTrack);
+      } else {
+        // Older Chromium without start(MediaStreamTrack): SR opens its own
+        // internal mic capture in parallel to MediaRecorder. Both share the
+        // same physical mic via the OS audio engine.
+        recognition.start();
+      }
     };
 
     cleanup();
@@ -238,7 +254,7 @@ export function RecordingSessionProvider({ children }: { children: React.ReactNo
       setStatus("error");
       cleanup();
     }
-  }, [browserSupport, cleanup]);
+  }, [browserSupport, canPassTrack, cleanup]);
 
   const stopRecording = useCallback(() => {
     setStatus("idle");
