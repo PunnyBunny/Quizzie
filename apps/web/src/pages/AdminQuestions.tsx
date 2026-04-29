@@ -355,7 +355,11 @@ export default function AdminQuestions() {
               {sections.map((section) => (
                 <tr key={section.id} className="hover:bg-gray-50">
                   <td className="px-4 sm:px-6 py-3 font-mono text-xs text-gray-500">{section.id}</td>
-                  <td className="px-4 sm:px-6 py-3 font-medium text-gray-900">{section.title}</td>
+                  <td className="px-4 sm:px-6 py-3 font-medium text-gray-900 align-top">
+                    <div className="max-w-[140px] sm:max-w-[220px] md:max-w-[320px] lg:max-w-none break-words">
+                      {section.title}
+                    </div>
+                  </td>
                   <td className="px-4 sm:px-6 py-3 uppercase text-xs">{section.kind}</td>
                   <td className="px-4 sm:px-6 py-3 text-center">{section.length}</td>
                   <td className="px-4 sm:px-6 py-3 text-gray-600 align-top">
