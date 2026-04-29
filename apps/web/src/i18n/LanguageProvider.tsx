@@ -1,8 +1,8 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { LANGUAGES, TRANSLATIONS, type Language } from "./translations";
 
-interface LanguageContextValue {
+export interface LanguageContextValue {
   language: Language;
   setLanguage: (lang: Language) => void;
   t: (key: string, vars?: Record<string, string | number>) => string;
@@ -11,7 +11,7 @@ interface LanguageContextValue {
 const STORAGE_KEY = "quizzie.language";
 const DEFAULT_LANGUAGE: Language = "en";
 
-const LanguageContext = createContext<LanguageContextValue | null>(null);
+export const LanguageContext = createContext<LanguageContextValue | null>(null);
 
 function detectInitialLanguage(): Language {
   if (typeof window === "undefined") return DEFAULT_LANGUAGE;
@@ -62,12 +62,4 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const value = useMemo(() => ({ language, setLanguage, t }), [language, setLanguage, t]);
 
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
-}
-
-export function useTranslation(): LanguageContextValue {
-  const ctx = useContext(LanguageContext);
-  if (!ctx) {
-    throw new Error("useTranslation must be used within a LanguageProvider");
-  }
-  return ctx;
 }

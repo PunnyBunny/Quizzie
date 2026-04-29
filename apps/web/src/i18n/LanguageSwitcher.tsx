@@ -1,4 +1,4 @@
-import { useTranslation } from "./LanguageProvider";
+import { useTranslation } from "../hooks/useTranslation";
 import { LANGUAGES, type Language } from "./translations";
 
 interface LanguageSwitcherProps {

@@ -8,7 +8,7 @@ import {
   PencilSquareIcon,
   ShieldCheckIcon,
 } from "../components/icons";
-import { useTranslation } from "../i18n/LanguageProvider";
+import { useTranslation } from "../hooks/useTranslation";
 
 interface HomeCard {
   icon: ReactNode;

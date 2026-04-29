@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
 import { auth } from "../lib/firebase.ts";
 import { toUserMessage } from "../lib/errors.ts";
-import { useTranslation } from "../i18n/LanguageProvider";
+import { useTranslation } from "../hooks/useTranslation";
 import { LanguageSwitcher } from "../i18n/LanguageSwitcher";
 
 function LogoutButton() {

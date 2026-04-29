@@ -15,7 +15,7 @@ import { Button } from "../components/Button";
 import { Modal } from "../components/Modal";
 import { Alert } from "../components/Alert";
 import { AssetUploader } from "../components/AssetUploader";
-import { useTranslation } from "../i18n/LanguageProvider";
+import { useTranslation } from "../hooks/useTranslation";
 
 type Kind = "mc" | "audio";
 const KINDS: Kind[] = ["mc", "audio"];

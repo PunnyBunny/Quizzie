@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useTranslation } from "../i18n/LanguageProvider";
+import { useTranslation } from "../hooks/useTranslation";
 
 interface AssessmentHeaderProps {
   title: string;

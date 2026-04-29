@@ -20,7 +20,7 @@ import { Modal } from "../components/Modal";
 import { SectionInstructionBody } from "../components/SectionInstructionBody";
 import { useStorageUrl } from "../hooks/useStorageUrl.ts";
 import { audioStoragePath, imageStoragePath } from "../lib/asset-paths.ts";
-import { useTranslation } from "../i18n/LanguageProvider";
+import { useTranslation } from "../hooks/useTranslation";
 
 function MicrophoneIcon() {
   return (

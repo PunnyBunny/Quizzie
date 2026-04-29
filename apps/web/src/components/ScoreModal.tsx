@@ -4,7 +4,7 @@ import { toUserMessage } from "../lib/errors";
 import { Modal } from "./Modal";
 import { Button } from "./Button";
 import { Alert } from "./Alert";
-import { useTranslation } from "../i18n/LanguageProvider";
+import { useTranslation } from "../hooks/useTranslation";
 import {
   type QuizSection,
   type StudentResponse,

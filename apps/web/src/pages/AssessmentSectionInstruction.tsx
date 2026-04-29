@@ -2,7 +2,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useSection } from "../providers/QuestionProvider.tsx";
 import { AssessmentHeader } from "../components/AssessmentHeader";
 import { SectionInstructionBody } from "../components/SectionInstructionBody";
-import { useTranslation } from "../i18n/LanguageProvider";
+import { useTranslation } from "../hooks/useTranslation";
 
 export default function AssessmentSectionInstruction() {
   const { id = "", section: sectionIndexStr = "" } = useParams<{ id: string; section: string }>();

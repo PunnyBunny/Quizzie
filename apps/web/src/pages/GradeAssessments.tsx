@@ -7,7 +7,7 @@ import { PageHeader } from "../components/PageHeader";
 import { Button } from "../components/Button";
 import { Alert } from "../components/Alert";
 import { ClipboardCheckIcon } from "../components/icons";
-import { useTranslation } from "../i18n/LanguageProvider";
+import { useTranslation } from "../hooks/useTranslation";
 
 interface LanguageEntry {
   language: "cantonese" | "mandarin" | "english" | "other";

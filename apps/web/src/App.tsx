@@ -22,7 +22,7 @@ import useAuth from "./hooks/useAuth.tsx";
 import { Alert } from "./components/Alert";
 import { Button } from "./components/Button";
 import { toUserMessage } from "./lib/errors";
-import { useTranslation } from "./i18n/LanguageProvider";
+import { useTranslation } from "./hooks/useTranslation";
 
 interface ProtectedRouteProps {
   isAdminRoute: boolean;

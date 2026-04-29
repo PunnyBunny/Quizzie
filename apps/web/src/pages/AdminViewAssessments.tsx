@@ -11,7 +11,7 @@ import {
   ArrowUpIcon,
   ClipboardCheckIcon,
 } from "../components/icons";
-import { useTranslation } from "../i18n/LanguageProvider";
+import { useTranslation } from "../hooks/useTranslation";
 
 interface LanguageEntry {
   language: "cantonese" | "mandarin" | "english" | "other";

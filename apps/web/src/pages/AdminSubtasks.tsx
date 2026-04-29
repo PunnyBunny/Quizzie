@@ -15,7 +15,7 @@ import { Button } from "../components/Button";
 import { Modal } from "../components/Modal";
 import { Alert } from "../components/Alert";
 import { toUserMessage } from "../lib/errors";
-import { useTranslation } from "../i18n/LanguageProvider";
+import { useTranslation } from "../hooks/useTranslation";
 
 type NormGrade = "S1" | "S3" | "S5";
 const NORM_GRADES: NormGrade[] = ["S1", "S3", "S5"];

@@ -6,7 +6,7 @@ import { useAuthState } from "../lib/firebase-hooks";
 import useForceUpdate from "use-force-update";
 import { toUserMessage } from "../lib/errors";
 import { Alert } from "../components/Alert";
-import { useTranslation } from "../i18n/LanguageProvider";
+import { useTranslation } from "../hooks/useTranslation";
 import { LanguageSwitcher } from "../i18n/LanguageSwitcher";
 
 export default function Login() {

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { CloseIcon } from "./icons";
-import { useTranslation } from "../i18n/LanguageProvider";
+import { useTranslation } from "../hooks/useTranslation";
 
 type MaxWidth = "sm" | "md" | "lg" | "xl" | "2xl" | "3xl";
 

@@ -8,7 +8,7 @@ import { Button } from "../components/Button";
 import { Alert } from "../components/Alert";
 import { CheckIcon, XIcon } from "../components/icons";
 import type { QuizSection } from "../lib/scoring";
-import { useTranslation } from "../i18n/LanguageProvider";
+import { useTranslation } from "../hooks/useTranslation";
 
 interface LanguageEntry {
   language: "cantonese" | "mandarin" | "english" | "other";

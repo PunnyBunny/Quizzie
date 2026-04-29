@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { useTranslation } from "../i18n/LanguageProvider";
+import { useTranslation } from "../hooks/useTranslation";
 
 export default function NotFound() {
   const { t } = useTranslation();

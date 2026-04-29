@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import ScoreModal from "../components/ScoreModal";
 import { Button } from "../components/Button";
-import { useTranslation } from "../i18n/LanguageProvider";
+import { useTranslation } from "../hooks/useTranslation";
 
 export default function ThankYou() {
   const navigate = useNavigate();

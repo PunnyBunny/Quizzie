@@ -5,7 +5,7 @@ import { useBrowserSupport } from "../providers/RecordingSessionProvider.tsx";
 import { useCallable } from "../lib/firebase-hooks.ts";
 import { toUserMessage } from "../lib/errors.ts";
 import { Alert } from "../components/Alert.tsx";
-import { useTranslation } from "../i18n/LanguageProvider";
+import { useTranslation } from "../hooks/useTranslation";
 
 type Language = "cantonese" | "mandarin" | "english" | "other";
 type Gender = "male" | "female";

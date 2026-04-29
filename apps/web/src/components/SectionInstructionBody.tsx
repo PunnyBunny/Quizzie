@@ -1,7 +1,7 @@
 import type { SectionInstruction } from "../providers/QuestionProvider.tsx";
 import { useStorageUrl } from "../hooks/useStorageUrl.ts";
 import { audioStoragePath } from "../lib/asset-paths.ts";
-import { useTranslation } from "../i18n/LanguageProvider";
+import { useTranslation } from "../hooks/useTranslation";
 
 interface SectionInstructionBodyProps {
   instruction: SectionInstruction | null | undefined;

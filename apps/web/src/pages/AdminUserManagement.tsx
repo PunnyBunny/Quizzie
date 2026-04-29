@@ -6,7 +6,7 @@ import { Button } from "../components/Button";
 import { Modal } from "../components/Modal";
 import { Alert } from "../components/Alert";
 import { AddUserIcon, CloseIcon, SearchIcon } from "../components/icons";
-import { useTranslation } from "../i18n/LanguageProvider";
+import { useTranslation } from "../hooks/useTranslation";
 
 interface User {
   email?: string;
