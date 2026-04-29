@@ -339,7 +339,7 @@ export default function AdminViewAssessments() {
                       <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
                         {assessment.birthDate}
                       </td>
-                      <td className="px-4 py-3 text-gray-600 break-all">
+                      <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
                         {assessment.creatorEmail}
                       </td>
                       <td className="px-4 py-3 text-gray-600 whitespace-nowrap">

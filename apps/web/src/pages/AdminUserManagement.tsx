@@ -372,7 +372,7 @@ export default function AdminUserManagement() {
                       ) : (
                         filteredUsers.map((user, index) => (
                           <tr key={index}>
-                            <td className="px-4 sm:px-6 py-3 font-medium text-gray-900 break-all">
+                            <td className="px-4 sm:px-6 py-3 font-medium text-gray-900 whitespace-nowrap">
                               {user.email}
                             </td>
                             <td className="px-4 sm:px-6 py-3">
