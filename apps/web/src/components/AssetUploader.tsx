@@ -5,6 +5,7 @@ import { audioStoragePath, imageStoragePath } from "../lib/asset-paths";
 import { invalidateStorageUrl, useStorageUrl } from "../hooks/useStorageUrl";
 import { toUserMessage } from "../lib/errors";
 import { Alert } from "./Alert";
+import { useTranslation } from "../i18n/LanguageProvider";
 
 const INPUT_CLASSES =
   "w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-blue-500 focus:ring-blue-500";
@@ -24,6 +25,7 @@ export function AssetUploader({
   sectionId,
   placeholder,
 }: AssetUploaderProps) {
+  const { t } = useTranslation();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [freshUrl, setFreshUrl] = useState<string | null>(null);
@@ -59,7 +61,7 @@ export function AssetUploader({
       if (rel !== value) onChange(rel);
     } catch (err) {
       console.error("Asset upload failed:", err);
-      setError(toUserMessage(err, "Could not upload file."));
+      setError(toUserMessage(err, t("asset.errorUpload")));
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -90,7 +92,7 @@ export function AssetUploader({
           className="text-sm text-gray-700"
         />
       </div>
-      {uploading && <p className="text-xs text-gray-500">Uploading…</p>}
+      {uploading && <p className="text-xs text-gray-500">{t("asset.uploading")}</p>}
       {error && <Alert kind="error">{error}</Alert>}
       {!uploading && previewUrl && (
         <div className="pt-1">
@@ -106,7 +108,7 @@ export function AssetUploader({
         </div>
       )}
       {!uploading && value && !previewUrl && preview.error && (
-        <p className="text-xs text-gray-500">No file uploaded at this path yet.</p>
+        <p className="text-xs text-gray-500">{t("asset.noFile")}</p>
       )}
     </div>
   );

@@ -22,6 +22,7 @@ import useAuth from "./hooks/useAuth.tsx";
 import { Alert } from "./components/Alert";
 import { Button } from "./components/Button";
 import { toUserMessage } from "./lib/errors";
+import { useTranslation } from "./i18n/LanguageProvider";
 
 interface ProtectedRouteProps {
   isAdminRoute: boolean;
@@ -35,11 +36,12 @@ const CenteredMessage = ({ children }: { children: React.ReactNode }) => (
 
 const ProtectedRoute = ({ isAdminRoute }: ProtectedRouteProps) => {
   const { user, loading, error, isAdmin } = useAuth();
+  const { t } = useTranslation();
 
   if (loading) {
     return (
       <CenteredMessage>
-        <p className="text-gray-600 text-center">Loading…</p>
+        <p className="text-gray-600 text-center">{t("common.loading")}</p>
       </CenteredMessage>
     );
   }
@@ -47,9 +49,9 @@ const ProtectedRoute = ({ isAdminRoute }: ProtectedRouteProps) => {
   if (error) {
     return (
       <CenteredMessage>
-        <Alert kind="error">{toUserMessage(error, "Could not verify your session.")}</Alert>
+        <Alert kind="error">{toUserMessage(error, t("common.couldNotVerifySession"))}</Alert>
         <Button variant="primary" onClick={() => window.location.reload()} className="w-full">
-          Retry
+          {t("common.retry")}
         </Button>
       </CenteredMessage>
     );
@@ -60,9 +62,9 @@ const ProtectedRoute = ({ isAdminRoute }: ProtectedRouteProps) => {
   if (isAdminRoute && !isAdmin) {
     return (
       <CenteredMessage>
-        <Alert kind="error">You don't have permission to view this page.</Alert>
+        <Alert kind="error">{t("common.noPermission")}</Alert>
         <Button variant="secondary" onClick={() => (window.location.href = "/")} className="w-full">
-          Go home
+          {t("common.goHome")}
         </Button>
       </CenteredMessage>
     );

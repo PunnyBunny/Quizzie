@@ -8,6 +8,7 @@ import { Button } from "../components/Button";
 import { Alert } from "../components/Alert";
 import { CheckIcon, XIcon } from "../components/icons";
 import type { QuizSection } from "../lib/scoring";
+import { useTranslation } from "../i18n/LanguageProvider";
 
 interface LanguageEntry {
   language: "cantonese" | "mandarin" | "english" | "other";
@@ -59,6 +60,7 @@ interface GetQuestionsResponse {
 }
 
 export default function GradeAssessment() {
+  const { t } = useTranslation();
   const { id = "" } = useParams<{ id: string }>();
   const location = useLocation();
 
@@ -91,8 +93,8 @@ export default function GradeAssessment() {
   useEffect(() => {
     void getQuestions()
       .then((result) => setQuizQuestions(result.data.sections))
-      .catch((err) => setLoadError(toUserMessage(err, "Could not load questions.")));
-  }, [getQuestions]);
+      .catch((err) => setLoadError(toUserMessage(err, t("gradeAssessment.errorQuestions"))));
+  }, [getQuestions, t]);
 
   useEffect(() => {
     void getAssessmentStudentResponses({ assessmentId: id })
@@ -109,13 +111,13 @@ export default function GradeAssessment() {
         }
         setLocalAudioGrades(initialAudioGrades);
       })
-      .catch((err) => setLoadError(toUserMessage(err, "Could not load assessment.")));
-  }, [id, getAssessmentStudentResponses]);
+      .catch((err) => setLoadError(toUserMessage(err, t("gradeAssessment.errorAssessment"))));
+  }, [id, getAssessmentStudentResponses, t]);
 
   if (fetching || fetchingQuestions) {
     return (
       <div className="p-6 flex justify-center">
-        <div className="text-gray-500">Loading assessment...</div>
+        <div className="text-gray-500">{t("gradeAssessment.loading")}</div>
       </div>
     );
   }
@@ -131,7 +133,7 @@ export default function GradeAssessment() {
   if (!studentResponseData || !quizQuestions) {
     return (
       <div className="p-6">
-        <div className="text-gray-500">Assessment not found.</div>
+        <div className="text-gray-500">{t("gradeAssessment.notFound")}</div>
       </div>
     );
   }
@@ -155,7 +157,7 @@ export default function GradeAssessment() {
         grade,
       });
     } catch (err) {
-      setGradeError(toUserMessage(err, "Could not save grade."));
+      setGradeError(toUserMessage(err, t("gradeAssessment.errorSaveGrade")));
       setLocalAudioGrades((prev) => {
         const prevSection: Record<string, number> = { ...prev[section] };
         if (previous === undefined) {
@@ -225,12 +227,12 @@ export default function GradeAssessment() {
     <div className="p-6">
       <div className="max-w-6xl mx-auto">
         <PageHeader
-          title="Grade Assessment"
-          subtitle={`${studentResponseData.assessment.name} • ${studentResponseData.assessment.school} • Grade ${studentResponseData.assessment.grade}`}
+          title={t("gradeAssessment.title")}
+          subtitle={`${studentResponseData.assessment.name} • ${studentResponseData.assessment.school} • ${t("gradeAssessments.grade")} ${studentResponseData.assessment.grade}`}
           backTo={backPath}
           actions={
             <Button variant="primary" onClick={() => setShowScore(true)}>
-              View Score
+              {t("gradeAssessment.viewScore")}
             </Button>
           }
         />
@@ -267,7 +269,7 @@ export default function GradeAssessment() {
                         })()
                       : (() => {
                           const score = calculateAudioScore(sectionIdx);
-                          return `Graded ${score.numGraded}/${score.total}`;
+                          return `${t("gradeAssessment.tab.graded")} ${score.numGraded}/${score.total}`;
                         })()}
                   </span>
                 </button>
@@ -301,13 +303,13 @@ export default function GradeAssessment() {
                   <div key={questionIdx} className="p-4">
                     <div className="flex items-start gap-3">
                       <span className="font-medium text-gray-500 min-w-[2rem]">
-                        Q{questionIdx + 1}
+                        {t("gradeAssessment.q.short")}{questionIdx + 1}
                       </span>
                       <div className="flex-1">
                         {questionText && <p className="mb-3 text-gray-800">{questionText}</p>}
                         {!hasAnswer && (
                           <div className="mb-3 p-2 bg-amber-50 border border-amber-200 rounded-md text-sm text-amber-800">
-                            No answer provided
+                            {t("gradeAssessment.noAnswer")}
                           </div>
                         )}
                         <div className="grid gap-2">
@@ -338,7 +340,7 @@ export default function GradeAssessment() {
                                   <CheckIcon className="w-5 h-5 text-green-600" />
                                 )}
                                 {isCorrectChoice && !hasAnswer && (
-                                  <span className="text-xs text-amber-700 ml-auto">Correct answer</span>
+                                  <span className="text-xs text-amber-700 ml-auto">{t("gradeAssessment.correctAnswer")}</span>
                                 )}
                                 {isUserChoice && !isCorrect && <XIcon className="w-5 h-5 text-red-600" />}
                               </div>
@@ -364,7 +366,7 @@ export default function GradeAssessment() {
                   <div key={questionIdx} className="p-4">
                     <div className="flex items-start gap-3">
                       <span className="font-medium text-gray-500 min-w-[2rem]">
-                        Q{questionIdx + 1}
+                        {t("gradeAssessment.q.short")}{questionIdx + 1}
                       </span>
                       <div className="flex-1">
                         {questionText && (
@@ -376,10 +378,10 @@ export default function GradeAssessment() {
                             {/* Audio Player */}
                             <div>
                               <label className="text-sm font-medium text-gray-700 mb-1 block">
-                                Student Recording:
+                                {t("gradeAssessment.studentRecording")}
                               </label>
                               <audio controls src={fileUrl} className="w-full">
-                                Your browser does not support the audio element.
+                                {t("gradeAssessment.audioFallback")}
                               </audio>
                             </div>
 
@@ -387,12 +389,12 @@ export default function GradeAssessment() {
                             {transcript && (
                               <div>
                                 <label className="text-sm font-medium text-gray-700 mb-1 block">
-                                  Transcript:
+                                  {t("gradeAssessment.transcript")}
                                 </label>
                                 <p className="p-3 bg-gray-50 rounded-md text-gray-700 text-sm">
                                   {transcript || (
                                     <span className="italic text-gray-400">
-                                      No transcript available
+                                      {t("gradeAssessment.noTranscript")}
                                     </span>
                                   )}
                                 </p>
@@ -402,7 +404,7 @@ export default function GradeAssessment() {
                             {/* Grade Input */}
                             <div>
                               <label className="text-sm font-medium text-gray-700 mb-2 block">
-                                Grade (0-5):
+                                {t("gradeAssessment.gradeRange")}
                               </label>
                               <div className="flex items-center gap-2">
                                 {[0, 1, 2, 3, 4, 5].map((grade) => (
@@ -422,16 +424,16 @@ export default function GradeAssessment() {
                                   </button>
                                 ))}
                                 {submitting && (
-                                  <span className="text-sm text-gray-500 ml-2">Saving...</span>
+                                  <span className="text-sm text-gray-500 ml-2">{t("common.saving")}</span>
                                 )}
                                 {currentGrade !== undefined && !submitting && (
-                                  <span className="text-sm text-green-600 ml-2">✓ Saved</span>
+                                  <span className="text-sm text-green-600 ml-2">{t("common.saved")}</span>
                                 )}
                               </div>
                             </div>
                           </div>
                         ) : (
-                          <p className="text-sm text-gray-400 italic">No recording provided</p>
+                          <p className="text-sm text-gray-400 italic">{t("gradeAssessment.noRecording")}</p>
                         )}
                       </div>
                     </div>

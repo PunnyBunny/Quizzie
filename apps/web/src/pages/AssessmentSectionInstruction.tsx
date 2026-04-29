@@ -2,6 +2,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useSection } from "../providers/QuestionProvider.tsx";
 import { AssessmentHeader } from "../components/AssessmentHeader";
 import { SectionInstructionBody } from "../components/SectionInstructionBody";
+import { useTranslation } from "../i18n/LanguageProvider";
 
 export default function AssessmentSectionInstruction() {
   const { id = "", section: sectionIndexStr = "" } = useParams<{ id: string; section: string }>();
@@ -11,10 +12,11 @@ export default function AssessmentSectionInstruction() {
   }
 
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const { section } = useSection(sectionIndex);
-  const title = section?.title ?? "Section";
-  const goal = section?.goal ?? "No goal provided.";
+  const title = section?.title ?? t("instruction.section");
+  const goal = section?.goal ?? t("instruction.noGoal");
 
   return (
     <div className="flex flex-col items-center bg-gray-50">
@@ -22,12 +24,12 @@ export default function AssessmentSectionInstruction() {
 
       <main className="flex flex-col w-full max-w-3xl gap-6 p-8">
         <section className="flex flex-col">
-          <h1 className="text-5xl font-semibold text-gray-800 mb-3">Goal</h1>
+          <h1 className="text-5xl font-semibold text-gray-800 mb-3">{t("instruction.goal")}</h1>
           <p className="text-xl text-gray-800 leading-8 whitespace-pre-line">{goal}</p>
         </section>
 
         <section className="flex flex-col">
-          <h1 className="text-4xl font-semibold text-gray-800 mb-3">Instructions</h1>
+          <h1 className="text-4xl font-semibold text-gray-800 mb-3">{t("instruction.title")}</h1>
           <SectionInstructionBody instruction={section?.instruction} />
         </section>
 
@@ -37,12 +39,12 @@ export default function AssessmentSectionInstruction() {
               type="button"
               className="px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
               onClick={() => {
-                if (window.confirm("Are you sure you want to exit? Your progress will be saved.")) {
+                if (window.confirm(t("common.confirmExit"))) {
                   navigate("/");
                 }
               }}
             >
-              Save & Exit
+              {t("common.saveAndExit")}
             </button>
 
             <button
@@ -52,7 +54,7 @@ export default function AssessmentSectionInstruction() {
                 navigate(`/assessment/${id}/s/${sectionIndex}/q/0`);
               }}
             >
-              Next
+              {t("common.next")}
             </button>
           </div>
         </section>

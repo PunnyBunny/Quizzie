@@ -7,6 +7,7 @@ import { PageHeader } from "../components/PageHeader";
 import { Button } from "../components/Button";
 import { Alert } from "../components/Alert";
 import { ClipboardIcon } from "../components/icons";
+import { useTranslation } from "../i18n/LanguageProvider";
 
 interface LanguageEntry {
   language: "cantonese" | "mandarin" | "english" | "other";
@@ -37,6 +38,7 @@ interface GetAssessmentsResponse {
 
 export default function ViewAssessments() {
   const navigate = useNavigate();
+  const { t, language } = useTranslation();
 
   const [getAssessments, loading] = useCallable<GetAssessmentsRequest, GetAssessmentsResponse>(
     "api/get-assessments",
@@ -49,12 +51,12 @@ export default function ViewAssessments() {
   useEffect(() => {
     void getAssessments({ finished: false })
       .then((response) => setAssessments(response.data.assessments))
-      .catch((err) => setError(toUserMessage(err, "Could not load assessments.")));
-  }, [getAssessments]);
+      .catch((err) => setError(toUserMessage(err, t("viewAssessments.errorLoad"))));
+  }, [getAssessments, t]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
+    return date.toLocaleDateString(language === "zh-Hant" ? "zh-Hant" : "en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -67,14 +69,14 @@ export default function ViewAssessments() {
     <div className="p-6">
       <div className="max-w-6xl mx-auto">
         <PageHeader
-          title="Unfinished Assessments"
-          subtitle="Continue assessments from previous sessions"
+          title={t("viewAssessments.title")}
+          subtitle={t("viewAssessments.subtitle")}
           backTo="/"
         />
 
         {error && (
           <Alert kind="error" className="mb-4">
-            <p className="font-medium">Error loading assessments</p>
+            <p className="font-medium">{t("viewAssessments.errorTitle")}</p>
             <p className="text-sm mt-1">{error}</p>
           </Alert>
         )}
@@ -89,12 +91,10 @@ export default function ViewAssessments() {
               <div className="rounded-xl bg-gray-100 p-4 w-fit mx-auto mb-4">
                 <ClipboardIcon />
               </div>
-              <h2 className="text-xl font-semibold mb-2">No unfinished assessments</h2>
-              <p className="text-gray-600 mb-6">
-                All assessments have been completed. Start a new assessment to begin.
-              </p>
+              <h2 className="text-xl font-semibold mb-2">{t("viewAssessments.empty.title")}</h2>
+              <p className="text-gray-600 mb-6">{t("viewAssessments.empty.body")}</p>
               <Button variant="dark" onClick={() => navigate("/")}>
-                Go to Home
+                {t("viewAssessments.empty.button")}
               </Button>
             </div>
           </div>
@@ -115,25 +115,27 @@ export default function ViewAssessments() {
                         <h3 className="text-xl font-semibold mb-1">{assessment.name}</h3>
                         <div className="text-sm text-gray-600 space-y-1">
                           <p>
-                            <span className="font-medium">Birth Date:</span>{" "}
+                            <span className="font-medium">{t("viewAssessments.field.birthDate")}</span>{" "}
                             {assessment.birthDate}
                           </p>
                           <p>
-                            <span className="font-medium">Grade:</span> {assessment.grade}
+                            <span className="font-medium">{t("viewAssessments.field.grade")}</span>{" "}
+                            {assessment.grade}
                           </p>
                           <p>
-                            <span className="font-medium">School:</span> {assessment.school}
+                            <span className="font-medium">{t("viewAssessments.field.school")}</span>{" "}
+                            {assessment.school}
                           </p>
                           <p>
-                            <span className="font-medium">Started:</span>{" "}
+                            <span className="font-medium">{t("viewAssessments.field.started")}</span>{" "}
                             {formatDate(assessment.createdAtIsoTimestamp)}
                           </p>
                           {assessment.currentSection !== undefined && (
                             <p>
-                              <span className="font-medium">Progress:</span> Section{" "}
-                              {assessment.currentSection + 1}
+                              <span className="font-medium">{t("viewAssessments.field.progress")}</span>{" "}
+                              {t("viewAssessments.section")} {assessment.currentSection + 1}
                               {assessment.currentQuestion !== undefined &&
-                                `, Question ${assessment.currentQuestion + 1}`}
+                                `, ${t("viewAssessments.question")} ${assessment.currentQuestion + 1}`}
                             </p>
                           )}
                         </div>
@@ -151,14 +153,14 @@ export default function ViewAssessments() {
                           )
                         }
                       >
-                        Continue Assessment
+                        {t("viewAssessments.continue")}
                       </Button>
                       <Button
                         variant="muted"
                         className="whitespace-nowrap"
                         onClick={() => setScoreModalId(assessment.id)}
                       >
-                        View Score
+                        {t("viewAssessments.viewScore")}
                       </Button>
                     </div>
                   </div>

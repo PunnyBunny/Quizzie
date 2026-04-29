@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { Alert } from "./Alert";
 import { Button } from "./Button";
+import { useTranslation } from "../i18n/LanguageProvider";
 
 interface Props {
   children: ReactNode;
@@ -9,6 +10,26 @@ interface Props {
 
 interface State {
   error: Error | null;
+}
+
+function DefaultFallback({ error, reset }: { error: Error; reset: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <div className="min-h-screen flex items-center justify-center p-6">
+      <div className="max-w-md w-full space-y-4">
+        <h1 className="text-2xl font-semibold text-gray-900">{t("common.somethingWentWrong")}</h1>
+        <Alert kind="error">{error.message || t("common.unexpectedError")}</Alert>
+        <div className="flex gap-3">
+          <Button variant="primary" onClick={reset}>
+            {t("common.tryAgain")}
+          </Button>
+          <Button variant="secondary" onClick={() => (window.location.href = "/")}>
+            {t("common.goHome")}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export class ErrorBoundary extends Component<Props, State> {
@@ -32,21 +53,6 @@ export class ErrorBoundary extends Component<Props, State> {
 
     if (this.props.fallback) return this.props.fallback(error, this.reset);
 
-    return (
-      <div className="min-h-screen flex items-center justify-center p-6">
-        <div className="max-w-md w-full space-y-4">
-          <h1 className="text-2xl font-semibold text-gray-900">Something went wrong</h1>
-          <Alert kind="error">{error.message || "An unexpected error occurred."}</Alert>
-          <div className="flex gap-3">
-            <Button variant="primary" onClick={this.reset}>
-              Try again
-            </Button>
-            <Button variant="secondary" onClick={() => (window.location.href = "/")}>
-              Go home
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
+    return <DefaultFallback error={error} reset={this.reset} />;
   }
 }
