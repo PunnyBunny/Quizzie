@@ -1,6 +1,7 @@
 import type { SectionInstruction } from "../providers/QuestionProvider.tsx";
 import { useStorageUrl } from "../hooks/useStorageUrl.ts";
 import { audioStoragePath } from "../lib/asset-paths.ts";
+import { useTranslation } from "../hooks/useTranslation";
 
 interface SectionInstructionBodyProps {
   instruction: SectionInstruction | null | undefined;
@@ -8,13 +9,14 @@ interface SectionInstructionBodyProps {
 
 export function SectionInstructionBody({ instruction }: SectionInstructionBodyProps) {
   const audio = useStorageUrl(instruction?.audio ? audioStoragePath(instruction.audio) : null);
-  const text = instruction?.text ?? "No instructions provided for this section.";
+  const { t } = useTranslation();
+  const text = instruction?.text ?? t("instruction.none");
 
   return (
     <div className="flex flex-col gap-4">
       {audio.url && (
         <audio controls src={audio.url} className="w-full">
-          Your browser does not support the audio element.
+          {t("instruction.audioFallback")}
         </audio>
       )}
       <div className="prose max-w-none text-gray-800">

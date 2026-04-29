@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { BackArrowIcon } from "./icons";
+import { useTranslation } from "../hooks/useTranslation";
 
 interface PageHeaderProps {
   title: string;
@@ -11,6 +12,7 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, subtitle, backTo, actions }: PageHeaderProps) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const handleBack =
     typeof backTo === "function" ? backTo : backTo ? () => navigate(backTo) : undefined;
 
@@ -21,7 +23,7 @@ export function PageHeader({ title, subtitle, backTo, actions }: PageHeaderProps
           type="button"
           onClick={handleBack}
           className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          aria-label="Go back"
+          aria-label={t("common.goHome")}
         >
           <BackArrowIcon />
         </button>

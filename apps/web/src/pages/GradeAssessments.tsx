@@ -7,6 +7,7 @@ import { PageHeader } from "../components/PageHeader";
 import { Button } from "../components/Button";
 import { Alert } from "../components/Alert";
 import { ClipboardCheckIcon } from "../components/icons";
+import { useTranslation } from "../hooks/useTranslation";
 
 interface LanguageEntry {
   language: "cantonese" | "mandarin" | "english" | "other";
@@ -35,6 +36,7 @@ interface GetAssessmentsResponse {
 
 export default function GradeAssessments() {
   const navigate = useNavigate();
+  const { t, language } = useTranslation();
 
   const [getAssessments, loading] = useCallable<GetAssessmentsRequest, GetAssessmentsResponse>(
     "api/get-assessments",
@@ -47,12 +49,12 @@ export default function GradeAssessments() {
   useEffect(() => {
     void getAssessments({ finished: true })
       .then((response) => setAssessments(response.data.assessments))
-      .catch((err) => setError(toUserMessage(err, "Could not load assessments.")));
-  }, [getAssessments]);
+      .catch((err) => setError(toUserMessage(err, t("gradeAssessments.errorLoad"))));
+  }, [getAssessments, t]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
+    return date.toLocaleDateString(language === "zh-Hant" ? "zh-Hant" : "en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -65,8 +67,8 @@ export default function GradeAssessments() {
     <div className="p-6">
       <div className="max-w-6xl mx-auto">
         <PageHeader
-          title="Completed Assessments"
-          subtitle="View and grade completed assessments"
+          title={t("gradeAssessments.title")}
+          subtitle={t("gradeAssessments.subtitle")}
           backTo="/"
         />
 
@@ -78,7 +80,7 @@ export default function GradeAssessments() {
 
         {loading ? (
           <div className="flex justify-center py-12">
-            <div className="text-gray-500">Loading assessments...</div>
+            <div className="text-gray-500">{t("gradeAssessments.loading")}</div>
           </div>
         ) : assessments.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
@@ -88,11 +90,9 @@ export default function GradeAssessments() {
               </div>
             </div>
             <h2 className="text-xl font-semibold text-gray-700 mt-4">
-              No completed assessments
+              {t("gradeAssessments.empty.title")}
             </h2>
-            <p className="text-gray-500 mt-2">
-              Completed assessments will appear here for grading.
-            </p>
+            <p className="text-gray-500 mt-2">{t("gradeAssessments.empty.body")}</p>
           </div>
         ) : (
           <div className="grid gap-4">
@@ -110,8 +110,8 @@ export default function GradeAssessments() {
                     <div>
                       <h3 className="font-semibold text-lg">{assessment.name}</h3>
                       <p className="text-gray-500 text-sm">
-                        {assessment.school} • Grade {assessment.grade} • Born{" "}
-                        {assessment.birthDate}
+                        {assessment.school} • {t("gradeAssessments.grade")} {assessment.grade} •{" "}
+                        {t("gradeAssessments.born")} {assessment.birthDate}
                       </p>
                     </div>
                   </div>
@@ -127,7 +127,7 @@ export default function GradeAssessments() {
                           navigate(`/grade/${assessment.id}`);
                         }}
                       >
-                        Grade
+                        {t("adminView.action.grade")}
                       </Button>
                       <Button
                         size="sm"
@@ -137,7 +137,7 @@ export default function GradeAssessments() {
                           setScoreModalId(assessment.id);
                         }}
                       >
-                        Score
+                        {t("gradeAssessments.score")}
                       </Button>
                     </div>
                   </div>

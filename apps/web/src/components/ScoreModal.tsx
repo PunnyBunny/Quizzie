@@ -4,6 +4,7 @@ import { toUserMessage } from "../lib/errors";
 import { Modal } from "./Modal";
 import { Button } from "./Button";
 import { Alert } from "./Alert";
+import { useTranslation } from "../hooks/useTranslation";
 import {
   type QuizSection,
   type StudentResponse,
@@ -41,6 +42,7 @@ interface ScoreModalProps {
 }
 
 export default function ScoreModal({ assessmentId, onClose, onGoToGrading }: ScoreModalProps) {
+  const { t } = useTranslation();
   const [getResponses] = useCallable<
     { assessmentId: string },
     GetAssessmentStudentResponsesResponse
@@ -74,14 +76,14 @@ export default function ScoreModal({ assessmentId, onClose, onGoToGrading }: Sco
         setSections(questionsResult.data.sections);
         setSubtaskDefs(subtasksResult.data.subtasks);
       } catch (e) {
-        setError(toUserMessage(e, "Could not load assessment data."));
+        setError(toUserMessage(e, t("scoreModal.errorLoad")));
       } finally {
         setLoading(false);
       }
     };
 
     void fetchAll();
-  }, [assessmentId, getResponses, getQuestions, getSubtasks]);
+  }, [assessmentId, getResponses, getQuestions, getSubtasks, t]);
 
   const normGrade = assessment ? getNormGrade(assessment.grade) : "S1";
 
@@ -109,27 +111,26 @@ export default function ScoreModal({ assessmentId, onClose, onGoToGrading }: Sco
 
   return (
     <Modal onClose={onClose}>
-      {loading && <p className="text-gray-500 text-center py-8">Loading scores...</p>}
+      {loading && <p className="text-gray-500 text-center py-8">{t("scoreModal.loading")}</p>}
 
       {error && <Alert kind="error">{error}</Alert>}
 
         {!loading && !error && assessment && sections && responsesBySection && (
           <>
             <div className="mb-6">
-              <h2 className="text-2xl font-bold">Score Report</h2>
+              <h2 className="text-2xl font-bold">{t("scoreModal.title")}</h2>
               <p className="text-gray-600 mt-1">
-                {assessment.name} &bull; {assessment.school} &bull; Grade{" "}
-                {assessment.grade}
+                {assessment.name} &bull; {assessment.school} &bull;{" "}
+                {t("scoreModal.gradePrefix")} {assessment.grade}
               </p>
               <p className="text-sm text-gray-500 mt-1">
-                Comparing against <span className="font-medium">{normGrade}</span> norms
+                {t("scoreModal.compareNorms", { norm: normGrade })}
               </p>
             </div>
 
             {subtaskDefs.length === 0 ? (
               <p className="text-gray-500 text-center py-8">
-                No subtasks have been configured yet. An admin can set them up under
-                Subtasks &amp; Norms.
+                {t("scoreModal.noSubtasks")}
               </p>
             ) : (
               <>
@@ -137,15 +138,15 @@ export default function ScoreModal({ assessmentId, onClose, onGoToGrading }: Sco
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-gray-200 text-left text-gray-500">
-                        <th className="pb-2 pr-4 font-medium">Subtask</th>
-                        <th className="pb-2 px-2 font-medium text-right">Score</th>
-                        <th className="pb-2 px-2 font-medium text-right">Max</th>
-                        <th className="pb-2 px-2 font-medium text-right">Min</th>
-                        <th className="pb-2 px-2 font-medium text-right">Max</th>
-                        <th className="pb-2 px-2 font-medium text-right">Mean</th>
-                        <th className="pb-2 px-2 font-medium text-right">SD</th>
-                        <th className="pb-2 px-2 font-medium text-right">N</th>
-                        <th className="pb-2 pl-2 font-medium text-right">Z-score</th>
+                        <th className="pb-2 pr-4 font-medium">{t("scoreModal.col.subtask")}</th>
+                        <th className="pb-2 px-2 font-medium text-right">{t("scoreModal.col.score")}</th>
+                        <th className="pb-2 px-2 font-medium text-right">{t("scoreModal.col.maxScore")}</th>
+                        <th className="pb-2 px-2 font-medium text-right">{t("scoreModal.col.min")}</th>
+                        <th className="pb-2 px-2 font-medium text-right">{t("scoreModal.col.max")}</th>
+                        <th className="pb-2 px-2 font-medium text-right">{t("scoreModal.col.mean")}</th>
+                        <th className="pb-2 px-2 font-medium text-right">{t("scoreModal.col.sd")}</th>
+                        <th className="pb-2 px-2 font-medium text-right">{t("scoreModal.col.n")}</th>
+                        <th className="pb-2 pl-2 font-medium text-right">{t("scoreModal.col.z")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -217,7 +218,7 @@ export default function ScoreModal({ assessmentId, onClose, onGoToGrading }: Sco
                         const totalMax = computeTotalMaxScore();
                         return (
                           <tr className="border-t-2 border-gray-300 font-semibold">
-                            <td className="py-2 pr-4">Total</td>
+                            <td className="py-2 pr-4">{t("scoreModal.total")}</td>
                             <td className="py-2 px-2 text-right tabular-nums">
                               {total.score}
                               {total.ungradedCount > 0 && (
@@ -250,8 +251,7 @@ export default function ScoreModal({ assessmentId, onClose, onGoToGrading }: Sco
                   return r.ungradedCount > 0;
                 }) && (
                   <p className="text-xs text-amber-600 mt-3">
-                    * Some audio questions have not yet been graded; scores may be
-                    incomplete.
+                    {t("scoreModal.ungradedNote")}
                   </p>
                 )}
               </>
@@ -261,11 +261,11 @@ export default function ScoreModal({ assessmentId, onClose, onGoToGrading }: Sco
           <div className="flex justify-end gap-3 mt-6">
             {onGoToGrading && (
               <Button variant="primary" onClick={onGoToGrading}>
-                Go to Grading
+                {t("scoreModal.goToGrading")}
               </Button>
             )}
             <Button variant="secondary" onClick={onClose}>
-              Close
+              {t("common.close")}
             </Button>
           </div>
         </>

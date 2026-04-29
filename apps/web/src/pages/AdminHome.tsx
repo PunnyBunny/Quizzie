@@ -8,6 +8,7 @@ import {
   ClipboardIcon,
   ClipboardCheckIcon,
 } from "../components/icons";
+import { useTranslation } from "../hooks/useTranslation";
 
 interface AdminSection {
   icon: ReactNode;
@@ -19,34 +20,35 @@ interface AdminSection {
 
 export default function AdminHome() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const sections: AdminSection[] = [
     {
       icon: <ChartBarIcon />,
-      title: "Assessment Management",
-      description: "View, filter, and grade all assessments across the platform",
-      buttonLabel: "Manage Assessments",
+      title: t("admin.assessments.title"),
+      description: t("admin.assessments.description"),
+      buttonLabel: t("admin.assessments.button"),
       to: "/admin/assessments",
     },
     {
       icon: <PencilSquareIcon />,
-      title: "User Management",
-      description: "Manage users, reset passwords, and add new users",
-      buttonLabel: "Manage Users",
+      title: t("admin.users.title"),
+      description: t("admin.users.description"),
+      buttonLabel: t("admin.users.button"),
       to: "/admin/users",
     },
     {
       icon: <ClipboardIcon />,
-      title: "Subtasks & Norms",
-      description: "Define scoring subtasks and enter normative data by grade",
-      buttonLabel: "Manage Subtasks",
+      title: t("admin.subtasks.title"),
+      description: t("admin.subtasks.description"),
+      buttonLabel: t("admin.subtasks.button"),
       to: "/admin/subtasks",
     },
     {
       icon: <ClipboardCheckIcon />,
-      title: "Questions",
-      description: "Edit assessment sections, questions, choices, and audio/image paths",
-      buttonLabel: "Manage Questions",
+      title: t("admin.questions.title"),
+      description: t("admin.questions.description"),
+      buttonLabel: t("admin.questions.button"),
       to: "/admin/questions",
     },
   ];
@@ -55,8 +57,8 @@ export default function AdminHome() {
     <div className="p-6">
       <div className="max-w-6xl mx-auto flex flex-col gap-6">
         <PageHeader
-          title="Admin Dashboard"
-          subtitle="See or grade all assessments and manage users."
+          title={t("admin.title")}
+          subtitle={t("admin.subtitle")}
           backTo="/"
         />
 

@@ -6,9 +6,12 @@ import { useAuthState } from "../lib/firebase-hooks";
 import useForceUpdate from "use-force-update";
 import { toUserMessage } from "../lib/errors";
 import { Alert } from "../components/Alert";
+import { useTranslation } from "../hooks/useTranslation";
+import { LanguageSwitcher } from "../i18n/LanguageSwitcher";
 
 export default function Login() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -30,7 +33,7 @@ export default function Login() {
     }
   }, [loading, authenticated, navigate]);
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <div>{t("common.loadingDots")}</div>;
 
   const formValid = validator.current.allValid();
 
@@ -47,7 +50,7 @@ export default function Login() {
       await signInWithEmailAndPassword(auth, email, password);
       navigate("/", { replace: true });
     } catch (err) {
-      setError(toUserMessage(err, "Could not sign in. Please try again."));
+      setError(toUserMessage(err, t("login.error")));
     } finally {
       setSubmitting(false);
     }
@@ -55,12 +58,15 @@ export default function Login() {
 
   return (
     <div className="max-w-md mx-auto mt-10 bg-white shadow rounded-xl p-6">
-      <h1 className="text-2xl font-semibold mb-1">Sign in</h1>
-      <p className="text-sm text-gray-600 mb-6">Use your email and password to continue.</p>
+      <div className="flex items-start justify-between mb-1">
+        <h1 className="text-2xl font-semibold">{t("login.title")}</h1>
+        <LanguageSwitcher />
+      </div>
+      <p className="text-sm text-gray-600 mb-6">{t("login.subtitle")}</p>
       <form onSubmit={submitForm} noValidate className="space-y-4">
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-            Email
+            {t("login.email")}
           </label>
           <input
             id="email"
@@ -72,7 +78,7 @@ export default function Login() {
             className={`w-full rounded-md border px-3 py-2 text-gray-900 outline-none focus:ring-2 focus:ring-indigo-400 ${
               !validator.current.fieldValid("email") ? "border-red-300" : "border-gray-300"
             }`}
-            placeholder="you@example.com"
+            placeholder={t("login.emailPlaceholder")}
             autoComplete="email"
           />
           <span id="email-error">{validator.current.message("email", email, "required")}</span>
@@ -80,7 +86,7 @@ export default function Login() {
 
         <div>
           <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-            Password
+            {t("login.password")}
           </label>
           <input
             id="password"
@@ -92,7 +98,7 @@ export default function Login() {
             className={`w-full rounded-md border px-3 py-2 text-gray-900 outline-none focus:ring-2 focus:ring-indigo-400 ${
               !validator.current.fieldValid("password") ? "border-red-300" : "border-gray-300"
             }`}
-            placeholder="abcd1234"
+            placeholder={t("login.passwordPlaceholder")}
             autoComplete="current-password"
           />
           <span id="password-error">
@@ -107,7 +113,7 @@ export default function Login() {
           disabled={submitting}
           className="relative inline-flex items-center justify-center gap-2 w-full rounded-md bg-indigo-600 text-white py-2.5 text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <span>{!submitting ? "Sign in" : "Signing in..."}</span>
+          <span>{!submitting ? t("login.submit") : t("login.submitting")}</span>
         </button>
       </form>
     </div>

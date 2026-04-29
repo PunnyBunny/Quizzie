@@ -11,6 +11,7 @@ import {
   ArrowUpIcon,
   ClipboardCheckIcon,
 } from "../components/icons";
+import { useTranslation } from "../hooks/useTranslation";
 
 interface LanguageEntry {
   language: "cantonese" | "mandarin" | "english" | "other";
@@ -48,6 +49,7 @@ function SortGlyph({ active, order }: { active: boolean; order: "asc" | "desc" }
 
 export default function AdminViewAssessments() {
   const navigate = useNavigate();
+  const { t, language } = useTranslation();
 
   const [adminGetAssessments, loading] = useCallable<{}, AdminGetAssessmentsResponse>(
     "api/admin/get-assessments",
@@ -68,9 +70,9 @@ export default function AdminViewAssessments() {
         setError(null);
       })
       .catch((err) => {
-        setError(toUserMessage(err, "Could not load assessments."));
+        setError(toUserMessage(err, t("adminView.errorLoad")));
       });
-  }, [adminGetAssessments]);
+  }, [adminGetAssessments, t]);
 
   const schools = useMemo(() => {
     const uniqueSchools = new Set(assessments.map((a) => a.school));
@@ -122,7 +124,7 @@ export default function AdminViewAssessments() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
+    return date.toLocaleDateString(language === "zh-Hant" ? "zh-Hant" : "en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -144,37 +146,37 @@ export default function AdminViewAssessments() {
     <div className="p-6">
       <div className="max-w-6xl mx-auto">
         <PageHeader
-          title="Assessment Management"
-          subtitle="View and grade all assessments across the platform"
+          title={t("admin.assessments.title")}
+          subtitle={t("adminView.subtitle")}
           backTo="/admin"
         />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
-            <div className="text-sm text-blue-600 font-medium mb-1">Total Assessments</div>
+            <div className="text-sm text-blue-600 font-medium mb-1">{t("adminView.stat.total")}</div>
             <div className="text-2xl font-bold text-gray-900">{assessments.length}</div>
           </div>
           <div className="p-4 bg-green-50 rounded-lg border border-green-100">
-            <div className="text-sm text-green-600 font-medium mb-1">Schools</div>
+            <div className="text-sm text-green-600 font-medium mb-1">{t("adminView.stat.schools")}</div>
             <div className="text-2xl font-bold text-gray-900">{schools.length}</div>
           </div>
           <div className="p-4 bg-purple-50 rounded-lg border border-purple-100">
-            <div className="text-sm text-purple-600 font-medium mb-1">Creators</div>
+            <div className="text-sm text-purple-600 font-medium mb-1">{t("adminView.stat.creators")}</div>
             <div className="text-2xl font-bold text-gray-900">{creators.length}</div>
           </div>
         </div>
 
         <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6">
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">Filters</h2>
+          <h2 className="text-sm font-semibold text-gray-700 mb-3">{t("adminView.filters")}</h2>
           <div className="flex flex-wrap gap-4">
             <div className="flex-1 min-w-[200px]">
-              <label className="block text-sm font-medium text-gray-700 mb-1">School</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("adminView.filter.school")}</label>
               <select
                 value={filterSchool}
                 onChange={(e) => setFilterSchool(e.target.value)}
                 className={SELECT_CLASSES}
               >
-                <option value="all">All Schools</option>
+                <option value="all">{t("adminView.filter.allSchools")}</option>
                 {schools.map((school) => (
                   <option key={school} value={school}>
                     {school}
@@ -184,13 +186,13 @@ export default function AdminViewAssessments() {
             </div>
 
             <div className="flex-1 min-w-[200px]">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Creator</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("adminView.filter.creator")}</label>
               <select
                 value={filterCreator}
                 onChange={(e) => setFilterCreator(e.target.value)}
                 className={SELECT_CLASSES}
               >
-                <option value="all">All Creators</option>
+                <option value="all">{t("adminView.filter.allCreators")}</option>
                 {creators.map((creator) => (
                   <option key={creator} value={creator}>
                     {creator}
@@ -200,7 +202,7 @@ export default function AdminViewAssessments() {
             </div>
 
             <div className="flex-1 min-w-[200px]">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("adminView.filter.status")}</label>
               <select
                 value={filterStatus}
                 onChange={(e) =>
@@ -208,19 +210,19 @@ export default function AdminViewAssessments() {
                 }
                 className={SELECT_CLASSES}
               >
-                <option value="all">All Statuses</option>
-                <option value="finished">Finished</option>
-                <option value="in-progress">In Progress</option>
+                <option value="all">{t("adminView.filter.allStatuses")}</option>
+                <option value="finished">{t("adminView.filter.finished")}</option>
+                <option value="in-progress">{t("adminView.filter.inProgress")}</option>
               </select>
             </div>
           </div>
 
           {(filterSchool !== "all" || filterCreator !== "all" || filterStatus !== "all") && (
             <div className="mt-4 flex items-center gap-2 flex-wrap">
-              <span className="text-sm text-gray-600">Active filters:</span>
+              <span className="text-sm text-gray-600">{t("adminView.activeFilters")}</span>
               {filterSchool !== "all" && (
                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                  School: {filterSchool}
+                  {t("adminView.filterChip.school", { value: filterSchool })}
                   <button
                     onClick={() => setFilterSchool("all")}
                     className="ml-1 hover:text-blue-900"
@@ -231,7 +233,7 @@ export default function AdminViewAssessments() {
               )}
               {filterCreator !== "all" && (
                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                  Creator: {filterCreator}
+                  {t("adminView.filterChip.creator", { value: filterCreator })}
                   <button
                     onClick={() => setFilterCreator("all")}
                     className="ml-1 hover:text-purple-900"
@@ -248,7 +250,12 @@ export default function AdminViewAssessments() {
                       : "bg-amber-100 text-amber-800"
                   }`}
                 >
-                  Status: {filterStatus === "finished" ? "Finished" : "In Progress"}
+                  {t("adminView.filterChip.status", {
+                    value:
+                      filterStatus === "finished"
+                        ? t("adminView.filter.finished")
+                        : t("adminView.filter.inProgress"),
+                  })}
                   <button
                     onClick={() => setFilterStatus("all")}
                     className={`ml-1 ${
@@ -267,7 +274,7 @@ export default function AdminViewAssessments() {
                 }}
                 className="text-sm text-blue-600 hover:text-blue-800"
               >
-                Clear all
+                {t("adminView.clearAll")}
               </button>
             </div>
           )}
@@ -281,7 +288,7 @@ export default function AdminViewAssessments() {
 
         {loading ? (
           <div className="flex justify-center py-12">
-            <div className="text-gray-500">Loading assessments...</div>
+            <div className="text-gray-500">{t("adminView.loading")}</div>
           </div>
         ) : filteredAndSortedAssessments.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
@@ -290,11 +297,11 @@ export default function AdminViewAssessments() {
                 <ClipboardCheckIcon />
               </div>
             </div>
-            <h2 className="text-xl font-semibold text-gray-700 mt-4">No assessments found</h2>
+            <h2 className="text-xl font-semibold text-gray-700 mt-4">{t("adminView.empty.title")}</h2>
             <p className="text-gray-500 mt-2">
               {assessments.length === 0
-                ? "No completed assessments yet."
-                : "No assessments match your current filters."}
+                ? t("adminView.empty.none")
+                : t("adminView.empty.filtered")}
             </p>
           </div>
         ) : (
@@ -308,23 +315,23 @@ export default function AdminViewAssessments() {
                       onClick={() => toggleSort("name")}
                     >
                       <span className="inline-flex items-center gap-1">
-                        Student
+                        {t("adminView.col.student")}
                         <SortGlyph active={sortBy === "name"} order={sortOrder} />
                       </span>
                     </th>
-                    <th className="px-4 py-3 text-left">Birth Date</th>
-                    <th className="px-4 py-3 text-left">Creator</th>
+                    <th className="px-4 py-3 text-left">{t("adminView.col.birthDate")}</th>
+                    <th className="px-4 py-3 text-left">{t("adminView.col.creator")}</th>
                     <th
                       className="px-4 py-3 text-left cursor-pointer select-none hover:bg-gray-100"
                       onClick={() => toggleSort("date")}
                     >
                       <span className="inline-flex items-center gap-1">
-                        Created
+                        {t("adminView.col.created")}
                         <SortGlyph active={sortBy === "date"} order={sortOrder} />
                       </span>
                     </th>
-                    <th className="px-4 py-3 text-left">Status</th>
-                    <th className="px-4 py-3 text-right">Action</th>
+                    <th className="px-4 py-3 text-left">{t("adminView.col.status")}</th>
+                    <th className="px-4 py-3 text-right">{t("adminView.col.action")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -333,7 +340,7 @@ export default function AdminViewAssessments() {
                       <td className="px-4 py-3">
                         <div className="font-medium text-gray-900">{assessment.name}</div>
                         <div className="text-xs text-gray-500 mt-0.5">
-                          {assessment.school} · Grade {assessment.grade}
+                          {assessment.school} · {t("gradeAssessments.grade")} {assessment.grade}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
@@ -353,15 +360,15 @@ export default function AdminViewAssessments() {
                       <td className="px-4 py-3">
                         {assessment.finished ? (
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            Finished
+                            {t("adminView.filter.finished")}
                           </span>
                         ) : (
                           <div className="flex flex-col gap-1">
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 w-fit">
-                              In Progress
+                              {t("adminView.filter.inProgress")}
                             </span>
                             <span className="text-xs text-gray-500">
-                              Section {assessment.currentSection + 1}, Question{" "}
+                              {t("adminView.section")} {assessment.currentSection + 1}, {t("adminView.question")}{" "}
                               {assessment.currentQuestion + 1}
                             </span>
                           </div>
@@ -373,7 +380,7 @@ export default function AdminViewAssessments() {
                           variant={assessment.finished ? "primary" : "secondary"}
                           onClick={() => navigate(`/admin/grade/${assessment.id}`)}
                         >
-                          {assessment.finished ? "Grade" : "View"}
+                          {assessment.finished ? t("adminView.action.grade") : t("adminView.action.view")}
                         </Button>
                       </td>
                     </tr>
@@ -383,7 +390,10 @@ export default function AdminViewAssessments() {
             </div>
 
             <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 text-sm text-gray-600">
-              Showing {filteredAndSortedAssessments.length} of {assessments.length} assessments
+              {t("adminView.showing", {
+                shown: filteredAndSortedAssessments.length,
+                total: assessments.length,
+              })}
             </div>
           </div>
         )}

@@ -15,6 +15,7 @@ import { Button } from "../components/Button";
 import { Modal } from "../components/Modal";
 import { Alert } from "../components/Alert";
 import { AssetUploader } from "../components/AssetUploader";
+import { useTranslation } from "../hooks/useTranslation";
 
 type Kind = "mc" | "audio";
 const KINDS: Kind[] = ["mc", "audio"];
@@ -111,12 +112,15 @@ function sectionToForm(section: QuestionSectionDto): FormState {
   };
 }
 
-function buildInput(form: FormState): {
+function buildInput(
+  form: FormState,
+  t: (key: string, vars?: Record<string, string | number>) => string,
+): {
   input?: SaveQuestionSectionInput;
   error?: string;
 } {
   const id = form.id.trim();
-  if (!id) return { error: "Section ID is required." };
+  if (!id) return { error: t("adminQuestions.errorIdRequired") };
 
   const instructions: SectionInstruction = {
     text: form.instructionText,
@@ -134,8 +138,9 @@ function buildInput(form: FormState): {
       const record: Record<string, string> = {};
       for (const { key, value } of row.choices) {
         const k = key.trim();
-        if (!k) return { error: `Question ${idx + 1}: choice key cannot be empty.` };
-        if (k in record) return { error: `Question ${idx + 1}: duplicate choice key "${k}".` };
+        if (!k) return { error: t("adminQuestions.errorChoiceKeyEmpty", { n: idx + 1 }) };
+        if (k in record)
+          return { error: t("adminQuestions.errorChoiceKeyDup", { n: idx + 1, key: k }) };
         record[k] = value;
       }
       choices.push(record);
@@ -168,6 +173,7 @@ function buildInput(form: FormState): {
 }
 
 export default function AdminQuestions() {
+  const { t } = useTranslation();
   const [getQuestions, loadingSections] = useCallable<void, GetQuestionsOutput>(
     "api/get-questions",
   );
@@ -200,7 +206,7 @@ export default function AdminQuestions() {
       const res = await getQuestions();
       setSections(res.data.sections);
     } catch (err) {
-      setError(toUserMessage(err, "Could not load sections."));
+      setError(toUserMessage(err, t("adminQuestions.errorLoad")));
     }
   };
 
@@ -228,7 +234,7 @@ export default function AdminQuestions() {
   const closeModal = () => setEditing(null);
 
   const requestClose = () => {
-    if (isDirty && !window.confirm("Discard unsaved changes?")) return;
+    if (isDirty && !window.confirm(t("adminQuestions.confirmDiscard"))) return;
     closeModal();
   };
 
@@ -296,9 +302,9 @@ export default function AdminQuestions() {
     e.preventDefault();
     setError(null);
 
-    const { input, error: buildError } = buildInput(form);
+    const { input, error: buildError } = buildInput(form, t);
     if (!input) {
-      setError(buildError ?? "Invalid form.");
+      setError(buildError ?? t("adminQuestions.errorInvalidForm"));
       return;
     }
 
@@ -307,7 +313,7 @@ export default function AdminQuestions() {
       closeModal();
       await refresh();
     } catch (err) {
-      setError(toUserMessage(err, "Could not save section."));
+      setError(toUserMessage(err, t("adminQuestions.errorSave")));
     }
   };
 
@@ -315,39 +321,39 @@ export default function AdminQuestions() {
     <div className="p-6">
       <div className="max-w-6xl mx-auto">
         <PageHeader
-          title="Questions"
-          subtitle="Edit assessment sections, questions, choices, and audio/image paths"
+          title={t("admin.questions.title")}
+          subtitle={t("adminQuestions.subtitle")}
           backTo="/admin"
         />
 
         <div className="mb-4 flex justify-end">
-          <Button onClick={openNew}>New Section</Button>
+          <Button onClick={openNew}>{t("adminQuestions.new")}</Button>
         </div>
 
         <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
           <table className="w-full text-left text-sm">
             <thead className="bg-gray-50 text-gray-500">
               <tr>
-                <th className="px-6 py-3 font-medium">ID</th>
-                <th className="px-6 py-3 font-medium">Title</th>
-                <th className="px-6 py-3 font-medium">Kind</th>
-                <th className="px-6 py-3 font-medium text-center">Length</th>
-                <th className="px-6 py-3 font-medium">Goal</th>
-                <th className="px-6 py-3 font-medium">Actions</th>
+                <th className="px-6 py-3 font-medium">{t("adminQuestions.col.id")}</th>
+                <th className="px-6 py-3 font-medium">{t("adminQuestions.col.title")}</th>
+                <th className="px-6 py-3 font-medium">{t("adminQuestions.col.kind")}</th>
+                <th className="px-6 py-3 font-medium text-center">{t("adminQuestions.col.length")}</th>
+                <th className="px-6 py-3 font-medium">{t("adminQuestions.col.goal")}</th>
+                <th className="px-6 py-3 font-medium">{t("adminQuestions.col.actions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {loadingSections && (
                 <tr>
                   <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
-                    Loading...
+                    {t("common.loadingDots")}
                   </td>
                 </tr>
               )}
               {!loadingSections && sections.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
-                    No sections yet.
+                    {t("adminQuestions.empty")}
                   </td>
                 </tr>
               )}
@@ -362,7 +368,7 @@ export default function AdminQuestions() {
                   </td>
                   <td className="px-6 py-3">
                     <Button size="sm" onClick={() => openEdit(section)}>
-                      Edit
+                      {t("common.edit")}
                     </Button>
                   </td>
                 </tr>
@@ -375,7 +381,7 @@ export default function AdminQuestions() {
       {editing && (
         <Modal onClose={requestClose}>
           <h2 className="text-xl font-semibold mb-4">
-            {editing.isNew ? "New Section" : `Edit Section "${form.id}"`}
+            {editing.isNew ? t("adminQuestions.new") : t("adminQuestions.editTitle", { id: form.id })}
           </h2>
 
           <form onSubmit={handleSave} className="space-y-5">
@@ -386,9 +392,9 @@ export default function AdminQuestions() {
                 className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                 aria-expanded={showSettings}
               >
-                <span>Section settings</span>
+                <span>{t("adminQuestions.settings")}</span>
                 <span className="text-gray-400 text-xs">
-                  {showSettings ? "Hide ▲" : "Show ▼"}
+                  {showSettings ? t("adminQuestions.hide") : t("adminQuestions.show")}
                 </span>
               </button>
 
@@ -397,7 +403,7 @@ export default function AdminQuestions() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Section ID (doc key)
+                        {t("adminQuestions.sectionId")}
                       </label>
                       <input
                         type="text"
@@ -410,7 +416,7 @@ export default function AdminQuestions() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Kind</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">{t("adminQuestions.kind")}</label>
                       <select
                         value={form.kind}
                         onChange={(e) => updateForm("kind", e.target.value as Kind)}
@@ -426,7 +432,7 @@ export default function AdminQuestions() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("adminQuestions.titleField")}</label>
                     <input
                       type="text"
                       value={form.title}
@@ -436,7 +442,7 @@ export default function AdminQuestions() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Goal</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("adminQuestions.goal")}</label>
                     <input
                       type="text"
                       value={form.goal}
@@ -447,7 +453,7 @@ export default function AdminQuestions() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Instructions: text
+                      {t("adminQuestions.instructionsText")}
                     </label>
                     <textarea
                       value={form.instructionText}
@@ -459,7 +465,7 @@ export default function AdminQuestions() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Instructions: audio
+                      {t("adminQuestions.instructionsAudio")}
                     </label>
                     <AssetUploader
                       kind="audio"
@@ -472,7 +478,7 @@ export default function AdminQuestions() {
 
                   <fieldset className="border border-gray-200 rounded-md px-4 py-3">
                     <legend className="text-sm font-medium text-gray-700 px-1">
-                      Per-question fields
+                      {t("adminQuestions.perQuestionFields")}
                     </legend>
                     <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-700">
                       <label className="flex items-center gap-2">
@@ -481,7 +487,7 @@ export default function AdminQuestions() {
                           checked={!form.questionsNull}
                           onChange={(e) => updateForm("questionsNull", !e.target.checked)}
                         />
-                        Question text
+                        {t("adminQuestions.questionText")}
                       </label>
                       <label className="flex items-center gap-2">
                         <input
@@ -489,7 +495,7 @@ export default function AdminQuestions() {
                           checked={form.choicesEnabled}
                           onChange={(e) => updateForm("choicesEnabled", e.target.checked)}
                         />
-                        Choices
+                        {t("adminQuestions.choices")}
                       </label>
                       <label className="flex items-center gap-2">
                         <input
@@ -497,7 +503,7 @@ export default function AdminQuestions() {
                           checked={form.correctAnswersEnabled}
                           onChange={(e) => updateForm("correctAnswersEnabled", e.target.checked)}
                         />
-                        Correct answers
+                        {t("adminQuestions.correctAnswers")}
                       </label>
                       <label className="flex items-center gap-2">
                         <input
@@ -505,7 +511,7 @@ export default function AdminQuestions() {
                           checked={form.imagesEnabled}
                           onChange={(e) => updateForm("imagesEnabled", e.target.checked)}
                         />
-                        Images
+                        {t("adminQuestions.images")}
                       </label>
                     </div>
                   </fieldset>
@@ -517,16 +523,16 @@ export default function AdminQuestions() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="block text-sm font-medium text-gray-700">
-                  Questions ({form.rows.length})
+                  {t("adminQuestions.questionsLabel", { count: form.rows.length })}
                 </label>
                 <Button type="button" size="sm" onClick={addRow}>
-                  Add Question
+                  {t("adminQuestions.addQuestion")}
                 </Button>
               </div>
 
               {form.rows.length === 0 && (
                 <p className="text-sm text-gray-500 py-4 text-center border border-dashed border-gray-200 rounded-md">
-                  No questions yet. Click "Add Question" to add one.
+                  {t("adminQuestions.noQuestions")}
                 </p>
               )}
 
@@ -539,21 +545,21 @@ export default function AdminQuestions() {
                     className="border border-gray-200 rounded-md p-3 bg-gray-50 space-y-3"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-gray-700">Q{rowIdx + 1}</span>
+                      <span className="text-sm font-semibold text-gray-700">{t("adminQuestions.qShort")}{rowIdx + 1}</span>
                       <Button
                         type="button"
                         size="sm"
                         variant="danger"
                         onClick={() => removeRow(rowIdx)}
                       >
-                        Remove
+                        {t("common.remove")}
                       </Button>
                     </div>
 
                     {!form.questionsNull && (
                       <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">
-                          Question text
+                          {t("adminQuestions.questionText")}
                         </label>
                         <textarea
                           value={row.question}
@@ -566,7 +572,7 @@ export default function AdminQuestions() {
 
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">
-                        Audio
+                        {t("adminQuestions.audio")}
                       </label>
                       <AssetUploader
                         kind="audio"
@@ -580,7 +586,7 @@ export default function AdminQuestions() {
                     {form.imagesEnabled && (
                       <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">
-                          Image (blank = null)
+                          {t("adminQuestions.image")}
                         </label>
                         <AssetUploader
                           kind="image"
@@ -595,14 +601,14 @@ export default function AdminQuestions() {
                       <div>
                         <div className="flex items-center justify-between mb-1">
                           <label className="block text-xs font-medium text-gray-600">
-                            Choices
+                            {t("adminQuestions.choices")}
                           </label>
                           <button
                             type="button"
                             onClick={() => addChoice(rowIdx)}
                             className="text-xs text-blue-600 hover:text-blue-800"
                           >
-                            + Add choice
+                            {t("adminQuestions.addChoice")}
                           </button>
                         </div>
                         <div className="space-y-1">
@@ -615,7 +621,7 @@ export default function AdminQuestions() {
                                   updateChoice(rowIdx, choiceIdx, { key: e.target.value })
                                 }
                                 className={`${SMALL_INPUT_CLASSES} w-16 font-medium`}
-                                placeholder="Key"
+                                placeholder={t("adminQuestions.choiceKey")}
                               />
                               <input
                                 type="text"
@@ -624,20 +630,22 @@ export default function AdminQuestions() {
                                   updateChoice(rowIdx, choiceIdx, { value: e.target.value })
                                 }
                                 className={`${SMALL_INPUT_CLASSES} flex-1`}
-                                placeholder="Value"
+                                placeholder={t("adminQuestions.choiceValue")}
                               />
                               <button
                                 type="button"
                                 onClick={() => removeChoice(rowIdx, choiceIdx)}
                                 className="text-xs text-red-600 hover:text-red-800 px-2"
-                                aria-label={`Remove choice ${choice.key || choiceIdx + 1}`}
+                                aria-label={t("adminQuestions.removeChoice", {
+                                  label: choice.key || choiceIdx + 1,
+                                })}
                               >
                                 ✕
                               </button>
                             </div>
                           ))}
                           {row.choices.length === 0 && (
-                            <p className="text-xs text-gray-400 italic">No choices.</p>
+                            <p className="text-xs text-gray-400 italic">{t("adminQuestions.noChoices")}</p>
                           )}
                         </div>
                       </div>
@@ -646,7 +654,7 @@ export default function AdminQuestions() {
                     {form.correctAnswersEnabled && (
                       <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">
-                          Correct answer
+                          {t("adminQuestions.correctAnswer")}
                         </label>
                         <input
                           type="text"
@@ -677,10 +685,13 @@ export default function AdminQuestions() {
                     disabled={clampedPage === 0}
                     onClick={() => setPage(clampedPage - 1)}
                   >
-                    Previous
+                    {t("common.previous")}
                   </Button>
                   <div className="text-gray-600">
-                    Question {clampedPage + 1} of {totalPages}
+                    {t("adminQuestions.questionPager", {
+                      current: clampedPage + 1,
+                      total: totalPages,
+                    })}
                   </div>
                   <Button
                     type="button"
@@ -689,7 +700,7 @@ export default function AdminQuestions() {
                     disabled={clampedPage >= totalPages - 1}
                     onClick={() => setPage(clampedPage + 1)}
                   >
-                    Next
+                    {t("common.next")}
                   </Button>
                 </div>
               )}
@@ -699,10 +710,10 @@ export default function AdminQuestions() {
 
             <div className="flex justify-end gap-3">
               <Button type="button" variant="secondary" onClick={requestClose}>
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button type="submit" variant="primary" disabled={saving}>
-                {saving ? "Saving..." : "Save"}
+                {saving ? t("common.saving") : t("common.save")}
               </Button>
             </div>
           </form>
