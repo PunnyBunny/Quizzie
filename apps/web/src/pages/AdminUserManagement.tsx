@@ -278,7 +278,65 @@ export default function AdminUserManagement() {
                 </div>
               </div>
 
-              <div className="overflow-x-auto">
+              {/* Mobile: stacked card list */}
+              <div className="sm:hidden divide-y divide-gray-200">
+                {gettingUsers && (
+                  <div className="px-4 py-8 text-center text-gray-500">Loading users...</div>
+                )}
+                {loadUsersError && (
+                  <div className="px-4 py-8 text-center text-red-600">{loadUsersError}</div>
+                )}
+                {!gettingUsers &&
+                  !loadUsersError &&
+                  (filteredUsers.length === 0 ? (
+                    <div className="px-4 py-8 text-center text-gray-500">
+                      {users.length === 0 ? "No users found" : "No users match your search"}
+                    </div>
+                  ) : (
+                    filteredUsers.map((user, index) => (
+                      <div key={index} className="px-4 py-3 flex flex-col gap-2">
+                        <div className="font-medium text-gray-900 break-all">{user.email}</div>
+                        <div className="flex flex-wrap gap-2">
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              user.isAdmin
+                                ? "bg-purple-100 text-purple-800"
+                                : "bg-gray-100 text-gray-800"
+                            }`}
+                          >
+                            {user.isAdmin ? "Admin" : "User"}
+                          </span>
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Active
+                          </span>
+                        </div>
+                        {!user.isAdmin && (
+                          <div className="flex gap-2 pt-1">
+                            <Button
+                              size="sm"
+                              variant="primary"
+                              onClick={() => user.email && handleResetPassword(user.email)}
+                              disabled={resettingPassword || !user.email}
+                            >
+                              Reset Pwd
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="danger"
+                              onClick={() => user.email && handleRemoveUser(user.email)}
+                              disabled={removingUser || !user.email}
+                            >
+                              Remove
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  ))}
+              </div>
+
+              {/* sm+: table */}
+              <div className="hidden sm:block overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead className="bg-gray-50 text-gray-500">
                     <tr>
