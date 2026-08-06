@@ -17,7 +17,12 @@ import {
   GetAssessmentStudentResponsesSchema,
 } from "../types/zod/routes/submissions";
 import { type GetAssessmentStudentResponsesOutput } from "../types/submissions";
-import { type SubmitAudioGradeInput, SubmitAudioGradeSchema } from "../types/zod/routes/grading";
+import {
+  type SubmitAudioGradeInput,
+  SubmitAudioGradeSchema,
+  type UpdateAudioTranscriptInput,
+  UpdateAudioTranscriptSchema,
+} from "../types/zod/routes/grading";
 import { type FirebaseFunctionRequest, type FirebaseFunctionResponse } from "../utils/express";
 
 export const router = express.Router();
@@ -124,6 +129,36 @@ router.post(
 
     console.log(
       `Graded assessment ${assessmentId}, section ${section}, question ${question}: ${grade}/5`,
+    );
+    res.status(200).json({ data: { ok: true } });
+  },
+);
+
+// POST /update-audio-transcript
+router.post(
+  "/update-audio-transcript",
+  validate(UpdateAudioTranscriptSchema),
+  async (
+    req: FirebaseFunctionRequest<UpdateAudioTranscriptInput>,
+    res: FirebaseFunctionResponse<{ ok: boolean }>,
+  ) => {
+    const { assessmentId, section, question, transcript } = req.body.data;
+    const { callerEmail, callerClaims } = res.locals;
+
+    await getAssessmentWithAuth(assessmentId, callerEmail, callerClaims?.isAdmin === true);
+
+    const ref = await findStudentResponseRef(assessmentId, section);
+    if (!ref) {
+      throw new NotFoundError();
+    }
+
+    await ref.update({
+      [`transcripts.${question}`]: transcript,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    console.log(
+      `Updated transcript for assessment ${assessmentId}, section ${section}, question ${question}`,
     );
     res.status(200).json({ data: { ok: true } });
   },
