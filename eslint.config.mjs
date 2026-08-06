@@ -8,7 +8,13 @@ import { defineConfig } from "eslint/config";
 
 export default defineConfig(
   {
-    ignores: ["**/lib/**", "apps/web/tailwind.config.ts", "apps/web/postcss.config.mjs"],
+    // Build output only — "**/lib/**" would also swallow apps/web/src/lib/.
+    ignores: [
+      "apps/functions/lib/**",
+      "apps/web/dist/**",
+      "apps/web/tailwind.config.ts",
+      "apps/web/postcss.config.mjs",
+    ],
   },
   js.configs.recommended,
   tseslint.configs.recommendedTypeChecked,

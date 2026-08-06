@@ -84,7 +84,7 @@ export interface SubtaskScoreResult {
  * Compute the total score for a subtask (a group of arbitrary questions).
  */
 export function computeSubtaskScore(
-  questionIds: Array<{ sectionIndex: number; questionIndex: number }>,
+  questionIds: { sectionIndex: number; questionIndex: number }[],
   responsesBySection: Record<string, StudentResponse>,
   sections: QuizSection[],
 ): SubtaskScoreResult {
