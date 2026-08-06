@@ -6,7 +6,8 @@ import ScoreModal from "../components/ScoreModal";
 import { PageHeader } from "../components/PageHeader";
 import { Button } from "../components/Button";
 import { Alert } from "../components/Alert";
-import { CheckIcon, XIcon } from "../components/icons";
+import { CheckIcon, SpinnerIcon, XIcon } from "../components/icons";
+import { INPUT_CLASSES } from "../lib/ui";
 import type { QuizSection } from "../lib/scoring";
 import { useTranslation } from "../hooks/useTranslation";
 
@@ -55,6 +56,13 @@ interface SubmitAudioGradeRequest {
   grade: number;
 }
 
+interface UpdateAudioTranscriptRequest {
+  assessmentId: string;
+  section: number;
+  question: number;
+  transcript: string;
+}
+
 interface GetQuestionsResponse {
   sections: QuizSection[];
 }
@@ -75,8 +83,11 @@ export default function GradeAssessment() {
     "api/get-questions",
   );
 
-  const [submitAudioGrade, submitting] = useCallable<SubmitAudioGradeRequest>(
-    "api/submit-audio-grade",
+  const [submitAudioGrade, submitting] =
+    useCallable<SubmitAudioGradeRequest>("api/submit-audio-grade");
+
+  const [updateAudioTranscript] = useCallable<UpdateAudioTranscriptRequest>(
+    "api/update-audio-transcript",
   );
 
   const [studentResponseData, setStudentResponseData] =
@@ -90,6 +101,16 @@ export default function GradeAssessment() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [gradeError, setGradeError] = useState<string | null>(null);
 
+  // Transcripts as last persisted, keyed [sectionIdx][questionIdx]
+  const [savedTranscripts, setSavedTranscripts] = useState<Record<string, Record<string, string>>>(
+    {},
+  );
+  // In-progress edits, keyed `${sectionIdx}:${questionIdx}`. Only holds questions the
+  // grader has actually typed in, so drafts survive switching section tabs.
+  const [transcriptDrafts, setTranscriptDrafts] = useState<Record<string, string>>({});
+  const [savingTranscriptKey, setSavingTranscriptKey] = useState<string | null>(null);
+  const [savedTranscriptKey, setSavedTranscriptKey] = useState<string | null>(null);
+
   useEffect(() => {
     void getQuestions()
       .then((result) => setQuizQuestions(result.data.sections))
@@ -102,14 +123,19 @@ export default function GradeAssessment() {
         setStudentResponseData(httpResponse.data);
 
         const initialAudioGrades: Record<string, Record<string, number>> = {};
+        const initialTranscripts: Record<string, Record<string, string>> = {};
         for (const [sectionIdx, answers] of Object.entries(
           httpResponse.data.studentResponsesBySection,
         )) {
           if (answers.type === "audio") {
             initialAudioGrades[sectionIdx] = answers.grades ?? {};
+            initialTranscripts[sectionIdx] = Object.fromEntries(
+              Object.entries(answers.transcripts ?? {}).map(([q, text]) => [q, text ?? ""]),
+            );
           }
         }
         setLocalAudioGrades(initialAudioGrades);
+        setSavedTranscripts(initialTranscripts);
       })
       .catch((err) => setLoadError(toUserMessage(err, t("gradeAssessment.errorAssessment"))));
   }, [id, getAssessmentStudentResponses, t]);
@@ -170,6 +196,67 @@ export default function GradeAssessment() {
     }
   };
 
+  const transcriptKey = (section: number, question: number) => `${section}:${question}`;
+
+  const getSavedTranscript = (section: number, question: number) =>
+    savedTranscripts[section]?.[question] ?? "";
+
+  // A draft exists only while the question is open for editing, so its presence is the
+  // "is editing" flag — no separate state to keep in sync.
+  const isEditingTranscript = (section: number, question: number) =>
+    transcriptKey(section, question) in transcriptDrafts;
+
+  // The text currently in the box: the grader's draft if they've touched it, else what's saved.
+  const getTranscriptValue = (section: number, question: number) =>
+    transcriptDrafts[transcriptKey(section, question)] ?? getSavedTranscript(section, question);
+
+  const startEditTranscript = (section: number, question: number) => {
+    setTranscriptDrafts((prev) => ({
+      ...prev,
+      [transcriptKey(section, question)]: getSavedTranscript(section, question),
+    }));
+    setSavedTranscriptKey(null);
+  };
+
+  const editTranscript = (section: number, question: number, text: string) => {
+    setTranscriptDrafts((prev) => ({ ...prev, [transcriptKey(section, question)]: text }));
+    setSavedTranscriptKey(null);
+  };
+
+  const cancelTranscript = (section: number, question: number) => {
+    setTranscriptDrafts((prev) => {
+      const next = { ...prev };
+      delete next[transcriptKey(section, question)];
+      return next;
+    });
+    setSavedTranscriptKey(null);
+  };
+
+  // Stays in edit mode until the request resolves, so the Save button (and its spinner)
+  // is still mounted while the save is in flight.
+  const saveTranscript = async (section: number, question: number) => {
+    const key = transcriptKey(section, question);
+    const transcript = getTranscriptValue(section, question);
+
+    setSavingTranscriptKey(key);
+    setGradeError(null);
+
+    try {
+      await updateAudioTranscript({ assessmentId: id, section, question, transcript });
+      setSavedTranscripts((prev) => ({
+        ...prev,
+        [section]: { ...prev[section], [question]: transcript },
+      }));
+      cancelTranscript(section, question);
+      setSavedTranscriptKey(key);
+    } catch (err) {
+      // Stay open with the typed text intact so the edit isn't lost.
+      setGradeError(toUserMessage(err, t("gradeAssessment.errorSaveTranscript")));
+    } finally {
+      setSavingTranscriptKey(null);
+    }
+  };
+
   const getMcStudentResponse = (sectionIndex: number) => {
     return studentResponseData.studentResponsesBySection[sectionIndex.toString()] as
       | MCStudentResponse
@@ -192,7 +279,11 @@ export default function GradeAssessment() {
     Object.entries(mcStudentResponse.studentResponses).forEach(([q, answerIndex]) => {
       const questionIndex = parseInt(q);
       const correctAnswerIdx = quizSection.correctAnswers?.[questionIndex];
-      if (correctAnswerIdx !== undefined && answerIndex !== null && answerIndex === Number(correctAnswerIdx)) {
+      if (
+        correctAnswerIdx !== undefined &&
+        answerIndex !== null &&
+        answerIndex === Number(correctAnswerIdx)
+      ) {
         correct++;
       }
     });
@@ -290,10 +381,11 @@ export default function GradeAssessment() {
               {Array.from({ length: currentQuizSection.length }).map((_, questionIdx) => {
                 const studentMcChoiceIdx =
                   mcStudentResponse?.studentResponses[questionIdx.toString()];
-                const hasAnswer =
-                  studentMcChoiceIdx !== undefined && studentMcChoiceIdx !== null;
+                const hasAnswer = studentMcChoiceIdx !== undefined && studentMcChoiceIdx !== null;
                 const choicesMap = currentQuizSection.choices?.[questionIdx] ?? {};
-                const choiceEntries = Object.entries(choicesMap).sort(([a], [b]) => Number(a) - Number(b));
+                const choiceEntries = Object.entries(choicesMap).sort(
+                  ([a], [b]) => Number(a) - Number(b),
+                );
                 const correctAnswerIdx = currentQuizSection.correctAnswers?.[questionIdx];
                 const correctIdx = correctAnswerIdx !== undefined ? Number(correctAnswerIdx) : -1;
                 const isCorrect = hasAnswer && studentMcChoiceIdx === correctIdx;
@@ -303,7 +395,8 @@ export default function GradeAssessment() {
                   <div key={questionIdx} className="p-4">
                     <div className="flex items-start gap-3">
                       <span className="font-medium text-gray-500 min-w-[2rem]">
-                        {t("gradeAssessment.q.short")}{questionIdx + 1}
+                        {t("gradeAssessment.q.short")}
+                        {questionIdx + 1}
                       </span>
                       <div className="flex-1">
                         {questionText && <p className="mb-3 text-gray-800">{questionText}</p>}
@@ -340,9 +433,13 @@ export default function GradeAssessment() {
                                   <CheckIcon className="w-5 h-5 text-green-600" />
                                 )}
                                 {isCorrectChoice && !hasAnswer && (
-                                  <span className="text-xs text-amber-700 ml-auto">{t("gradeAssessment.correctAnswer")}</span>
+                                  <span className="text-xs text-amber-700 ml-auto">
+                                    {t("gradeAssessment.correctAnswer")}
+                                  </span>
                                 )}
-                                {isUserChoice && !isCorrect && <XIcon className="w-5 h-5 text-red-600" />}
+                                {isUserChoice && !isCorrect && (
+                                  <XIcon className="w-5 h-5 text-red-600" />
+                                )}
                               </div>
                             );
                           })}
@@ -358,7 +455,6 @@ export default function GradeAssessment() {
             <div className="divide-y divide-gray-100">
               {Array.from({ length: currentQuizSection.length }).map((_, questionIdx) => {
                 const fileUrl = audioStudentResponse?.files[questionIdx.toString()];
-                const transcript = audioStudentResponse?.transcripts[questionIdx.toString()];
                 const currentGrade = localAudioGrades[activeSectionIdx]?.[questionIdx];
                 const questionText = currentQuizSection.questions?.[questionIdx];
 
@@ -366,7 +462,8 @@ export default function GradeAssessment() {
                   <div key={questionIdx} className="p-4">
                     <div className="flex items-start gap-3">
                       <span className="font-medium text-gray-500 min-w-[2rem]">
-                        {t("gradeAssessment.q.short")}{questionIdx + 1}
+                        {t("gradeAssessment.q.short")}
+                        {questionIdx + 1}
                       </span>
                       <div className="flex-1">
                         {questionText && (
@@ -386,20 +483,97 @@ export default function GradeAssessment() {
                             </div>
 
                             {/* Transcript */}
-                            {transcript && (
-                              <div>
-                                <label className="text-sm font-medium text-gray-700 mb-1 block">
-                                  {t("gradeAssessment.transcript")}
-                                </label>
-                                <p className="p-3 bg-gray-50 rounded-md text-gray-700 text-sm">
-                                  {transcript || (
-                                    <span className="italic text-gray-400">
-                                      {t("gradeAssessment.noTranscript")}
+                            {(() => {
+                              const key = transcriptKey(activeSectionIdx, questionIdx);
+                              const saved = getSavedTranscript(activeSectionIdx, questionIdx);
+                              const isEditing = isEditingTranscript(activeSectionIdx, questionIdx);
+                              const isSaving = savingTranscriptKey === key;
+                              const labelClasses = "text-sm font-medium text-gray-700 mb-1 block";
+
+                              if (!isEditing) {
+                                return (
+                                  <div>
+                                    <span className={labelClasses}>
+                                      {t("gradeAssessment.transcript")}
                                     </span>
-                                  )}
-                                </p>
-                              </div>
-                            )}
+                                    <div className="flex items-center gap-2">
+                                      <p className="flex-1 p-3 bg-gray-50 rounded-md text-gray-700 text-sm whitespace-pre-wrap">
+                                        {saved || (
+                                          <span className="italic text-gray-400">
+                                            {t("gradeAssessment.noTranscript")}
+                                          </span>
+                                        )}
+                                      </p>
+                                      <Button
+                                        variant="secondary"
+                                        size="sm"
+                                        onClick={() =>
+                                          startEditTranscript(activeSectionIdx, questionIdx)
+                                        }
+                                      >
+                                        {t("common.edit")}
+                                      </Button>
+                                    </div>
+                                    {savedTranscriptKey === key && (
+                                      <span className="text-sm text-green-600 self-center py-4">
+                                        {t("common.saved")}
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              }
+
+                              const value = getTranscriptValue(activeSectionIdx, questionIdx);
+
+                              return (
+                                <div>
+                                  <label htmlFor={`transcript-${key}`} className={labelClasses}>
+                                    {t("gradeAssessment.transcript")}
+                                  </label>
+                                  <textarea
+                                    id={`transcript-${key}`}
+                                    rows={3}
+                                    autoFocus
+                                    value={value}
+                                    disabled={isSaving}
+                                    placeholder={t("gradeAssessment.transcriptPlaceholder")}
+                                    onChange={(e) =>
+                                      editTranscript(activeSectionIdx, questionIdx, e.target.value)
+                                    }
+                                    className={INPUT_CLASSES}
+                                  />
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <Button
+                                      variant="primary"
+                                      size="sm"
+                                      disabled={isSaving || value === saved}
+                                      onClick={() =>
+                                        void saveTranscript(activeSectionIdx, questionIdx)
+                                      }
+                                    >
+                                      {isSaving ? (
+                                        <span className="flex items-center gap-2">
+                                          <SpinnerIcon />
+                                          {t("common.saving")}
+                                        </span>
+                                      ) : (
+                                        t("common.save")
+                                      )}
+                                    </Button>
+                                    <Button
+                                      variant="secondary"
+                                      size="sm"
+                                      disabled={isSaving}
+                                      onClick={() =>
+                                        cancelTranscript(activeSectionIdx, questionIdx)
+                                      }
+                                    >
+                                      {t("common.cancel")}
+                                    </Button>
+                                  </div>
+                                </div>
+                              );
+                            })()}
 
                             {/* Grade Input */}
                             <div>
@@ -424,16 +598,22 @@ export default function GradeAssessment() {
                                   </button>
                                 ))}
                                 {submitting && (
-                                  <span className="text-sm text-gray-500 ml-2">{t("common.saving")}</span>
+                                  <span className="text-sm text-gray-500 ml-2">
+                                    {t("common.saving")}
+                                  </span>
                                 )}
                                 {currentGrade !== undefined && !submitting && (
-                                  <span className="text-sm text-green-600 ml-2">{t("common.saved")}</span>
+                                  <span className="text-sm text-green-600 ml-2">
+                                    {t("common.saved")}
+                                  </span>
                                 )}
                               </div>
                             </div>
                           </div>
                         ) : (
-                          <p className="text-sm text-gray-400 italic">{t("gradeAssessment.noRecording")}</p>
+                          <p className="text-sm text-gray-400 italic">
+                            {t("gradeAssessment.noRecording")}
+                          </p>
                         )}
                       </div>
                     </div>
@@ -445,9 +625,7 @@ export default function GradeAssessment() {
         </div>
       </div>
 
-      {showScore && (
-        <ScoreModal assessmentId={id} onClose={() => setShowScore(false)} />
-      )}
+      {showScore && <ScoreModal assessmentId={id} onClose={() => setShowScore(false)} />}
     </div>
   );
 }
