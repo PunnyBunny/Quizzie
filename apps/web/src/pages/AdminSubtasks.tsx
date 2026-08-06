@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useCallable } from "../lib/firebase-hooks";
+import { INPUT_CLASSES } from "../lib/ui";
 import type { NormStats, SubtaskDef, QuizSection } from "../lib/scoring";
 import type {
   GetSubtasksOutput,
@@ -26,9 +27,6 @@ const EMPTY_NORMS: { S1: NormStats | null; S3: NormStats | null; S5: NormStats |
   S3: null,
   S5: null,
 };
-
-const INPUT_CLASSES =
-  "w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-blue-500 focus:ring-blue-500";
 
 export default function AdminSubtasks() {
   const { t } = useTranslation();
