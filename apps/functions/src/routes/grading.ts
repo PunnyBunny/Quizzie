@@ -31,9 +31,13 @@ router.post(
     res: FirebaseFunctionResponse<GetAssessmentStudentResponsesOutput>,
   ) => {
     const { assessmentId } = req.body.data;
-    const { callerEmail } = res.locals;
+    const { callerEmail, callerClaims } = res.locals;
 
-    const assessmentDoc = await getAssessmentWithAuth(assessmentId, callerEmail);
+    const assessmentDoc = await getAssessmentWithAuth(
+      assessmentId,
+      callerEmail,
+      callerClaims?.isAdmin === true,
+    );
 
     const assessment = toAssessmentDto(assessmentDoc);
     if (!assessment) {
@@ -102,9 +106,9 @@ router.post(
     res: FirebaseFunctionResponse<{ ok: boolean }>,
   ) => {
     const { assessmentId, section, question, grade } = req.body.data;
-    const { callerEmail } = res.locals;
+    const { callerEmail, callerClaims } = res.locals;
 
-    await getAssessmentWithAuth(assessmentId, callerEmail);
+    await getAssessmentWithAuth(assessmentId, callerEmail, callerClaims?.isAdmin === true);
 
     const ref = await findStudentResponseRef(assessmentId, section);
     if (!ref) {

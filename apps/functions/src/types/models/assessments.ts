@@ -1,6 +1,7 @@
 import { FieldValue } from "../../firebase";
 import type { Timestamp } from "firebase-admin/firestore";
 import type { Gender, LanguageEntry } from "../common";
+import { ForbiddenError, NotFoundError } from "../../middleware/error";
 import { BaseCollection } from "./base";
 
 /**
@@ -79,22 +80,24 @@ export function toAssessmentDto(
 }
 
 /**
- * Get assessment and verify ownership
- * @throws Error if assessment not found or unauthorized
+ * Get assessment and verify ownership. Admins may access any assessment.
+ * @throws NotFoundError if the assessment does not exist
+ * @throws ForbiddenError if the caller neither created it nor is an admin
  */
 export async function getAssessmentWithAuth(
   assessmentId: string,
   callerEmail: string,
+  isAdmin = false,
 ): Promise<FirebaseFirestore.DocumentSnapshot<AssessmentDoc>> {
   const doc = await assessments.doc(assessmentId).get();
 
   if (!doc.exists) {
-    throw new Error("Assessment not found");
+    throw new NotFoundError("Assessment not found");
   }
 
   const data = doc.data()!;
-  if (data.creatorEmail !== callerEmail) {
-    throw new Error("Unauthorized");
+  if (!isAdmin && data.creatorEmail !== callerEmail) {
+    throw new ForbiddenError();
   }
 
   return doc;
