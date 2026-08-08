@@ -6,6 +6,7 @@ import ScoreModal from "../components/ScoreModal";
 import { PageHeader } from "../components/PageHeader";
 import { Button } from "../components/Button";
 import { Alert } from "../components/Alert";
+import { Tooltip } from "../components/Tooltip";
 import { CheckIcon, SpinnerIcon, XIcon } from "../components/icons";
 import { INPUT_CLASSES } from "../lib/ui";
 import type { QuizSection } from "../lib/scoring";
@@ -340,7 +341,9 @@ export default function GradeAssessment() {
 
         {/* Section Tabs */}
         <div className="mb-6 border-b border-gray-200">
-          <div className="flex gap-1 overflow-x-auto pb-px">
+          {/* Wraps rather than scrolls: overflow-x on a flex row computes overflow-y to
+              auto, which clips the lock tooltip out of existence. */}
+          <div className="flex flex-wrap gap-1 pb-px">
             {quizQuestions.map((quizSection, sectionIdx) => {
               const isActive = activeSectionIdx === sectionIdx;
               const isMc = quizSection.kind === "mc";
@@ -349,10 +352,11 @@ export default function GradeAssessment() {
               const isLocked = editingTranscriptKey !== null && !isActive;
 
               return (
-                <span
+                <Tooltip
                   key={sectionIdx}
-                  className="inline-flex"
-                  title={isLocked ? t("gradeAssessment.editLockedHint") : undefined}
+                  placement="bottom"
+                  align="left"
+                  label={isLocked ? t("gradeAssessment.editLockedHint") : undefined}
                 >
                   <button
                     onClick={() => setActiveSectionIdx(sectionIdx)}
@@ -378,7 +382,7 @@ export default function GradeAssessment() {
                           })()}
                     </span>
                   </button>
-                </span>
+                </Tooltip>
               );
             })}
           </div>
@@ -519,10 +523,9 @@ export default function GradeAssessment() {
                                           </span>
                                         )}
                                       </p>
-                                      {/* A disabled button swallows its own hover events,
-                                          so the tooltip lives on the wrapper. */}
-                                      <span
-                                        title={
+                                      <Tooltip
+                                        align="right"
+                                        label={
                                           editingTranscriptKey !== null
                                             ? t("gradeAssessment.editLockedHint")
                                             : undefined
@@ -538,7 +541,7 @@ export default function GradeAssessment() {
                                         >
                                           {t("common.edit")}
                                         </Button>
-                                      </span>
+                                      </Tooltip>
                                     </div>
                                     {savedTranscriptKey === key && (
                                       <span className="text-sm text-green-600 self-center py-4">
