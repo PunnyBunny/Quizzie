@@ -53,7 +53,7 @@ const en: Dict = {
 
   // Dashboard nav
   "nav.home": "Home",
-  "nav.brand": "Quizzie",
+  "nav.brand": "VACA",
 
   // Home page
   "home.startNew.title": "Start New Test",
@@ -428,7 +428,7 @@ const zh: Dict = {
 
   // Dashboard nav
   "nav.home": "首頁",
-  "nav.brand": "Quizzie",
+  "nav.brand": "VACA",
 
   // Home page
   "home.startNew.title": "開始新測試",

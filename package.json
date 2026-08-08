@@ -1,4 +1,5 @@
 {
+  "name": "vaca",
   "private": true,
   "workspaces": [
     "apps/functions",
