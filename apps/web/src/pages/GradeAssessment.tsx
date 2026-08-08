@@ -210,11 +210,15 @@ export default function GradeAssessment() {
   const getTranscriptValue = (section: number, question: number) =>
     transcriptDrafts[transcriptKey(section, question)] ?? getSavedTranscript(section, question);
 
+  // Only one transcript may be open at a time: two in-flight saves against the same
+  // student-response doc race each other, and the second write wins silently. Replacing
+  // the map rather than adding to it makes a second draft impossible.
+  const editingTranscriptKey = Object.keys(transcriptDrafts)[0] ?? null;
+
   const startEditTranscript = (section: number, question: number) => {
-    setTranscriptDrafts((prev) => ({
-      ...prev,
+    setTranscriptDrafts({
       [transcriptKey(section, question)]: getSavedTranscript(section, question),
-    }));
+    });
     setSavedTranscriptKey(null);
   };
 
@@ -504,15 +508,26 @@ export default function GradeAssessment() {
                                           </span>
                                         )}
                                       </p>
-                                      <Button
-                                        variant="secondary"
-                                        size="sm"
-                                        onClick={() =>
-                                          startEditTranscript(activeSectionIdx, questionIdx)
+                                      {/* A disabled button swallows its own hover events,
+                                          so the tooltip lives on the wrapper. */}
+                                      <span
+                                        title={
+                                          editingTranscriptKey !== null
+                                            ? t("gradeAssessment.editLockedHint")
+                                            : undefined
                                         }
                                       >
-                                        {t("common.edit")}
-                                      </Button>
+                                        <Button
+                                          variant="secondary"
+                                          size="sm"
+                                          disabled={editingTranscriptKey !== null}
+                                          onClick={() =>
+                                            startEditTranscript(activeSectionIdx, questionIdx)
+                                          }
+                                        >
+                                          {t("common.edit")}
+                                        </Button>
+                                      </span>
                                     </div>
                                     {savedTranscriptKey === key && (
                                       <span className="text-sm text-green-600 self-center py-4">
