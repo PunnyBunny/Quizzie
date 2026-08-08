@@ -1,5 +1,5 @@
 {
-  "name": "quizzie-functions",
+  "name": "vaca-functions",
   "private": true,
   "scripts": {
     "build": "tsc",

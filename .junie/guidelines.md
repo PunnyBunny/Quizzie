@@ -1,6 +1,6 @@
 # Project Guidelines
     
-This is a monorepo for a Firebase project Quizzie. 
+This is a monorepo for a Firebase project VACA. 
 
 - `/functions` stores a Firebase Cloud Function
 - `/src` stores the React app
