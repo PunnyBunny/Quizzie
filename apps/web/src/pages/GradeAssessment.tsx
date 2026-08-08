@@ -12,6 +12,13 @@ import { INPUT_CLASSES } from "../lib/ui";
 import type { QuizSection } from "../lib/scoring";
 import { useTranslation } from "../hooks/useTranslation";
 
+/**
+ * Mirrors the server-side cap in `UpdateAudioTranscriptSchema`
+ * (apps/functions/src/types/zod/routes/grading.ts). Duplicated rather than imported
+ * because that module pulls in zod, which has no business in the browser bundle.
+ */
+const TRANSCRIPT_MAX_LENGTH = 5000;
+
 interface LanguageEntry {
   language: "cantonese" | "mandarin" | "english" | "other";
   otherSpecify?: string;
@@ -563,6 +570,7 @@ export default function GradeAssessment() {
                                     id={`transcript-${key}`}
                                     rows={3}
                                     autoFocus
+                                    maxLength={TRANSCRIPT_MAX_LENGTH}
                                     value={value}
                                     disabled={isSaving}
                                     placeholder={t("gradeAssessment.transcriptPlaceholder")}
