@@ -344,30 +344,41 @@ export default function GradeAssessment() {
             {quizQuestions.map((quizSection, sectionIdx) => {
               const isActive = activeSectionIdx === sectionIdx;
               const isMc = quizSection.kind === "mc";
+              // Leaving the section would strand the open editor off-screen, so hold the
+              // grader here until they save or cancel.
+              const isLocked = editingTranscriptKey !== null && !isActive;
 
               return (
-                <button
+                <span
                   key={sectionIdx}
-                  onClick={() => setActiveSectionIdx(sectionIdx)}
-                  className={`px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
-                    isActive
-                      ? "border-blue-600 text-blue-600"
-                      : "border-transparent text-gray-500 hover:text-gray-700"
-                  }`}
+                  className="inline-flex"
+                  title={isLocked ? t("gradeAssessment.editLockedHint") : undefined}
                 >
-                  <span>{quizSection.title}</span>
-                  <span className="ml-2 text-xs">
-                    {isMc
-                      ? (() => {
-                          const score = calculateMcScore(sectionIdx);
-                          return `${score.correct}/${score.total}`;
-                        })()
-                      : (() => {
-                          const score = calculateAudioScore(sectionIdx);
-                          return `${t("gradeAssessment.tab.graded")} ${score.numGraded}/${score.total}`;
-                        })()}
-                  </span>
-                </button>
+                  <button
+                    onClick={() => setActiveSectionIdx(sectionIdx)}
+                    disabled={isLocked}
+                    className={`px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                      isActive
+                        ? "border-blue-600 text-blue-600"
+                        : isLocked
+                          ? "border-transparent text-gray-300 cursor-not-allowed"
+                          : "border-transparent text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    <span>{quizSection.title}</span>
+                    <span className="ml-2 text-xs">
+                      {isMc
+                        ? (() => {
+                            const score = calculateMcScore(sectionIdx);
+                            return `${score.correct}/${score.total}`;
+                          })()
+                        : (() => {
+                            const score = calculateAudioScore(sectionIdx);
+                            return `${t("gradeAssessment.tab.graded")} ${score.numGraded}/${score.total}`;
+                          })()}
+                    </span>
+                  </button>
+                </span>
               );
             })}
           </div>
