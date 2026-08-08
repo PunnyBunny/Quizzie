@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useCallable } from "../lib/firebase-hooks.ts";
 import { toUserMessage } from "../lib/errors";
+import { INPUT_CLASSES as BASE_INPUT_CLASSES } from "../lib/ui";
 import { PageHeader } from "../components/PageHeader";
 import { Button } from "../components/Button";
 import { Modal } from "../components/Modal";
@@ -44,8 +45,7 @@ interface AdminRemoveUserOutput {
   email: string;
 }
 
-const INPUT_CLASSES =
-  "w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-blue-500 focus:ring-blue-500 shadow-sm";
+const INPUT_CLASSES = `${BASE_INPUT_CLASSES} shadow-sm`;
 
 export default function AdminUserManagement() {
   const { t } = useTranslation();

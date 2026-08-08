@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useCallable } from "../lib/firebase-hooks";
 import { toUserMessage } from "../lib/errors";
+import { INPUT_CLASSES } from "../lib/ui";
 import type {
   GetQuestionsOutput,
   SaveQuestionSectionOutput,
@@ -19,9 +20,6 @@ import { useTranslation } from "../hooks/useTranslation";
 
 type Kind = "mc" | "audio";
 const KINDS: Kind[] = ["mc", "audio"];
-
-const INPUT_CLASSES =
-  "w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-blue-500 focus:ring-blue-500";
 
 const SMALL_INPUT_CLASSES =
   "border border-gray-300 rounded-md px-2 py-1 text-sm focus:border-blue-500 focus:ring-blue-500";

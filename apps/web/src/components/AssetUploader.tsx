@@ -4,11 +4,9 @@ import { storage } from "../lib/firebase";
 import { audioStoragePath, imageStoragePath } from "../lib/asset-paths";
 import { invalidateStorageUrl, useStorageUrl } from "../hooks/useStorageUrl";
 import { toUserMessage } from "../lib/errors";
+import { INPUT_CLASSES } from "../lib/ui";
 import { Alert } from "./Alert";
 import { useTranslation } from "../hooks/useTranslation";
-
-const INPUT_CLASSES =
-  "w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-blue-500 focus:ring-blue-500";
 
 interface AssetUploaderProps {
   kind: "audio" | "image";
