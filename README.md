@@ -33,3 +33,7 @@ For production, consider moving keys into environment variables and referencing 
 - `npm run dev` — start dev server
 - `npm run build` — type-check and build
 - `npm run preview` — preview the production build
+
+### GCP Env Vars
+Use `gcloud auth login` and `gcloud auth application-default login`. If you have the application credentials elsewhere,
+set `GOOGLE_APPLICATION_CREDENTIALS` to the file.
