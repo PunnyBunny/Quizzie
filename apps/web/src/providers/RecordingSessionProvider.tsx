@@ -25,9 +25,7 @@ interface RecordingSessionContextType {
 const RecordingSessionContext = createContext<RecordingSessionContextType | undefined>(undefined);
 
 function hasSpeechRecognition(): boolean {
-  return Boolean(
-    (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition,
-  );
+  return Boolean((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
 }
 
 // Hacky workaround until the feature detection of [start(MediaStreamTrack)] is reliable
@@ -36,8 +34,7 @@ function supportsStartWithTrack(): boolean {
   const frame = document.body.appendChild(document.createElement("iframe"));
   const contentWindow = frame.contentWindow;
   const SpeechRecognition =
-    (contentWindow as any)?.SpeechRecognition ||
-    (contentWindow as any)?.webkitSpeechRecognition;
+    (contentWindow as any)?.SpeechRecognition || (contentWindow as any)?.webkitSpeechRecognition;
   if (!SpeechRecognition) {
     frame.remove();
     return false;
@@ -62,10 +59,7 @@ export function RecordingSessionProvider({ children }: { children: React.ReactNo
   const [error, setError] = useState("");
   const [status, setStatus] = useState<RecordingStatus>("idle");
   const browserSupport = useMemo(() => hasSpeechRecognition(), []);
-  const canPassTrack = useMemo(
-    () => browserSupport && supportsStartWithTrack(),
-    [browserSupport],
-  );
+  const canPassTrack = useMemo(() => browserSupport && supportsStartWithTrack(), [browserSupport]);
 
   // Audio recording state
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
