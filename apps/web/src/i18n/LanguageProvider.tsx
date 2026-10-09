@@ -26,7 +26,7 @@ function detectInitialLanguage(): Language {
 
 function interpolate(template: string, vars?: Record<string, string | number>): string {
   if (!vars) return template;
-  return template.replace(/\{\{(\w+)\}\}/g, (_, key) =>
+  return template.replace(/\{\{(\w+)\}\}/g, (_match: string, key: string) =>
     Object.prototype.hasOwnProperty.call(vars, key) ? String(vars[key]) : `{{${key}}}`,
   );
 }
