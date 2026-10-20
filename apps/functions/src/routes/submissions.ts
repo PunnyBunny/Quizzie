@@ -60,10 +60,9 @@ router.post(
   ) => {
     const input = req.body.data;
     const { config, progress } = await configuration(input, "mc", res);
-    // MC submissions store the displayed ordinal.
     if (
       input.answer !== null &&
-      input.answer >= Object.keys(config.choices?.[input.question] ?? {}).length
+      !Object.prototype.hasOwnProperty.call(config.choices?.[input.question] ?? {}, input.answer)
     )
       throw new ApiError("Invalid option", 400);
     await saveStudentAnswer(

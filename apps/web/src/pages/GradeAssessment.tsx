@@ -43,7 +43,7 @@ interface GetAssessmentStudentResponsesRequest {
 
 interface MCStudentResponse {
   type: "mc";
-  studentResponses: Record<string, number | null>;
+  studentResponses: Record<string, string | null>;
 }
 
 interface AudioStudentResponse {
@@ -285,14 +285,10 @@ export default function GradeAssessment() {
     if (!mcStudentResponse || !quizSection.correctAnswers) return { correct: 0, total: 0 };
 
     let correct = 0;
-    Object.entries(mcStudentResponse.studentResponses).forEach(([q, answerIndex]) => {
+    Object.entries(mcStudentResponse.studentResponses).forEach(([q, answerKey]) => {
       const questionIndex = parseInt(q);
-      const correctAnswerIdx = quizSection.correctAnswers?.[questionIndex];
-      if (
-        correctAnswerIdx !== undefined &&
-        answerIndex !== null &&
-        answerIndex === Number(correctAnswerIdx)
-      ) {
+      const correctAnswerKey = quizSection.correctAnswers?.[questionIndex];
+      if (correctAnswerKey !== undefined && answerKey !== null && answerKey === correctAnswerKey) {
         correct++;
       }
     });
@@ -406,16 +402,15 @@ export default function GradeAssessment() {
           {isMcSection ? (
             <div className="divide-y divide-gray-100">
               {Array.from({ length: currentQuizSection.length }).map((_, questionIdx) => {
-                const studentMcChoiceIdx =
+                const studentMcChoiceKey =
                   mcStudentResponse?.studentResponses[questionIdx.toString()];
-                const hasAnswer = studentMcChoiceIdx !== undefined && studentMcChoiceIdx !== null;
+                const hasAnswer = studentMcChoiceKey !== undefined && studentMcChoiceKey !== null;
                 const choicesMap = currentQuizSection.choices?.[questionIdx] ?? {};
-                const choiceEntries = Object.entries(choicesMap).sort(
-                  ([a], [b]) => Number(a) - Number(b),
+                const choiceEntries = Object.entries(choicesMap).sort(([a], [b]) =>
+                  a.localeCompare(b),
                 );
-                const correctAnswerIdx = currentQuizSection.correctAnswers?.[questionIdx];
-                const correctIdx = correctAnswerIdx !== undefined ? Number(correctAnswerIdx) : -1;
-                const isCorrect = hasAnswer && studentMcChoiceIdx === correctIdx;
+                const correctAnswerKey = currentQuizSection.correctAnswers?.[questionIdx];
+                const isCorrect = hasAnswer && studentMcChoiceKey === correctAnswerKey;
                 const questionText = currentQuizSection.questions?.[questionIdx];
 
                 return (
@@ -434,9 +429,8 @@ export default function GradeAssessment() {
                         )}
                         <div className="grid gap-2">
                           {choiceEntries.map(([key, choice]) => {
-                            const cIdx = Number(key);
-                            const isUserChoice = hasAnswer && studentMcChoiceIdx === cIdx;
-                            const isCorrectChoice = cIdx === correctIdx;
+                            const isUserChoice = hasAnswer && studentMcChoiceKey === key;
+                            const isCorrectChoice = key === correctAnswerKey;
 
                             let choiceClass = "bg-gray-50";
                             if (isCorrectChoice && hasAnswer) {
@@ -449,12 +443,10 @@ export default function GradeAssessment() {
 
                             return (
                               <div
-                                key={cIdx}
+                                key={key}
                                 className={`flex items-center gap-2 p-2 rounded-md ${choiceClass}`}
                               >
-                                <span className="font-medium text-gray-500">
-                                  {String.fromCharCode(65 + cIdx)}.
-                                </span>
+                                <span className="font-medium text-gray-500">{key}.</span>
                                 <span>{choice}</span>
                                 {isCorrectChoice && hasAnswer && (
                                   <CheckIcon className="w-5 h-5 text-green-600" />

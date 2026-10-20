@@ -59,15 +59,14 @@ function transformSections(apiSections: ApiSection[]): Section[] {
     }) => {
       const section: Section = { title, goal, instruction: instructions, questions: [] };
       section.questions = Array.from({ length }).map((_, i) => {
+        const choiceEntries = Object.entries(choices?.[i] ?? {}).sort(([a], [b]) =>
+          a.localeCompare(b),
+        );
         return {
           kind: kind === "audio" || kind === "mc" || kind === "audio_mc" ? kind : "mc",
           question: questions?.[i] ?? null,
-          choices: choices?.[i]
-            ? Object.entries(choices[i])
-                .sort(([a], [b]) => Number(a) - Number(b))
-                .map(([, v]) => v)
-            : [],
-          choiceKeys: Object.keys(choices?.[i] ?? {}).sort((a, b) => Number(a) - Number(b)),
+          choices: choiceEntries.map(([, label]) => label),
+          choiceKeys: choiceEntries.map(([key]) => key),
           choicesAudio: choicesAudios?.[i] ?? null,
           correctAnswer: null,
           image: images?.[i] ?? null,

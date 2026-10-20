@@ -64,7 +64,7 @@ interface SubmitMcAnswerRequest {
   assessmentId: string;
   section: number;
   question: number;
-  answer: number | null;
+  answer: string | null;
 }
 
 interface SubmitAudioAnswerRequest {
@@ -307,7 +307,7 @@ function AssessmentQuestionInner() {
           assessmentId: id,
           section: sectionIndex,
           question: questionIndex,
-          answer: selectedIndex,
+          answer: selectedIndex === null ? null : question.choiceKeys[selectedIndex],
         });
       } else if (question.kind === "audio" && audioBlob != null) {
         const gsUri = await uploadRecordingIfNotAlready();
@@ -478,10 +478,7 @@ function AssessmentQuestionInner() {
                           className="h-4 w-4 text-blue-600"
                         />
                         <span>
-                          {question.kind === "audio_mc"
-                            ? question.choiceKeys[idx]
-                            : String.fromCharCode(65 + idx)}
-                          . {choice}
+                          {question.choiceKeys[idx]}. {choice}
                         </span>
                       </label>
                     ))}

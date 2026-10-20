@@ -13,7 +13,7 @@ export interface BaseStudentResponseDto {
  */
 export interface MCStudentResponseDto extends BaseStudentResponseDto {
   type: "mc";
-  studentResponses: Record<string, number | null>;
+  studentResponses: Record<string, string | null>;
 }
 
 /**

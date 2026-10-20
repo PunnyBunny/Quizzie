@@ -420,8 +420,48 @@ function nodes(tree) {
   if (!tree || typeof tree !== "object") return [];
   return [tree, ...nodes(tree.props?.children)];
 }
+async function questionProviderChecks() {
+  const hooks = hookRuntime();
+  const key = (relative) => path.join(root, `apps/web/src/${relative}`);
+  const Provider = sourceLoader({
+    react: hooks.React,
+    [key("lib/firebase-hooks.ts")]: {
+      useCallable: () => [
+        async () => ({
+          data: {
+            sections: [
+              {
+                title: "MC",
+                kind: "mc",
+                length: 1,
+                goal: "",
+                questions: ["Q"],
+                audios: ["q.mp3"],
+                choices: [{ D: "second", B: "first" }],
+                instructions: { text: "", audio: "" },
+              },
+            ],
+          },
+        }),
+        false,
+      ],
+    },
+    [key("lib/errors.ts")]: { toUserMessage: (error) => error.message },
+    [key("components/Alert.tsx")]: { Alert: "alert" },
+  })("apps/web/src/providers/QuestionProvider.tsx").QuestionProvider;
+  const render = () => hooks.render(() => Provider({ children: null }));
+  render();
+  hooks.effects.forEach((effect) => effect());
+  await new Promise(setImmediate);
+  const question = render().props.value[0].questions[0];
+  assert.deepEqual(Array.from(question.choiceKeys), ["B", "D"]);
+  assert.deepEqual(Array.from(question.choices), ["first", "second"]);
+}
 async function uiChecks() {
-  function questionUI(blob = new Blob(["initial attempt"], { type: "audio/webm" })) {
+  function questionUI(
+    blob = new Blob(["initial attempt"], { type: "audio/webm" }),
+    kind = "audio_mc",
+  ) {
     const hooks = hookRuntime(),
       calls = [],
       uploads = [],
@@ -466,7 +506,7 @@ async function uiChecks() {
         mime: { getExtension: () => "webm" },
         [key("providers/QuestionProvider.tsx")]: {
           useQuestion: () => ({
-            kind: "audio_mc",
+            kind,
             question: "Q",
             image: null,
             audio: "q.mp3",
@@ -605,6 +645,20 @@ async function uiChecks() {
   assert.equal(direct.uploads.length, 0);
   assert.equal(direct.calls[0].data.gsUri, null);
   assert.equal(direct.calls[0].data.transcript, null);
+  const mc = questionUI(undefined, "mc");
+  assert.equal(mc.nextDisabled(), true);
+  mc.select(1);
+  assert(
+    nodes(mc.render()).some(
+      (node) => node.type === "span" && node.props.children.join("") === "D. second",
+    ),
+  );
+  await mc.submit();
+  assert.equal(mc.calls[0].name, "api/submit-mc-answer");
+  assert.equal(mc.calls[0].data.answer, "D");
+  assert.equal(mc.uploads.length, 0);
+  await mc.skip();
+  assert.equal(mc.calls.at(-1).data.answer, null);
   const toggled = questionUI();
   toggled.offer();
   toggled.select(1);
@@ -677,7 +731,17 @@ async function uiChecks() {
   const data = {
     assessment: { name: "Test", school: "Test", grade: "1" },
     sections: [
-      { title: "MC", kind: "mc", length: 1 },
+      {
+        title: "MC",
+        kind: "mc",
+        length: 3,
+        choices: [
+          { D: "second", B: "first" },
+          { D: "second", B: "first" },
+          { D: "second", B: "first" },
+        ],
+        correctAnswers: ["D", "D", "B"],
+      },
       {
         title: "Hybrid",
         kind: "audio_mc",
@@ -687,6 +751,7 @@ async function uiChecks() {
       },
     ],
     studentResponsesBySection: {
+      0: { type: "mc", studentResponses: { 0: "D", 1: "B", 2: null } },
       1: {
         type: "audio_mc",
         files: { 0: null },
@@ -719,6 +784,26 @@ async function uiChecks() {
   for (const effect of hooks.effects) effect();
   await Promise.resolve();
   await Promise.resolve();
+  assert(
+    nodes(renderGrade()).some(
+      (node) => node.type === "span" && node.props.children.includes("1/3"),
+    ),
+  );
+  const mcCards = nodes(renderGrade()).filter(
+    (node) => node.type === "div" && node.props.className === "p-4",
+  );
+  assert.equal(mcCards.length, 3);
+  const choiceRow = (question, key) =>
+    nodes(mcCards[question]).find((node) => node.type === "div" && node.props.key === key);
+  assert(choiceRow(0, "D").props.className.includes("bg-green-50"));
+  assert(choiceRow(1, "B").props.className.includes("bg-red-50"));
+  assert(choiceRow(1, "D").props.className.includes("bg-green-50"));
+  assert(choiceRow(2, "B").props.className.includes("bg-amber-50"));
+  assert(
+    nodes(choiceRow(0, "D")).some(
+      (node) => node.type === "span" && node.props.children.join("") === "D.",
+    ),
+  );
   nodes(renderGrade())
     .find(
       (node) =>
@@ -877,13 +962,13 @@ async function main() {
     questions: ["Q1", "Q2"],
     audios: ["q1.mp3", "q2.mp3"],
     choices: [
-      { 0: "first", 1: "second" },
-      { 0: "first", 1: "second" },
+      { D: "second", B: "first" },
+      { D: "second", B: "first" },
     ],
-    correctAnswers: ["0", "1"],
+    correctAnswers: ["B", "D"],
     instructions: { text: "", audio: "" },
   };
-  app.documents.set("questions/0", { ...config, length: 1 });
+  app.documents.set("questions/0", config);
   app.documents.set("questions/1", config);
   const hybrid = {
     ...config,
@@ -911,9 +996,46 @@ async function main() {
     assessmentId: id,
     section: 0,
     question: 0,
-    answer: 0,
+    answer: "B",
   });
-  assert.equal(app.documents.get(`studentResponses/${id}-0`).studentResponses[0], 0);
+  assert.equal(app.documents.get(`studentResponses/${id}-0`).studentResponses[0], "B");
+  const scoring = app.load("apps/web/src/lib/scoring.ts");
+  for (const answer of [0, "", "A", "toString", "b"])
+    await assert.rejects(
+      app.call("/submit-mc-answer", {
+        assessmentId: id,
+        section: 0,
+        question: 1,
+        answer,
+      }),
+      (error) => error.statusCode === 400,
+    );
+  await assert.rejects(
+    app.call(
+      "/submit-mc-answer",
+      {
+        assessmentId: id,
+        section: 0,
+        question: 1,
+        answer: "D",
+      },
+      "other",
+    ),
+    (error) => error.statusCode === 403,
+  );
+  for (const [answer, expectedScore] of [
+    ["B", 0],
+    ["D", 1],
+    [null, null],
+  ]) {
+    await app.call("/submit-mc-answer", { assessmentId: id, section: 0, question: 1, answer });
+    const saved = await app.call("/get-assessment-student-responses", { assessmentId: id });
+    assert.equal(saved.studentResponsesBySection[0].studentResponses[1], answer);
+    assert.equal(
+      scoring.getQuestionScore(0, 1, saved.studentResponsesBySection, saved.sections),
+      expectedScore,
+    );
+  }
   const base = {
     assessmentId: id,
     section: 1,
@@ -1041,9 +1163,18 @@ async function main() {
   assert.equal(data.sections[1].correctAnswers[0], "B");
   assert.equal(data.studentResponsesBySection[1].type, "audio_mc");
   assert.equal(data.studentResponsesBySection[1].files[1], null);
-  const scoring = app.load("apps/web/src/lib/scoring.ts");
   assert.equal(scoring.getQuestionScore(0, 0, data.studentResponsesBySection, data.sections), 1);
   assert.equal(scoring.getQuestionScore(1, 0, data.studentResponsesBySection, data.sections), 3);
+  const mixedScore = scoring.computeSubtaskScore(
+    [
+      { sectionIndex: 0, questionIndex: 0 },
+      { sectionIndex: 1, questionIndex: 0 },
+    ],
+    data.studentResponsesBySection,
+    data.sections,
+  );
+  assert.equal(mixedScore.score, 4);
+  assert.equal(mixedScore.maxScore, 6);
   const score = scoring.computeSubtaskScore(
     [{ sectionIndex: 1, questionIndex: 0 }],
     data.studentResponsesBySection,
@@ -1120,6 +1251,7 @@ async function main() {
     4,
   );
   await recordingChecks();
+  await questionProviderChecks();
   await uiChecks();
   await adminQuestionsChecks(app);
   console.log(

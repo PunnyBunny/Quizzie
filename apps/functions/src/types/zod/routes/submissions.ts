@@ -9,7 +9,7 @@ const QuestionAddress = z.object({
   question: z.number().int().nonnegative(),
 });
 export const MCStudentResponseSchema = QuestionAddress.extend({
-  answer: z.number().int().nonnegative().nullable(),
+  answer: z.string().min(1).nullable(),
 });
 export const AudioStudentResponseSchema = QuestionAddress.extend({
   transcript: z.string().nullable(),

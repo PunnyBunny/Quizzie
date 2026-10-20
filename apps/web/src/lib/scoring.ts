@@ -13,7 +13,7 @@ import type { HybridStudentResponseDto } from "../../../functions/src/types/mode
 
 export interface MCStudentResponse {
   type: "mc";
-  studentResponses: Record<string, number | null>;
+  studentResponses: Record<string, string | null>;
 }
 
 export interface AudioStudentResponse {
@@ -60,11 +60,11 @@ export function getQuestionScore(
   if (!response) return null;
 
   if (response.type === "mc") {
-    const answerIdx = response.studentResponses[questionIndex.toString()];
-    if (answerIdx === null || answerIdx === undefined) return null;
-    const correctAnswerIdx = section.correctAnswers?.[questionIndex];
-    if (correctAnswerIdx === undefined) return null;
-    return answerIdx === Number(correctAnswerIdx) ? 1 : 0;
+    const answerKey = response.studentResponses[questionIndex.toString()];
+    if (answerKey === null || answerKey === undefined) return null;
+    const correctAnswerKey = section.correctAnswers?.[questionIndex];
+    if (correctAnswerKey === undefined) return null;
+    return answerKey === correctAnswerKey ? 1 : 0;
   }
 
   // Audio: use grade

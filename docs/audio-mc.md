@@ -19,6 +19,10 @@ Only a manual 0–5 grade awards points; MC correctness never assigns a score.
 Assessment playback, submission validation, grading, totals, subtasks, and z-scores
 use the current section configuration maintained in Admin Questions.
 
+MC options use their configured string keys, such as `A`, `B`, or `D`, for display
+and submission. Ordinary MC grading compares the submitted key with the configured
+correct key; hybrid questions continue to use one manual 0–5 grade.
+
 ## Responses and recording lifecycle
 
 The hybrid endpoint accepts `assistanceOffered`, `selectedOption`, and `skipped`

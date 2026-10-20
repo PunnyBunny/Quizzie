@@ -28,7 +28,7 @@ interface BaseStudentResponseDoc {
  */
 export interface MCStudentResponseDoc extends BaseStudentResponseDoc {
   type: "mc";
-  studentResponses: Record<string, number | null>;
+  studentResponses: Record<string, string | null>;
 }
 
 /**

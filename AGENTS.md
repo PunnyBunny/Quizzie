@@ -77,6 +77,8 @@ workspace. Firebase config lists Functions port 5001, Firestore 8080, and Storag
   documents use the stored field `assessment-id` and per-question string keys,
   with discriminated `mc`, `audio`, and `audio_mc` response types. Preserve persisted
   shapes; hybrid evidence lives in the per-question `attempts` map.
+- MC answers store the configured option key as a string (or null for a skip),
+  and grading compares it directly with the configured correct-answer key.
 - Assessment, submission, grading, and scoring flows use the current question
   configuration. Use `getQuestionSections` to load it on the server.
 - Audio responses store files, transcripts, and grades. Question assets use
