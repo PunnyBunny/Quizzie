@@ -4,7 +4,9 @@ import { toUserMessage } from "../lib/errors.ts";
 import { Alert } from "../components/Alert";
 
 export interface Question {
-  kind: "audio" | "mc";
+  kind: "audio" | "mc" | "audio_mc";
+  choicesAudio: string | null;
+  choiceKeys: string[];
   question: string | null;
   choices: string[] | null;
   correctAnswer: string | null;
@@ -32,6 +34,7 @@ interface ApiSection {
   questions: string[] | null;
   audios: string[];
   choices?: Record<string, string>[];
+  choicesAudios?: string[];
   images?: (string | null)[];
   instructions: SectionInstruction;
 }
@@ -42,15 +45,30 @@ interface GetQuestionsResponse {
 
 function transformSections(apiSections: ApiSection[]): Section[] {
   return apiSections.map(
-    ({ title, kind, length, goal, questions, audios, choices, images, instructions }) => {
+    ({
+      title,
+      kind,
+      length,
+      goal,
+      questions,
+      audios,
+      choices,
+      choicesAudios,
+      images,
+      instructions,
+    }) => {
       const section: Section = { title, goal, instruction: instructions, questions: [] };
       section.questions = Array.from({ length }).map((_, i) => {
         return {
-          kind: kind === "audio" || kind === "mc" ? kind : "mc",
+          kind: kind === "audio" || kind === "mc" || kind === "audio_mc" ? kind : "mc",
           question: questions?.[i] ?? null,
           choices: choices?.[i]
-            ? Object.entries(choices[i]).sort(([a], [b]) => Number(a) - Number(b)).map(([, v]) => v)
+            ? Object.entries(choices[i])
+                .sort(([a], [b]) => Number(a) - Number(b))
+                .map(([, v]) => v)
             : [],
+          choiceKeys: Object.keys(choices?.[i] ?? {}).sort((a, b) => Number(a) - Number(b)),
+          choicesAudio: choicesAudios?.[i] ?? null,
           correctAnswer: null,
           image: images?.[i] ?? null,
           audio: audios?.[i] ?? "",
@@ -69,9 +87,21 @@ export function QuestionProvider({ children }: { children: React.ReactNode }) {
   const [getQuestions, loading] = useCallable<void, GetQuestionsResponse>("api/get-questions");
 
   useEffect(() => {
+    let cancelled = false;
+    setSections(null);
+    setError(null);
     void getQuestions()
-      .then((response) => setSections(transformSections(response.data.sections)))
-      .catch((err) => setError(toUserMessage(err, "Could not load questions.")));
+      .then((response) => {
+        if (!cancelled) {
+          setSections(transformSections(response.data.sections));
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) setError(toUserMessage(err, "Could not load questions."));
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [getQuestions]);
 
   if (error) {

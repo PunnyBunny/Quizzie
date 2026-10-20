@@ -1,26 +1,44 @@
 import { z } from "zod";
 
-export const MCStudentResponseSchema = z.object({
-  assessmentId: z.string(),
-  section: z.coerce.number().int(),
-  question: z.coerce.number().int(),
-  answer: z.coerce.number().int().nullable(),
+const QuestionAddress = z.object({
+  assessmentId: z
+    .string()
+    .min(1)
+    .regex(/^[^/]+$/),
+  section: z.number().int().nonnegative(),
+  question: z.number().int().nonnegative(),
 });
-
-export const AudioStudentResponseSchema = z.object({
-  assessmentId: z.string(),
-  section: z.coerce.number().int(),
-  question: z.coerce.number().int(),
+export const MCStudentResponseSchema = QuestionAddress.extend({
+  answer: z.number().int().nonnegative().nullable(),
+});
+export const AudioStudentResponseSchema = QuestionAddress.extend({
   transcript: z.string().nullable(),
-  gsUri: z.string().nullable(),
+  gsUri: z.string().min(1).nullable(),
 });
-
+export const HybridStudentResponseSchema = AudioStudentResponseSchema.extend({
+  assistanceOffered: z.boolean(),
+  selectedOption: z.string().min(1).nullable(),
+  skipped: z.boolean(),
+}).superRefine((value, ctx) => {
+  if (
+    (!value.assistanceOffered && value.selectedOption !== null) ||
+    (value.skipped && value.selectedOption !== null) ||
+    (!value.skipped && value.assistanceOffered && value.selectedOption === null) ||
+    (!value.skipped && !value.assistanceOffered && value.gsUri === null) ||
+    (value.gsUri === null && value.transcript !== null)
+  ) {
+    ctx.addIssue({ code: "custom", message: "Invalid hybrid evidence" });
+  }
+});
 export const GetAssessmentStudentResponsesSchema = z.object({
-  assessmentId: z.string(),
+  assessmentId: z
+    .string()
+    .min(1)
+    .regex(/^[^/]+$/),
 });
-
 export type MCStudentResponseInput = z.infer<typeof MCStudentResponseSchema>;
 export type AudioStudentResponseInput = z.infer<typeof AudioStudentResponseSchema>;
+export type HybridStudentResponseInput = z.infer<typeof HybridStudentResponseSchema>;
 export type GetAssessmentStudentResponsesInput = z.infer<
   typeof GetAssessmentStudentResponsesSchema
 >;

@@ -1,3 +1,14 @@
+import type { BaseStudentResponseDto, StudentResponseDto } from "./student-responses-dto";
+export type {
+  BaseStudentResponseDto,
+  MCStudentResponseDto,
+  AudioStudentResponseDto,
+  HybridStudentResponseDto,
+  StudentResponseDto,
+} from "./student-responses-dto";
+import type { HybridAttempt } from "./hybrid-response-dto";
+import { ApiError } from "../../middleware/error";
+import { assessments } from "./assessments";
 import { FieldValue, admin } from "../../firebase";
 import type { Timestamp } from "firebase-admin/firestore";
 import { BaseCollection } from "./base";
@@ -33,44 +44,20 @@ export interface AudioStudentResponseDoc extends BaseStudentResponseDoc {
 /**
  * Union type for all student response document types
  */
-export type StudentResponseDoc = MCStudentResponseDoc | AudioStudentResponseDoc;
-
-/**
- * Base student response DTO structure
- */
-export interface BaseStudentResponseDto {
-  assessmentId: string;
-  section: number;
-  createdAtIsoTimestamp: string;
+export interface HybridStudentResponseDoc extends Omit<AudioStudentResponseDoc, "type"> {
+  type: "audio_mc";
+  attempts: Record<string, HybridAttempt>;
 }
-
-/**
- * Multiple choice student response DTO
- */
-export interface MCStudentResponseDto extends BaseStudentResponseDto {
-  type: "mc";
-  studentResponses: Record<string, number | null>;
-}
-
-/**
- * Audio student response DTO
- */
-export interface AudioStudentResponseDto extends BaseStudentResponseDto {
-  type: "audio";
-  files: Record<string, string | null>;
-  transcripts: Record<string, string | null>;
-  grades?: Record<string, number | null>;
-}
-
-/**
- * Union type for all student response DTO types
- */
-export type StudentResponseDto = MCStudentResponseDto | AudioStudentResponseDto;
+export type StudentResponseDoc =
+  | MCStudentResponseDoc
+  | AudioStudentResponseDoc
+  | HybridStudentResponseDoc;
 
 export const studentResponses = new BaseCollection<StudentResponseDoc>(
   "studentResponses",
   (data) => {
     if (data.type === "mc") return data as MCStudentResponseDoc;
+    if (data.type === "audio_mc") return data as HybridStudentResponseDoc;
     if (data.type === "audio") return data as AudioStudentResponseDoc;
     throw new Error(`Unknown student response type: ${data.type}`);
   },
@@ -115,6 +102,15 @@ export function toStudentResponseDto(doc: StudentResponseDoc): StudentResponseDt
     };
   }
 
+  if (doc.type === "audio_mc")
+    return {
+      ...base,
+      type: "audio_mc",
+      files: doc.files,
+      transcripts: doc.transcripts,
+      grades: doc.grades,
+      attempts: doc.attempts,
+    };
   return {
     ...base,
     type: "audio",
@@ -203,4 +199,62 @@ export async function getSignedUrl(gsUri: string): Promise<string> {
       expires: Date.now() + 60 * 1000,
     });
   return signedUrl;
+}
+
+export function hasRecordedEvidence(response: StudentResponseDoc, question: number): boolean {
+  return response.type === "audio_mc"
+    ? Object.prototype.hasOwnProperty.call(response.attempts, question)
+    : response.type === "audio" && Object.prototype.hasOwnProperty.call(response.files, question);
+}
+
+// Write question evidence and progress together. Use the original document when one
+// exists, and a stable ID for new responses; transaction query prevents duplicate races.
+export async function saveStudentAnswer(
+  assessmentId: string,
+  section: number,
+  question: number,
+  response: StudentResponseDoc,
+  progress: { currentSection: number; currentQuestion: number },
+): Promise<void> {
+  await admin.firestore().runTransaction(async (transaction) => {
+    const query = studentResponses
+      .collection()
+      .where("assessment-id", "==", assessmentId)
+      .where("section", "==", section)
+      .limit(1);
+    const existing = await transaction.get(query);
+    const target = existing.docs[0]?.ref ?? studentResponses.doc(`${assessmentId}-${section}`);
+    const current = existing.docs[0] ?? (await transaction.get(target));
+    const currentData = current.data();
+    if (currentData && currentData.type !== response.type)
+      throw new ApiError("Response type does not match assessment configuration", 409);
+    if (!current.exists) transaction.set(target, response);
+    else {
+      const updates: Record<string, unknown> = { updatedAt: FieldValue.serverTimestamp() };
+      if (response.type === "mc")
+        updates[`studentResponses.${question}`] = response.studentResponses[question];
+      else {
+        updates[`files.${question}`] = response.files[question];
+        updates[`transcripts.${question}`] = response.transcripts[question];
+        // A retry of identical evidence must retain a grade; a changed attempt invalidates it.
+        const sameRecording =
+          currentData?.type !== "mc" &&
+          currentData?.files[question] === response.files[question] &&
+          currentData?.transcripts[question] === response.transcripts[question];
+        const sameAttempt =
+          response.type !== "audio_mc" ||
+          (currentData?.type === "audio_mc" &&
+            JSON.stringify(currentData.attempts[question]) ===
+              JSON.stringify(response.attempts[question]));
+        if (!sameRecording || !sameAttempt) updates[`grades.${question}`] = FieldValue.delete();
+        if (response.type === "audio_mc")
+          updates[`attempts.${question}`] = response.attempts[question];
+      }
+      transaction.update(target, updates as FirebaseFirestore.UpdateData<StudentResponseDoc>);
+    }
+    transaction.update(assessments.doc(assessmentId), {
+      ...progress,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  });
 }

@@ -10,7 +10,15 @@ type Dict = Record<string, string>;
 const en: Dict = {
   "adminQuestions.hybridInvalid":
     "Each hybrid question needs at least two labeled options, and a matching correct key.",
-  "question.choicesAudio": "Choices audio",
+  "question.choicesAudioError": "Could not load choices audio. Please reload and try again.",
+  "recording.unsupported": "Recording requires a supported Chrome or Edge browser.",
+  "recording.captureFailed": "Recording failed. Check microphone permission and try again.",
+  "recording.transcriptionTimeout":
+    "Transcription stopped responding. The recording and available transcript have been retained.",
+  "recording.transcriptionFailed": "Live transcription failed. Audio recording can continue.",
+  "recording.noSpeech": "No speech detected by live transcription. Audio recording can continue.",
+  "question.finalizing": "Finalizing recording…",
+  "question.starting": "Waiting for microphone…",
 
   // Common
   "common.loading": "Loading…",
@@ -119,7 +127,8 @@ const en: Dict = {
   "viewAssessments.errorLoad": "Could not load assessments.",
   "viewAssessments.errorTitle": "Error loading assessments",
   "viewAssessments.empty.title": "No unfinished assessments",
-  "viewAssessments.empty.body": "All assessments have been completed. Start a new assessment to begin.",
+  "viewAssessments.empty.body":
+    "All assessments have been completed. Start a new assessment to begin.",
   "viewAssessments.empty.button": "Go to Home",
   "viewAssessments.continue": "Continue Assessment",
   "viewAssessments.viewScore": "View Score",
@@ -203,6 +212,10 @@ const en: Dict = {
   "question.viewInstructions": "View Instructions",
   "question.questionXofY": "Question {{current}} of {{total}}",
   "question.percentComplete": "{{percent}}% complete",
+  "question.offerMc": "Offer MC choices",
+  "question.mcOffered": "MC assistance offered",
+  "question.mcNotOffered": "MC assistance not offered",
+  "question.choicesAudio": "Choices audio",
   "question.startRecording": "Start Recording",
   "question.stopRecording": "Stop Recording",
   "question.transcription": "Transcription:",
@@ -236,7 +249,8 @@ const en: Dict = {
   "admin.subtasks.description": "Define scoring subtasks and enter normative data by grade",
   "admin.subtasks.button": "Manage Subtasks",
   "admin.questions.title": "Questions",
-  "admin.questions.description": "Edit assessment sections, questions, choices, and audio/image paths",
+  "admin.questions.description":
+    "Edit assessment sections, questions, choices, and audio/image paths",
   "admin.questions.button": "Manage Questions",
 
   // Admin View Assessments
@@ -391,7 +405,14 @@ const en: Dict = {
 
 const zh: Dict = {
   "adminQuestions.hybridInvalid": "每題混合題須有至少兩個附標籤的選項，以及對應的正確答案鍵。",
-  "question.choicesAudio": "選項音訊",
+  "question.choicesAudioError": "無法載入選項音訊，請重新載入後再試。",
+  "recording.unsupported": "錄音需要使用支援此功能的 Chrome 或 Edge 瀏覽器。",
+  "recording.captureFailed": "錄音失敗，請檢查麥克風權限後再試。",
+  "recording.transcriptionTimeout": "轉錄服務沒有回應。已保留錄音及現有轉錄文字。",
+  "recording.transcriptionFailed": "即時轉錄失敗，音訊錄音可繼續。",
+  "recording.noSpeech": "即時轉錄未偵測到語音，音訊錄音可繼續。",
+  "question.finalizing": "正在完成錄音…",
+  "question.starting": "正在等待麥克風…",
 
   // Common
   "common.loading": "載入中…",
@@ -581,6 +602,10 @@ const zh: Dict = {
   "question.viewInstructions": "檢視說明",
   "question.questionXofY": "第 {{current}} 題,共 {{total}} 題",
   "question.percentComplete": "已完成 {{percent}}%",
+  "question.offerMc": "提供選擇題選項",
+  "question.mcOffered": "已提供選擇題協助",
+  "question.mcNotOffered": "未提供選擇題協助",
+  "question.choicesAudio": "選項音訊",
   "question.startRecording": "開始錄音",
   "question.stopRecording": "停止錄音",
   "question.transcription": "轉錄文字:",
@@ -683,7 +708,8 @@ const zh: Dict = {
   "adminUsers.popup.createdMessage":
     "已建立使用者 {{email}}。請將以下密碼重設連結提供給該使用者以設定密碼。",
   "adminUsers.popup.resetTitle": "已產生密碼重設連結",
-  "adminUsers.popup.resetMessage": "已為 {{email}} 產生密碼重設連結。請將連結提供給使用者重設密碼。",
+  "adminUsers.popup.resetMessage":
+    "已為 {{email}} 產生密碼重設連結。請將連結提供給使用者重設密碼。",
   "adminUsers.popup.linkLabel": "密碼重設連結",
   "adminUsers.confirmRemove": "確定要移除 {{email}} 嗎?此動作無法復原。",
   "adminUsers.removed": "已移除使用者 {{email}}。",
