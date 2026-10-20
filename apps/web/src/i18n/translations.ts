@@ -8,6 +8,10 @@ export const LANGUAGES: { code: Language; label: string }[] = [
 type Dict = Record<string, string>;
 
 const en: Dict = {
+  "adminQuestions.hybridInvalid":
+    "Each hybrid question needs at least two labeled options, and a matching correct key.",
+  "question.choicesAudio": "Choices audio",
+
   // Common
   "common.loading": "Loading…",
   "common.loadingDots": "Loading...",
@@ -386,6 +390,9 @@ const en: Dict = {
 };
 
 const zh: Dict = {
+  "adminQuestions.hybridInvalid": "每題混合題須有至少兩個附標籤的選項，以及對應的正確答案鍵。",
+  "question.choicesAudio": "選項音訊",
+
   // Common
   "common.loading": "載入中…",
   "common.loadingDots": "載入中...",

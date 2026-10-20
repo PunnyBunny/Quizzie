@@ -18,8 +18,8 @@ import { Alert } from "../components/Alert";
 import { AssetUploader } from "../components/AssetUploader";
 import { useTranslation } from "../hooks/useTranslation";
 
-type Kind = "mc" | "audio";
-const KINDS: Kind[] = ["mc", "audio"];
+type Kind = "mc" | "audio" | "audio_mc";
+const KINDS: Kind[] = ["mc", "audio", "audio_mc"];
 
 const SMALL_INPUT_CLASSES =
   "border border-gray-300 rounded-md px-2 py-1 text-sm focus:border-blue-500 focus:ring-blue-500";
@@ -32,6 +32,7 @@ interface ChoicePair {
 interface QuestionRow {
   question: string;
   audio: string;
+  choicesAudio: string;
   choices: ChoicePair[];
   correctAnswer: string;
   image: string; // "" = null
@@ -59,6 +60,7 @@ function blankRow(choicesEnabled: boolean): QuestionRow {
   return {
     question: "",
     audio: "",
+    choicesAudio: "",
     choices: choicesEnabled ? DEFAULT_CHOICE_KEYS.map((key) => ({ key, value: "" })) : [],
     correctAnswer: "",
     image: "",
@@ -90,6 +92,7 @@ function sectionToForm(section: QuestionSectionDto): FormState {
     rows.push({
       question: section.questions?.[i] ?? "",
       audio: section.audios[i] ?? "",
+      choicesAudio: section.choicesAudios?.[i] ?? "",
       choices: section.choices?.[i] ? recordToChoicePairs(section.choices[i]) : [],
       correctAnswer: section.correctAnswers?.[i] ?? "",
       image: section.images?.[i] ?? "",
@@ -120,6 +123,22 @@ function buildInput(
   const id = form.id.trim();
   if (!id) return { error: t("adminQuestions.errorIdRequired") };
 
+  if (form.kind === "audio_mc") {
+    // TODO: add validation for other kinds as well
+    if (
+      !form.choicesEnabled ||
+      !form.correctAnswersEnabled ||
+      form.rows.some(
+        (row) =>
+          !row.audio.trim() ||
+          !row.choicesAudio.trim() ||
+          row.choices.length < 2 ||
+          row.choices.some((choice) => !choice.key.trim() || !choice.value.trim()) ||
+          !row.choices.some((choice) => choice.key.trim() === row.correctAnswer),
+      )
+    )
+      return { error: t("adminQuestions.hybridInvalid") };
+  }
   const instructions: SectionInstruction = {
     text: form.instructionText,
     audio: form.instructionAudio,
@@ -161,6 +180,7 @@ function buildInput(
     goal: form.goal,
     questions,
     audios,
+    ...(form.kind === "audio_mc" ? { choicesAudios: form.rows.map((r) => r.choicesAudio) } : {}),
     instructions,
     ...(choices !== undefined && { choices }),
     ...(correctAnswers !== undefined && { correctAnswers }),
@@ -267,7 +287,9 @@ export default function AdminQuestions() {
       return {
         ...prev,
         rows: prev.rows.map((r, i) =>
-          i === rowIndex ? { ...r, choices: [...r.choices, { key: nextDefaultKey, value: "" }] } : r,
+          i === rowIndex
+            ? { ...r, choices: [...r.choices, { key: nextDefaultKey, value: "" }] }
+            : r,
         ),
       };
     });
@@ -330,56 +352,63 @@ export default function AdminQuestions() {
 
         <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px] text-left text-sm">
-            <thead className="bg-gray-50 text-gray-500">
-              <tr>
-                <th className="px-4 sm:px-6 py-3 font-medium">{t("adminQuestions.col.id")}</th>
-                <th className="px-4 sm:px-6 py-3 font-medium">{t("adminQuestions.col.title")}</th>
-                <th className="px-4 sm:px-6 py-3 font-medium">{t("adminQuestions.col.kind")}</th>
-                <th className="px-4 sm:px-6 py-3 font-medium text-center">{t("adminQuestions.col.length")}</th>
-                <th className="px-4 sm:px-6 py-3 font-medium">{t("adminQuestions.col.goal")}</th>
-                <th className="px-4 sm:px-6 py-3 font-medium">{t("adminQuestions.col.actions")}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {loadingSections && (
+            <table className="w-full min-w-[720px] text-left text-sm">
+              <thead className="bg-gray-50 text-gray-500">
                 <tr>
-                  <td colSpan={6} className="px-4 sm:px-6 py-8 text-center text-gray-500">
-                    {t("common.loadingDots")}
-                  </td>
+                  <th className="px-4 sm:px-6 py-3 font-medium">{t("adminQuestions.col.id")}</th>
+                  <th className="px-4 sm:px-6 py-3 font-medium">{t("adminQuestions.col.title")}</th>
+                  <th className="px-4 sm:px-6 py-3 font-medium">{t("adminQuestions.col.kind")}</th>
+                  <th className="px-4 sm:px-6 py-3 font-medium text-center">
+                    {" "}
+                    {t("adminQuestions.col.length")}{" "}
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 font-medium">{t("adminQuestions.col.goal")}</th>
+                  <th className="px-4 sm:px-6 py-3 font-medium">
+                    {t("adminQuestions.col.actions")}
+                  </th>
                 </tr>
-              )}
-              {!loadingSections && sections.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-4 sm:px-6 py-8 text-center text-gray-500">
-                    {t("adminQuestions.empty")}
-                  </td>
-                </tr>
-              )}
-              {sections.map((section) => (
-                <tr key={section.id} className="hover:bg-gray-50">
-                  <td className="px-4 sm:px-6 py-3 font-mono text-xs text-gray-500">{section.id}</td>
-                  <td className="px-4 sm:px-6 py-3 font-medium text-gray-900 align-top">
-                    <div className="max-w-[180px] md:max-w-[260px] lg:max-w-none break-words">
-                      {section.title}
-                    </div>
-                  </td>
-                  <td className="px-4 sm:px-6 py-3 uppercase text-xs">{section.kind}</td>
-                  <td className="px-4 sm:px-6 py-3 text-center">{section.length}</td>
-                  <td className="px-4 sm:px-6 py-3 text-gray-600 align-top">
-                    <div className="max-w-[280px] md:max-w-[420px] lg:max-w-none break-words">
-                      {section.goal}
-                    </div>
-                  </td>
-                  <td className="px-4 sm:px-6 py-3">
-                    <Button size="sm" onClick={() => openEdit(section)}>
-                      {t("common.edit")}
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {loadingSections && (
+                  <tr>
+                    <td colSpan={6} className="px-4 sm:px-6 py-8 text-center text-gray-500">
+                      {t("common.loadingDots")}
+                    </td>
+                  </tr>
+                )}
+                {!loadingSections && sections.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-4 sm:px-6 py-8 text-center text-gray-500">
+                      {t("adminQuestions.empty")}
+                    </td>
+                  </tr>
+                )}
+                {sections.map((section) => (
+                  <tr key={section.id} className="hover:bg-gray-50">
+                    <td className="px-4 sm:px-6 py-3 font-mono text-xs text-gray-500">
+                      {section.id}
+                    </td>
+                    <td className="px-4 sm:px-6 py-3 font-medium text-gray-900 align-top">
+                      <div className="max-w-[180px] md:max-w-[260px] lg:max-w-none break-words">
+                        {section.title}
+                      </div>
+                    </td>
+                    <td className="px-4 sm:px-6 py-3 uppercase text-xs">{section.kind}</td>
+                    <td className="px-4 sm:px-6 py-3 text-center">{section.length}</td>
+                    <td className="px-4 sm:px-6 py-3 text-gray-600 align-top">
+                      <div className="max-w-[280px] md:max-w-[420px] lg:max-w-none break-words">
+                        {section.goal}
+                      </div>
+                    </td>
+                    <td className="px-4 sm:px-6 py-3">
+                      <Button size="sm" onClick={() => openEdit(section)}>
+                        {t("common.edit")}
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -387,7 +416,9 @@ export default function AdminQuestions() {
       {editing && (
         <Modal onClose={requestClose}>
           <h2 className="text-xl font-semibold mb-4">
-            {editing.isNew ? t("adminQuestions.new") : t("adminQuestions.editTitle", { id: form.id })}
+            {editing.isNew
+              ? t("adminQuestions.new")
+              : t("adminQuestions.editTitle", { id: form.id })}
           </h2>
 
           <form onSubmit={handleSave} className="space-y-5">
@@ -422,10 +453,30 @@ export default function AdminQuestions() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">{t("adminQuestions.kind")}</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {t("adminQuestions.kind")}
+                      </label>
                       <select
                         value={form.kind}
-                        onChange={(e) => updateForm("kind", e.target.value as Kind)}
+                        onChange={(e) => {
+                          const kind = e.target.value as Kind;
+                          setForm((previous) => ({
+                            ...previous,
+                            kind,
+                            ...(kind === "audio_mc"
+                              ? {
+                                  choicesEnabled: true,
+                                  correctAnswersEnabled: true,
+                                  rows: previous.rows.map((row) => ({
+                                    ...row,
+                                    choices: row.choices.length
+                                      ? row.choices
+                                      : DEFAULT_CHOICE_KEYS.map((key) => ({ key, value: "" })),
+                                  })),
+                                }
+                              : {}),
+                          }));
+                        }}
                         className={INPUT_CLASSES}
                       >
                         {KINDS.map((k) => (
@@ -438,7 +489,9 @@ export default function AdminQuestions() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("adminQuestions.titleField")}</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {t("adminQuestions.titleField")}
+                    </label>
                     <input
                       type="text"
                       value={form.title}
@@ -448,7 +501,9 @@ export default function AdminQuestions() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("adminQuestions.goal")}</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {t("adminQuestions.goal")}
+                    </label>
                     <input
                       type="text"
                       value={form.goal}
@@ -498,6 +553,7 @@ export default function AdminQuestions() {
                       <label className="flex items-center gap-2">
                         <input
                           type="checkbox"
+                          disabled={form.kind === "audio_mc"}
                           checked={form.choicesEnabled}
                           onChange={(e) => updateForm("choicesEnabled", e.target.checked)}
                         />
@@ -506,6 +562,7 @@ export default function AdminQuestions() {
                       <label className="flex items-center gap-2">
                         <input
                           type="checkbox"
+                          disabled={form.kind === "audio_mc"}
                           checked={form.correctAnswersEnabled}
                           onChange={(e) => updateForm("correctAnswersEnabled", e.target.checked)}
                         />
@@ -546,138 +603,152 @@ export default function AdminQuestions() {
                 {pageRows.map((row, pageIdx) => {
                   const rowIdx = pageStart + pageIdx;
                   return (
-                  <div
-                    key={rowIdx}
-                    className="border border-gray-200 rounded-md p-3 bg-gray-50 space-y-3"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-gray-700">{t("adminQuestions.qShort")}{rowIdx + 1}</span>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="danger"
-                        onClick={() => removeRow(rowIdx)}
-                      >
-                        {t("common.remove")}
-                      </Button>
-                    </div>
-
-                    {!form.questionsNull && (
-                      <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">
-                          {t("adminQuestions.questionText")}
-                        </label>
-                        <textarea
-                          value={row.question}
-                          onChange={(e) => updateRow(rowIdx, { question: e.target.value })}
-                          className={INPUT_CLASSES}
-                          rows={2}
-                        />
+                    <div
+                      key={rowIdx}
+                      className="border border-gray-200 rounded-md p-3 bg-gray-50 space-y-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-semibold text-gray-700">
+                          {t("adminQuestions.qShort")}
+                          {rowIdx + 1}
+                        </span>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="danger"
+                          onClick={() => removeRow(rowIdx)}
+                        >
+                          {t("common.remove")}
+                        </Button>
                       </div>
-                    )}
 
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">
-                        {t("adminQuestions.audio")}
-                      </label>
-                      <AssetUploader
-                        kind="audio"
-                        sectionId={form.id}
-                        value={row.audio}
-                        onChange={(p) => updateRow(rowIdx, { audio: p })}
-                        placeholder="e.g. section-0/q1.mp3"
-                      />
-                    </div>
+                      {!form.questionsNull && (
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">
+                            {t("adminQuestions.questionText")}
+                          </label>
+                          <textarea
+                            value={row.question}
+                            onChange={(e) => updateRow(rowIdx, { question: e.target.value })}
+                            className={INPUT_CLASSES}
+                            rows={2}
+                          />
+                        </div>
+                      )}
 
-                    {form.imagesEnabled && (
                       <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">
-                          {t("adminQuestions.image")}
+                          {t("adminQuestions.audio")}
                         </label>
                         <AssetUploader
-                          kind="image"
+                          kind="audio"
                           sectionId={form.id}
-                          value={row.image}
-                          onChange={(p) => updateRow(rowIdx, { image: p })}
+                          value={row.audio}
+                          onChange={(p) => updateRow(rowIdx, { audio: p })}
+                          placeholder="e.g. section-0/q1.mp3"
                         />
                       </div>
-                    )}
 
-                    {form.choicesEnabled && (
-                      <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <label className="block text-xs font-medium text-gray-600">
-                            {t("adminQuestions.choices")}
+                      {form.kind === "audio_mc" && (
+                        <div>
+                          <label>{t("question.choicesAudio")}</label>
+                          <AssetUploader
+                            kind="audio"
+                            sectionId={form.id}
+                            value={row.choicesAudio}
+                            onChange={(p) => updateRow(rowIdx, { choicesAudio: p })}
+                          />
+                        </div>
+                      )}
+                      {form.imagesEnabled && (
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">
+                            {t("adminQuestions.image")}
                           </label>
-                          <button
-                            type="button"
-                            onClick={() => addChoice(rowIdx)}
-                            className="text-xs text-blue-600 hover:text-blue-800"
-                          >
-                            {t("adminQuestions.addChoice")}
-                          </button>
+                          <AssetUploader
+                            kind="image"
+                            sectionId={form.id}
+                            value={row.image}
+                            onChange={(p) => updateRow(rowIdx, { image: p })}
+                          />
                         </div>
-                        <div className="space-y-1">
-                          {row.choices.map((choice, choiceIdx) => (
-                            <div key={choiceIdx} className="flex items-center gap-2">
-                              <input
-                                type="text"
-                                value={choice.key}
-                                onChange={(e) =>
-                                  updateChoice(rowIdx, choiceIdx, { key: e.target.value })
-                                }
-                                className={`${SMALL_INPUT_CLASSES} w-16 font-medium`}
-                                placeholder={t("adminQuestions.choiceKey")}
-                              />
-                              <input
-                                type="text"
-                                value={choice.value}
-                                onChange={(e) =>
-                                  updateChoice(rowIdx, choiceIdx, { value: e.target.value })
-                                }
-                                className={`${SMALL_INPUT_CLASSES} flex-1`}
-                                placeholder={t("adminQuestions.choiceValue")}
-                              />
-                              <button
-                                type="button"
-                                onClick={() => removeChoice(rowIdx, choiceIdx)}
-                                className="text-xs text-red-600 hover:text-red-800 px-2"
-                                aria-label={t("adminQuestions.removeChoice", {
-                                  label: choice.key || choiceIdx + 1,
-                                })}
-                              >
-                                ✕
-                              </button>
-                            </div>
-                          ))}
-                          {row.choices.length === 0 && (
-                            <p className="text-xs text-gray-400 italic">{t("adminQuestions.noChoices")}</p>
-                          )}
-                        </div>
-                      </div>
-                    )}
+                      )}
 
-                    {form.correctAnswersEnabled && (
-                      <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">
-                          {t("adminQuestions.correctAnswer")}
-                        </label>
-                        <input
-                          type="text"
-                          value={row.correctAnswer}
-                          onChange={(e) =>
-                            updateRow(rowIdx, { correctAnswer: e.target.value })
-                          }
-                          className={INPUT_CLASSES}
-                          placeholder={
-                            form.choicesEnabled && row.choices.length > 0
-                              ? `e.g. ${row.choices[0].key}`
-                              : ""
-                          }
-                        />
-                      </div>
-                    )}
-                  </div>
+                      {form.choicesEnabled && (
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="block text-xs font-medium text-gray-600">
+                              {t("adminQuestions.choices")}
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => addChoice(rowIdx)}
+                              className="text-xs text-blue-600 hover:text-blue-800"
+                            >
+                              {t("adminQuestions.addChoice")}
+                            </button>
+                          </div>
+                          <div className="space-y-1">
+                            {row.choices.map((choice, choiceIdx) => (
+                              <div key={choiceIdx} className="flex items-center gap-2">
+                                <input
+                                  type="text"
+                                  value={choice.key}
+                                  onChange={(e) =>
+                                    updateChoice(rowIdx, choiceIdx, { key: e.target.value })
+                                  }
+                                  className={`${SMALL_INPUT_CLASSES} w-16 font-medium`}
+                                  placeholder={t("adminQuestions.choiceKey")}
+                                />
+                                <input
+                                  type="text"
+                                  value={choice.value}
+                                  onChange={(e) =>
+                                    updateChoice(rowIdx, choiceIdx, { value: e.target.value })
+                                  }
+                                  className={`${SMALL_INPUT_CLASSES} flex-1`}
+                                  placeholder={t("adminQuestions.choiceValue")}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => removeChoice(rowIdx, choiceIdx)}
+                                  className="text-xs text-red-600 hover:text-red-800 px-2"
+                                  aria-label={t("adminQuestions.removeChoice", {
+                                    label: choice.key || choiceIdx + 1,
+                                  })}
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            ))}
+                            {row.choices.length === 0 && (
+                              <p className="text-xs text-gray-400 italic">
+                                {t("adminQuestions.noChoices")}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {form.correctAnswersEnabled && (
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">
+                            {t("adminQuestions.correctAnswer")}
+                          </label>
+                          <input
+                            type="text"
+                            value={row.correctAnswer}
+                            onChange={(e) => updateRow(rowIdx, { correctAnswer: e.target.value })}
+                            className={INPUT_CLASSES}
+                            placeholder={
+                              form.choicesEnabled && row.choices.length > 0
+                                ? `e.g. ${row.choices[0].key}`
+                                : ""
+                            }
+                          />
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
               </div>

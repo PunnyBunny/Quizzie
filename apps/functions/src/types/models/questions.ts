@@ -1,4 +1,5 @@
 import { BaseCollection } from "./base";
+import { ApiError } from "../../middleware/error";
 import type { QuestionSectionDto } from "./questions-dto";
 
 export type { SectionInstruction, QuestionSectionDto } from "./questions-dto";
@@ -19,4 +20,21 @@ export function toQuestionSectionDto(
   doc: FirebaseFirestore.QueryDocumentSnapshot<QuestionSectionDoc>,
 ): QuestionSectionDto {
   return { id: doc.id, ...doc.data() };
+}
+
+export async function getQuestionSections(): Promise<QuestionSectionDto[]> {
+  const snapshot = await questionSections.collection().orderBy("__name__").get();
+  return snapshot.docs.map(toQuestionSectionDto);
+}
+
+export function getConfiguredQuestion(
+  sections: QuestionSectionDto[],
+  section: number,
+  question: number,
+  kind: QuestionSectionDto["kind"],
+): QuestionSectionDto {
+  const config = sections[section];
+  if (config?.kind !== kind || question < 0 || question >= config.length)
+    throw new ApiError("Invalid question or response type", 400);
+  return config;
 }

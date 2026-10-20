@@ -27,8 +27,8 @@ import { adminHandler } from "../middleware/admin";
 
 export const router = express.Router();
 
-// Enforce isAdmin claim on all routes in this file
-router.use(adminHandler);
+// Scope this guard to admin paths so it cannot block later public routers.
+router.use("/admin", adminHandler);
 
 // POST /admin/get-assessments
 router.post(
