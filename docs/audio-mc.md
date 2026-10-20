@@ -1,27 +1,47 @@
 # Audio-first questions with optional MC
 
-Admins can select `audio_mc` for s02 and s05 (stored section IDs `1` and `4`). Each
-question requires its question audio, a separate choices audio clip, at least two
-labeled options, and a correct option key. The save API validates this configuration.
-Option keys are preserved in submissions; labels and the answer key are snapshotted
-with the evidence so later configuration edits do not change the assisted attempt.
+Admins can choose `audio_mc` when creating or editing any section. The intended
+sections s02/s05 (stored section IDs `1` and `4`) can be configured individually. Each
+question requires question and choices audio clips (which may use the same file),
+at least two labeled options with stable keys, and a correct key. Choosing the hybrid type enables the
+required option/key fields.
 
-The tester can record a spontaneous response or directly offer MC choices. Revealing
-choices records assistance offered without discarding the initial recording or
-transcript. An assisted normal submission requires an option; Skip saves a null MC
-answer and retains initial evidence. Recording is disabled after assistance is offered.
-Submission and assistance wait for both recorder and speech recognition finalization.
+The tester can record a spontaneous response or directly offer MC choices. Offering
+choices retains any initial recording and transcript and disables further spontaneous
+recording. Assisted submission requires an option. Skip stores a null MC response
+while retaining initial evidence. Option labels display their actual configured keys.
+Only a manual 0–5 grade awards points; MC correctness never assigns a score.
 
-`/submit-audio-mc-answer` validates ownership/admin access, question configuration,
-option membership, recording path, and evidence combinations. Hybrid records retain
-`files`, `transcripts`, and `grades`, and add an `assistance` map keyed by question.
-Each entry stores `offered`, `selectedOption`, `choices`, and `correctAnswer`.
-One manual 0–5 grade determines totals, subtasks, and z-scores. MC correctness is
-shown as evidence and never awards points automatically. Grading uses the saved
-response type when section configuration changes. Existing MC/audio documents retain
-their shapes; mixed response types in a single section are rejected.
+## Configuration
 
-Run local checks from the repository root:
+Assessment playback, submission validation, grading, totals, subtasks, and z-scores
+use the current section configuration maintained in Admin Questions.
+
+## Responses and recording lifecycle
+
+The hybrid endpoint accepts `assistanceOffered`, `selectedOption`, and `skipped`
+alongside a recording URI and transcript. Hybrid section responses retain `files`,
+`transcripts`, and optional `grades`, and add `attempts` keyed by question. Existing
+MC/audio persisted shapes are preserved. Ownership/admin access, question bounds,
+response mode, option membership, recording path, and uploaded-file existence are
+validated before saving. Answer evidence and assessment progress are written together.
+Identical save retries retain a grade; changing evidence invalidates the old grade.
+
+Recording startup, capture, and finalization keep submission disabled. Recorder errors
+wait for the final blob instead of enabling actions early. Speech final results are
+accepted before submission; a four-second speech-service timeout retains the finalized
+recording and available transcript. Cancelling or navigating invalidates every old
+success/error callback. Playback is isolated across question, choices, recording, and
+instruction players. Recordings use immutable filenames; successful uploads are reused after a failed API
+save, while a new recording has a new URI and invalidates its previous grade.
+
+Grading controls require evidence for that specific question, including submitted skips
+and direct MC fallback. A fallback without audio shows “no recording” and no empty
+player. The grade and transcript APIs reject nonexistent evidence and MC-only records.
+
+## Verification
+
+From the repository root:
 
 ```sh
 node scripts/verify-audio-mc.cjs
@@ -31,25 +51,27 @@ npm run lint --workspace apps/functions
 npm run lint --workspace apps/web
 ```
 
-The local verification script uses fake media APIs and in-memory backend dependencies;
-it makes no network requests. It checks configuration, evidence combinations,
-authorization, invalid options and recording paths, skipped evidence, snapshots,
-historical response types, manual scoring, finalization, and stale navigation events.
+The local regression script executes source with in-memory Firestore transactions,
+real Express router mounting, and fake React/media APIs. It covers configuration
+creation and editing, MC/audio submission and scoring, spontaneous-only, assisted
+correct/incorrect answers, direct MC fallback, skips retaining audio, stable displayed
+keys, evidence-only grading, access and validation, atomic save failures/retries,
+upload reuse, recording finalization/errors/timeouts, and navigation cleanup. It opens
+no network listeners and makes no cloud requests. These simulated checks do not replace
+browser testing of media APIs.
 
 ## Browser verification still required
 
-Use Chrome or Edge with microphone and Cantonese recognition support, against an
-explicitly isolated test setup. Local web development otherwise connects Auth and
-Storage to the configured cloud project. Do not perform these checks against
-production data.
+Use Chrome or Edge with microphone and Cantonese recognition support in an explicitly
+isolated test setup. Local web development otherwise uses cloud Auth and Storage.
 
-- Configure and reload s02/s05 with nonnumeric option keys and distinct question/choices clips.
-- Submit spontaneous-only audio; offer choices after a recording; offer choices directly;
+- Configure/reload s02 and s05 with nonsequential option keys and separate or shared audio clips.
+- Submit spontaneous-only audio; offer choices after recording; offer choices directly;
   select an incorrect option; and skip an assisted question after recording.
-- Confirm initial playback/transcript survives revealing choices, choices cannot play
-  during capture, and submissions remain disabled until final audio/transcript events.
-- Interrupt an upload/save, retry, and confirm evidence remains available and saves once.
-- Navigate during capture/startup, then verify the next question has no stale audio,
-  transcript, assistance state, selection, or error.
-- Grade recorded and direct-fallback attempts, reload, and check totals/subtasks/z-scores.
-- Inspect historical MC/audio assessments after changing section configuration.
+- Check that evidence survives revealing choices, every player is blocked during
+  recording, and submission waits for final audio/transcript events.
+- Interrupt an upload or save and retry; inspect saved evidence and progress.
+- Navigate while a permission request or save is pending; confirm the next question
+  has no stale recording, transcript, selection, assistance state, or errors.
+- Grade direct fallback and skips, verify unanswered questions have no grade controls,
+  then reload and check totals, subtasks, and z-scores.

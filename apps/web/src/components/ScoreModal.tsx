@@ -24,11 +24,8 @@ interface Assessment {
 
 interface GetAssessmentStudentResponsesResponse {
   assessment: Assessment;
-  studentResponsesBySection: Record<string, StudentResponse>;
-}
-
-interface GetQuestionsResponse {
   sections: QuizSection[];
+  studentResponsesBySection: Record<string, StudentResponse>;
 }
 
 interface GetSubtasksResponse {
@@ -48,8 +45,6 @@ export default function ScoreModal({ assessmentId, onClose, onGoToGrading }: Sco
     GetAssessmentStudentResponsesResponse
   >("api/get-assessment-student-responses");
 
-  const [getQuestions] = useCallable<void, GetQuestionsResponse>("api/get-questions");
-
   const [getSubtasks] = useCallable<{}, GetSubtasksResponse>("api/get-subtasks");
 
   const [loading, setLoading] = useState(true);
@@ -65,15 +60,14 @@ export default function ScoreModal({ assessmentId, onClose, onGoToGrading }: Sco
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const [responsesResult, questionsResult, subtasksResult] = await Promise.all([
+        const [responsesResult, subtasksResult] = await Promise.all([
           getResponses({ assessmentId }),
-          getQuestions(),
           getSubtasks({}),
         ]);
 
         setAssessment(responsesResult.data.assessment);
         setResponsesBySection(responsesResult.data.studentResponsesBySection);
-        setSections(questionsResult.data.sections);
+        setSections(responsesResult.data.sections);
         setSubtaskDefs(subtasksResult.data.subtasks);
       } catch (e) {
         setError(toUserMessage(e, t("scoreModal.errorLoad")));
@@ -83,7 +77,7 @@ export default function ScoreModal({ assessmentId, onClose, onGoToGrading }: Sco
     };
 
     void fetchAll();
-  }, [assessmentId, getResponses, getQuestions, getSubtasks, t]);
+  }, [assessmentId, getResponses, getSubtasks, t]);
 
   const normGrade = assessment ? getNormGrade(assessment.grade) : "S1";
 
@@ -104,7 +98,8 @@ export default function ScoreModal({ assessmentId, onClose, onGoToGrading }: Sco
   const computeTotalMaxScore = () => {
     if (!sections) return 0;
     return sections.reduce(
-      (sum, s) => sum + s.length * getQuestionMaxScore(s.kind),
+      (sum, s, index) =>
+        sum + s.length * getQuestionMaxScore(responsesBySection?.[index]?.type ?? s.kind),
       0,
     );
   };

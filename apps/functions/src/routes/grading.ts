@@ -2,13 +2,15 @@ import express from "express";
 import { validate } from "../middleware/validation";
 import { NotFoundError } from "../middleware/error";
 import { FieldValue } from "../firebase";
-import type { Timestamp } from "firebase-admin/firestore";
+import { admin } from "../firebase";
+import { ApiError } from "../middleware/error";
+import { getQuestionSections } from "../types/models/questions";
 import { getAssessmentWithAuth, toAssessmentDto } from "../types/models/assessments";
 import {
   findStudentResponseRef,
   getSignedUrl,
-  isAudioStudentResponse,
-  isMCStudentResponse,
+  hasRecordedEvidence,
+  toStudentResponseDto,
   type StudentResponseDto,
   studentResponses as studentResponsesDb,
 } from "../types/models/student-responses";
@@ -44,6 +46,7 @@ router.post(
       callerClaims?.isAdmin === true,
     );
 
+    const sections = await getQuestionSections();
     const assessment = toAssessmentDto(assessmentDoc);
     if (!assessment) {
       throw new NotFoundError();
@@ -59,43 +62,27 @@ router.post(
     for (const doc of studentResponsesSnapshot.docs) {
       const data = doc.data();
 
-      if (isMCStudentResponse(data)) {
-        const createdAt = data.createdAt as Timestamp;
-        studentResponses[data.section.toString()] = {
-          assessmentId: data["assessment-id"],
-          section: data.section,
-          type: "mc",
-          studentResponses: data.studentResponses,
-          createdAtIsoTimestamp: createdAt.toDate().toISOString(),
-        };
-      } else if (isAudioStudentResponse(data)) {
-        const signedUrls: Record<string, string> = {};
-        for (const [question, gsUri] of Object.entries(data.files)) {
+      const dto = toStudentResponseDto(data);
+      if (dto.type !== "mc") {
+        const signedUrls: Record<string, string | null> = {};
+        for (const [question, gsUri] of Object.entries(dto.files)) {
+          signedUrls[question] = null;
           if (!gsUri) continue;
-          signedUrls[question] = "";
           try {
             signedUrls[question] = await getSignedUrl(gsUri);
-          } catch (error) {
-            console.error(`Failed to generate signed URL for ${gsUri}:`, error);
+          } catch {
+            console.error("Failed to generate recording URL", assessmentId, data.section, question);
           }
         }
-
-        const createdAt = data.createdAt as Timestamp;
-        studentResponses[data.section.toString()] = {
-          assessmentId: data["assessment-id"],
-          section: data.section,
-          type: "audio",
-          files: signedUrls,
-          transcripts: data.transcripts,
-          grades: data.grades,
-          createdAtIsoTimestamp: createdAt.toDate().toISOString(),
-        };
+        dto.files = signedUrls;
       }
+      studentResponses[data.section.toString()] = dto;
     }
 
     res.status(200).json({
       data: {
         assessment,
+        sections,
         studentResponsesBySection: studentResponses,
       },
     });
@@ -122,9 +109,11 @@ router.post(
 
     const now = FieldValue.serverTimestamp();
 
-    await ref.update({
-      [`grades.${question}`]: grade,
-      updatedAt: now,
+    await admin.firestore().runTransaction(async (transaction) => {
+      const response = (await transaction.get(ref)).data();
+      if (!response || !hasRecordedEvidence(response, question))
+        throw new ApiError("No submitted evidence for this question", 400);
+      transaction.update(ref, { [`grades.${question}`]: grade, updatedAt: now });
     });
 
     console.log(
@@ -152,9 +141,14 @@ router.post(
       throw new NotFoundError();
     }
 
-    await ref.update({
-      [`transcripts.${question}`]: transcript,
-      updatedAt: FieldValue.serverTimestamp(),
+    await admin.firestore().runTransaction(async (transaction) => {
+      const response = (await transaction.get(ref)).data();
+      if (!response || !hasRecordedEvidence(response, question))
+        throw new ApiError("No submitted evidence for this question", 400);
+      transaction.update(ref, {
+        [`transcripts.${question}`]: transcript,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
     });
 
     console.log(

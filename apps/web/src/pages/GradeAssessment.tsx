@@ -9,6 +9,7 @@ import { Alert } from "../components/Alert";
 import { Tooltip } from "../components/Tooltip";
 import { CheckIcon, SpinnerIcon, XIcon } from "../components/icons";
 import { INPUT_CLASSES } from "../lib/ui";
+import type { HybridStudentResponseDto } from "../../../functions/src/types/models/student-responses-dto";
 import type { QuizSection } from "../lib/scoring";
 import { useTranslation } from "../hooks/useTranslation";
 
@@ -49,12 +50,16 @@ interface AudioStudentResponse {
   type: "audio";
   files: Record<string, string | null>;
   transcripts: Record<string, string | null>;
-  grades?: Record<string, number>;
+  grades?: Record<string, number | null>;
 }
 
 interface GetAssessmentStudentResponsesResponse {
   assessment: Assessment;
-  studentResponsesBySection: Record<string, MCStudentResponse | AudioStudentResponse>;
+  sections: QuizSection[];
+  studentResponsesBySection: Record<
+    string,
+    MCStudentResponse | AudioStudentResponse | HybridStudentResponseDto
+  >;
 }
 
 interface SubmitAudioGradeRequest {
@@ -71,10 +76,6 @@ interface UpdateAudioTranscriptRequest {
   transcript: string;
 }
 
-interface GetQuestionsResponse {
-  sections: QuizSection[];
-}
-
 export default function GradeAssessment() {
   const { t } = useTranslation();
   const { id = "" } = useParams<{ id: string }>();
@@ -86,10 +87,6 @@ export default function GradeAssessment() {
     GetAssessmentStudentResponsesRequest,
     GetAssessmentStudentResponsesResponse
   >("api/get-assessment-student-responses");
-
-  const [getQuestions, fetchingQuestions] = useCallable<void, GetQuestionsResponse>(
-    "api/get-questions",
-  );
 
   const [submitAudioGrade, submitting] =
     useCallable<SubmitAudioGradeRequest>("api/submit-audio-grade");
@@ -120,23 +117,22 @@ export default function GradeAssessment() {
   const [savedTranscriptKey, setSavedTranscriptKey] = useState<string | null>(null);
 
   useEffect(() => {
-    void getQuestions()
-      .then((result) => setQuizQuestions(result.data.sections))
-      .catch((err) => setLoadError(toUserMessage(err, t("gradeAssessment.errorQuestions"))));
-  }, [getQuestions, t]);
-
-  useEffect(() => {
     void getAssessmentStudentResponses({ assessmentId: id })
       .then((httpResponse) => {
         setStudentResponseData(httpResponse.data);
+        setQuizQuestions(httpResponse.data.sections);
 
         const initialAudioGrades: Record<string, Record<string, number>> = {};
         const initialTranscripts: Record<string, Record<string, string>> = {};
         for (const [sectionIdx, answers] of Object.entries(
           httpResponse.data.studentResponsesBySection,
         )) {
-          if (answers.type === "audio") {
-            initialAudioGrades[sectionIdx] = answers.grades ?? {};
+          if (answers.type !== "mc") {
+            initialAudioGrades[sectionIdx] = Object.fromEntries(
+              Object.entries(answers.grades ?? {}).filter(
+                (entry): entry is [string, number] => entry[1] !== null,
+              ),
+            );
             initialTranscripts[sectionIdx] = Object.fromEntries(
               Object.entries(answers.transcripts ?? {}).map(([q, text]) => [q, text ?? ""]),
             );
@@ -148,7 +144,7 @@ export default function GradeAssessment() {
       .catch((err) => setLoadError(toUserMessage(err, t("gradeAssessment.errorAssessment"))));
   }, [id, getAssessmentStudentResponses, t]);
 
-  if (fetching || fetchingQuestions) {
+  if (fetching) {
     return (
       <div className="p-4 sm:p-6 flex justify-center">
         <div className="text-gray-500">{t("gradeAssessment.loading")}</div>
@@ -278,6 +274,7 @@ export default function GradeAssessment() {
   const getAudioStudentResponse = (sectionIndex: number) => {
     return studentResponseData.studentResponsesBySection[sectionIndex.toString()] as
       | AudioStudentResponse
+      | HybridStudentResponseDto
       | undefined;
   };
 
@@ -318,7 +315,9 @@ export default function GradeAssessment() {
   };
 
   const currentQuizSection = quizQuestions[activeSectionIdx];
-  const isMcSection = currentQuizSection.kind === "mc";
+  const isMcSection =
+    (studentResponseData.studentResponsesBySection[activeSectionIdx]?.type ??
+      currentQuizSection.kind) === "mc";
   const mcStudentResponse = getMcStudentResponse(activeSectionIdx);
   const audioStudentResponse = getAudioStudentResponse(activeSectionIdx);
 
@@ -353,7 +352,9 @@ export default function GradeAssessment() {
           <div className="flex flex-wrap gap-1 pb-px">
             {quizQuestions.map((quizSection, sectionIdx) => {
               const isActive = activeSectionIdx === sectionIdx;
-              const isMc = quizSection.kind === "mc";
+              const isMc =
+                (studentResponseData.studentResponsesBySection[sectionIdx]?.type ??
+                  quizSection.kind) === "mc";
               // Leaving the section would strand the open editor off-screen, so hold the
               // grader here until they save or cancel.
               const isLocked = editingTranscriptKey !== null && !isActive;
@@ -481,6 +482,17 @@ export default function GradeAssessment() {
             <div className="divide-y divide-gray-100">
               {Array.from({ length: currentQuizSection.length }).map((_, questionIdx) => {
                 const fileUrl = audioStudentResponse?.files[questionIdx.toString()];
+                const attempt =
+                  audioStudentResponse?.type === "audio_mc"
+                    ? audioStudentResponse.attempts[questionIdx]
+                    : undefined;
+                const submitted =
+                  audioStudentResponse?.type === "audio_mc"
+                    ? !!attempt
+                    : Object.prototype.hasOwnProperty.call(
+                        audioStudentResponse?.files ?? {},
+                        questionIdx,
+                      );
                 const currentGrade = localAudioGrades[activeSectionIdx]?.[questionIdx];
                 const questionText = currentQuizSection.questions?.[questionIdx];
 
@@ -496,17 +508,52 @@ export default function GradeAssessment() {
                           <p className="mb-3 text-gray-800 whitespace-pre-wrap">{questionText}</p>
                         )}
 
-                        {fileUrl ? (
+                        {attempt && (
+                          <div className="p-3 bg-gray-50 mb-3">
+                            <p>
+                              {t(
+                                attempt.assistanceOffered
+                                  ? "question.mcOffered"
+                                  : "question.mcNotOffered",
+                              )}
+                            </p>
+                            {attempt.assistanceOffered && (
+                              <>
+                                <p>
+                                  {attempt.selectedOption === null
+                                    ? t("gradeAssessment.noAnswer")
+                                    : `${attempt.selectedOption}: ${currentQuizSection.choices?.[questionIdx]?.[attempt.selectedOption] ?? ""}`}
+                                </p>
+                                <p>
+                                  {t("gradeAssessment.correctAnswer")}:{" "}
+                                  {currentQuizSection.correctAnswers?.[questionIdx]}:{" "}
+                                  {
+                                    currentQuizSection.choices?.[questionIdx]?.[
+                                      currentQuizSection.correctAnswers?.[questionIdx] ?? ""
+                                    ]
+                                  }
+                                </p>
+                              </>
+                            )}
+                          </div>
+                        )}
+                        {submitted ? (
                           <div className="space-y-3">
                             {/* Audio Player */}
-                            <div>
-                              <label className="text-sm font-medium text-gray-700 mb-1 block">
-                                {t("gradeAssessment.studentRecording")}
-                              </label>
-                              <audio controls src={fileUrl} className="w-full">
-                                {t("gradeAssessment.audioFallback")}
-                              </audio>
-                            </div>
+                            {fileUrl ? (
+                              <div>
+                                <label className="text-sm font-medium text-gray-700 mb-1 block">
+                                  {t("gradeAssessment.studentRecording")}
+                                </label>
+                                <audio controls src={fileUrl} className="w-full">
+                                  {t("gradeAssessment.audioFallback")}
+                                </audio>
+                              </div>
+                            ) : (
+                              <p className="text-sm text-gray-400 italic">
+                                {t("gradeAssessment.noRecording")}
+                              </p>
+                            )}
 
                             {/* Transcript */}
                             {(() => {

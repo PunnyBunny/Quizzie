@@ -44,8 +44,9 @@ npm run preview --workspace apps/web
 
 The root package has no development/build/test scripts. The web dev server defaults
 to port 5173, listens on `0.0.0.0`, and accepts a `PORT` override. Both builds check
-TypeScript; the web build also bundles with Vite. No automated test suite or test
-script is currently present. For code changes, run the relevant build and lint,
+TypeScript; the web build also bundles with Vite. There is no workspace test script.
+Run `node scripts/verify-audio-mc.cjs` for local hybrid-question regression checks
+using fake data and media APIs. For code changes, run the relevant build and lint,
 and manually exercise the affected UI/API flow when feasible. Report any existing
 failures separately from failures introduced by the change. Documentation-only
 changes do not require application builds.
@@ -74,7 +75,10 @@ workspace. Firebase config lists Functions port 5001, Firestore 8080, and Storag
   Assessments track creator email, section/question progress, and completion;
   `getAssessmentWithAuth` checks ownership or admin access. Student response
   documents use the stored field `assessment-id` and per-question string keys,
-  with discriminated `mc` and `audio` response types. Preserve persisted shapes.
+  with discriminated `mc`, `audio`, and `audio_mc` response types. Preserve persisted
+  shapes; hybrid evidence lives in the per-question `attempts` map.
+- Assessment, submission, grading, and scoring flows use the current question
+  configuration. Use `getQuestionSections` to load it on the server.
 - Audio responses store files, transcripts, and grades. Question assets use
   `question-assets/audios` and `question-assets/images`; browser path helpers live
   in `src/lib/asset-paths.ts`. Storage rules distinguish question assets from

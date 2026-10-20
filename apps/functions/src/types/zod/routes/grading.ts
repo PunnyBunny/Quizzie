@@ -2,9 +2,9 @@ import { z } from "zod";
 
 export const SubmitAudioGradeSchema = z.object({
   assessmentId: z.string(),
-  section: z.coerce.number().int(),
-  question: z.coerce.number().int(),
-  grade: z.coerce.number().int().min(0).max(5),
+  section: z.number().int().nonnegative(),
+  question: z.number().int().nonnegative(),
+  grade: z.number().int().nonnegative().min(0).max(5),
 });
 
 export type SubmitAudioGradeInput = z.infer<typeof SubmitAudioGradeSchema>;
@@ -14,8 +14,8 @@ export const TRANSCRIPT_MAX_LENGTH = 5000;
 
 export const UpdateAudioTranscriptSchema = z.object({
   assessmentId: z.string(),
-  section: z.coerce.number().int(),
-  question: z.coerce.number().int(),
+  section: z.number().int().nonnegative(),
+  question: z.number().int().nonnegative(),
   transcript: z.string().max(TRANSCRIPT_MAX_LENGTH),
 });
 

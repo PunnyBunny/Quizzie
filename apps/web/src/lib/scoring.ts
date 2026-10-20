@@ -3,14 +3,13 @@
  */
 
 import type { QuestionSectionDto } from "../../../functions/src/types/models/questions-dto";
-import type {
-  NormStats,
-  SubtaskDto,
-} from "../../../functions/src/types/models/subtasks-dto";
+import type { NormStats, SubtaskDto } from "../../../functions/src/types/models/subtasks-dto";
 
 export type QuizSection = QuestionSectionDto;
 export type SubtaskDef = SubtaskDto;
 export type { NormStats };
+
+import type { HybridStudentResponseDto } from "../../../functions/src/types/models/student-responses-dto";
 
 export interface MCStudentResponse {
   type: "mc";
@@ -21,10 +20,10 @@ export interface AudioStudentResponse {
   type: "audio";
   files: Record<string, string | null>;
   transcripts: Record<string, string | null>;
-  grades?: Record<string, number>;
+  grades?: Record<string, number | null>;
 }
 
-export type StudentResponse = MCStudentResponse | AudioStudentResponse;
+export type StudentResponse = MCStudentResponse | AudioStudentResponse | HybridStudentResponseDto;
 
 export type NormGrade = "S1" | "S3" | "S5";
 
@@ -96,12 +95,14 @@ export function computeSubtaskScore(
     const section = sections[sectionIndex];
     if (!section) continue;
 
-    maxScore += getQuestionMaxScore(section.kind);
+    maxScore += getQuestionMaxScore(
+      responsesBySection[sectionIndex.toString()]?.type ?? section.kind,
+    );
 
     const qScore = getQuestionScore(sectionIndex, questionIndex, responsesBySection, sections);
     if (qScore !== null) {
       score += qScore;
-    } else if (section.kind === "audio") {
+    } else if ((responsesBySection[sectionIndex.toString()]?.type ?? section.kind) !== "mc") {
       ungradedCount++;
     }
   }
