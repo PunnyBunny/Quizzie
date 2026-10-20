@@ -7,8 +7,10 @@ at least two labeled options with stable keys, and a correct key. Choosing the h
 required option/key fields.
 
 The tester can record a spontaneous response or directly offer MC choices. Offering
-choices retains any initial recording and transcript and disables further spontaneous
-recording. Assisted submission requires an option. Skip stores a null MC response
+choices retains any recording and transcript. The button toggles the choices and
+their audio player; collapsing returns to audio-only submission, records assistance
+as not offered, and omits the MC answer. Recording is available with choices open or closed.
+Assisted submission requires an option. Skip stores a null MC response
 while retaining initial evidence. Option labels display their actual configured keys.
 Only a manual 0–5 grade awards points; MC correctness never assigns a score.
 
@@ -68,6 +70,8 @@ isolated test setup. Local web development otherwise uses cloud Auth and Storage
 - Configure/reload s02 and s05 with nonsequential option keys and separate or shared audio clips.
 - Submit spontaneous-only audio; offer choices after recording; offer choices directly;
   select an incorrect option; and skip an assisted question after recording.
+- Expand and collapse choices, record with choices visible, and confirm collapsed
+  submission saves audio-only evidence even when an MC option was previously selected.
 - Check that evidence survives revealing choices, every player is blocked during
   recording, and submission waits for final audio/transcript events.
 - Interrupt an upload or save and retry; inspect saved evidence and progress.

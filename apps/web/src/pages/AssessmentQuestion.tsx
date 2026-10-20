@@ -129,6 +129,7 @@ function AssessmentQuestionInner() {
       : 0;
 
   const [assistanceOffered, setAssistanceOffered] = useState(false);
+  const choicesAudioPlayer = useRef<HTMLAudioElement>(null);
   const choicesAudio = useStorageUrl(
     question.choicesAudio ? audioStoragePath(question.choicesAudio) : null,
   );
@@ -297,7 +298,8 @@ function AssessmentQuestionInner() {
           gsUri,
           transcript: audioBlob ? transcript : null,
           assistanceOffered,
-          selectedOption: selectedIndex === null ? null : question.choiceKeys[selectedIndex],
+          selectedOption:
+            assistanceOffered && selectedIndex !== null ? question.choiceKeys[selectedIndex] : null,
           skipped: false,
         });
       } else if (question.kind === "mc") {
@@ -420,53 +422,72 @@ function AssessmentQuestionInner() {
           </section>
 
           {/* Choices */}
-          {question.kind === "audio_mc" && (
+          {(question.kind === "mc" || question.kind === "audio_mc") && (
             <section className="space-y-3">
-              <button
-                type="button"
-                disabled={busy || assistanceOffered}
-                onClick={() => setAssistanceOffered(true)}
-                className="px-4 py-2 border rounded disabled:opacity-50"
-              >
-                {t("question.offerMc")}
-              </button>
-              {assistanceOffered && (
-                <>
-                  <p>{t("question.mcOffered")}</p>
-                  {choicesAudio.error && (
-                    <Alert kind="error">{t("question.choicesAudioError")}</Alert>
-                  )}
-                  {choicesAudio.loading && <p>{t("common.loading")}</p>}
-                  {choicesAudio.url && <audio controls src={choicesAudio.url} className="w-full" />}
-                </>
+              {question.kind === "audio_mc" && (
+                <button
+                  type="button"
+                  disabled={saving}
+                  aria-expanded={assistanceOffered}
+                  onClick={() => {
+                    if (assistanceOffered) choicesAudioPlayer.current?.pause();
+                    setAssistanceOffered((offered) => !offered);
+                  }}
+                  className="px-4 py-2 border rounded disabled:opacity-50"
+                >
+                  {t(assistanceOffered ? "question.hideMc" : "question.offerMc")}
+                </button>
               )}
-            </section>
-          )}
-          {(question.kind === "mc" || (question.kind === "audio_mc" && assistanceOffered)) && (
-            <section>
-              <div className="flex flex-col gap-3">
-                {(question.choices ?? []).map((choice, idx) => (
-                  <label
-                    key={question.choiceKeys[idx]}
-                    className="flex items-center gap-3 p-3 bg-white rounded-md border-2 hover:border-blue-400 cursor-pointer"
-                  >
-                    <input
-                      type="radio"
-                      name="choice"
-                      disabled={busy}
-                      checked={selectedIndex === idx}
-                      onChange={() => setSelectedIndex(idx)}
-                      className="h-4 w-4 text-blue-600"
-                    />
-                    <span>
-                      {question.kind === "audio_mc"
-                        ? question.choiceKeys[idx]
-                        : String.fromCharCode(65 + idx)}
-                      . {choice}
-                    </span>
-                  </label>
-                ))}
-              </div>
+              {(question.kind === "mc" || assistanceOffered) && (
+                // wrap player and choices in surface if displayed by audio_mc
+                <div
+                  className={
+                    question.kind === "audio_mc"
+                      ? "flex flex-col gap-4 p-4 bg-white border border-gray-200 rounded-lg shadow-sm"
+                      : undefined
+                  }
+                >
+                  {question.kind === "audio_mc" && (
+                    <div className="space-y-3">
+                      {choicesAudio.error && (
+                        <Alert kind="error">{t("question.choicesAudioError")}</Alert>
+                      )}
+                      {choicesAudio.loading && <p>{t("common.loading")}</p>}
+                      {choicesAudio.url && (
+                        <audio
+                          ref={choicesAudioPlayer}
+                          controls
+                          src={choicesAudio.url}
+                          className="w-full"
+                        />
+                      )}
+                    </div>
+                  )}
+                  <div className="flex flex-col gap-3">
+                    {(question.choices ?? []).map((choice, idx) => (
+                      <label
+                        key={question.choiceKeys[idx]}
+                        className="flex items-center gap-3 p-3 bg-white rounded-md border-2 hover:border-blue-400 cursor-pointer"
+                      >
+                        <input
+                          type="radio"
+                          name="choice"
+                          disabled={saving}
+                          checked={selectedIndex === idx}
+                          onChange={() => setSelectedIndex(idx)}
+                          className="h-4 w-4 text-blue-600"
+                        />
+                        <span>
+                          {question.kind === "audio_mc"
+                            ? question.choiceKeys[idx]
+                            : String.fromCharCode(65 + idx)}
+                          . {choice}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
             </section>
           )}
 
@@ -478,7 +499,7 @@ function AssessmentQuestionInner() {
                   <button
                     type="button"
                     onClick={handleStartRecording}
-                    disabled={busy || assistanceOffered}
+                    disabled={busy}
                     className="px-4 py-2 rounded-md text-white shadow flex items-center justify-center gap-2 bg-gray-600 disabled:opacity-50"
                   >
                     <MicrophoneIcon />

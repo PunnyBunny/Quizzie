@@ -547,6 +547,7 @@ async function uiChecks() {
       initial,
       questionPlayer,
       choicesPlayer,
+      button: findButton,
       offer: () => findButton("question.offerMc").props.onClick(),
       select: (index) =>
         nodes(render())
@@ -604,6 +605,49 @@ async function uiChecks() {
   assert.equal(direct.uploads.length, 0);
   assert.equal(direct.calls[0].data.gsUri, null);
   assert.equal(direct.calls[0].data.transcript, null);
+  const toggled = questionUI();
+  toggled.offer();
+  toggled.select(1);
+  assert.equal(toggled.button("question.hideMc").props.disabled, false);
+  assert.equal(toggled.button("question.startRecording").props.disabled, false);
+  nodes(toggled.render()).find(
+    (node) => node.type === "audio" && node.props.ref,
+  ).props.ref.current = toggled.choicesPlayer;
+  toggled.button("question.hideMc").props.onClick();
+  assert.equal(toggled.choicesPlayer.paused, true);
+  assert.equal(toggled.button("question.offerMc").props["aria-expanded"], false);
+  assert.equal(nodes(toggled.render()).filter((node) => node.type === "input").length, 0);
+  assert.equal(nodes(toggled.render()).filter((node) => node.type === "audio").length, 1);
+  await toggled.submit();
+  assert.equal(toggled.calls.at(-1).data.assistanceOffered, false);
+  assert.equal(toggled.calls.at(-1).data.selectedOption, null);
+  assert(toggled.calls.at(-1).data.gsUri);
+  assert.equal(toggled.calls.at(-1).data.transcript, "initial words");
+  toggled.offer();
+  assert.equal(nodes(toggled.render()).filter((node) => node.type === "audio").length, 2);
+  assert.equal(
+    nodes(toggled.render()).filter((node) => node.type === "input")[1].props.checked,
+    true,
+  );
+  await toggled.button("question.startRecording").props.onClick();
+  assert.equal(toggled.nextDisabled(), true);
+  assert.equal(toggled.button("question.hideMc").props.disabled, false);
+  toggled.select(0);
+  toggled.button("question.hideMc").props.onClick();
+  toggled.offer();
+  toggled.render().props.onPlayCapture({ target: toggled.choicesPlayer });
+  assert.equal(toggled.choicesPlayer.paused, true);
+  toggled.setStatus("idle");
+  await toggled.submit();
+  assert.equal(toggled.calls.at(-1).data.assistanceOffered, true);
+  assert.equal(toggled.calls.at(-1).data.selectedOption, "B");
+  const collapsedFallback = questionUI(null);
+  collapsedFallback.offer();
+  collapsedFallback.select(1);
+  collapsedFallback.button("question.hideMc").props.onClick();
+  assert.equal(collapsedFallback.nextDisabled(), true);
+  await collapsedFallback.submit();
+  assert.equal(collapsedFallback.calls.length, 0);
   const recording = questionUI();
   recording.setStatus("finalizing");
   assert.equal(recording.nextDisabled(), true);
