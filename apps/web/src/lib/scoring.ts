@@ -54,12 +54,13 @@ export function getQuestionScore(
   sections: QuizSection[],
 ): number | null {
   const section = sections[sectionIndex];
-  if (!section) return null;
+  if (!section || questionIndex < 0 || questionIndex >= section.length) return null;
 
   const response = responsesBySection[sectionIndex.toString()];
   if (!response) return null;
 
-  if (response.type === "mc") {
+  if (section.kind === "mc") {
+    if (response.type !== "mc") return null;
     const answerKey = response.studentResponses[questionIndex.toString()];
     if (answerKey === null || answerKey === undefined) return null;
     const correctAnswerKey = section.correctAnswers?.[questionIndex];
@@ -68,6 +69,7 @@ export function getQuestionScore(
   }
 
   // Audio: use grade
+  if (response.type === "mc") return null;
   const grade = response.grades?.[questionIndex.toString()];
   if (grade === undefined || grade === null) return null;
   return grade;
@@ -93,16 +95,14 @@ export function computeSubtaskScore(
 
   for (const { sectionIndex, questionIndex } of questionIds) {
     const section = sections[sectionIndex];
-    if (!section) continue;
+    if (!section || questionIndex < 0 || questionIndex >= section.length) continue;
 
-    maxScore += getQuestionMaxScore(
-      responsesBySection[sectionIndex.toString()]?.type ?? section.kind,
-    );
+    maxScore += getQuestionMaxScore(section.kind);
 
     const qScore = getQuestionScore(sectionIndex, questionIndex, responsesBySection, sections);
     if (qScore !== null) {
       score += qScore;
-    } else if ((responsesBySection[sectionIndex.toString()]?.type ?? section.kind) !== "mc") {
+    } else if (section.kind !== "mc") {
       ungradedCount++;
     }
   }

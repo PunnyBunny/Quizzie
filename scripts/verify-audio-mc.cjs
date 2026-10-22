@@ -817,6 +817,68 @@ async function uiChecks() {
     6,
   );
   assert.equal(nodes(renderGrade()).filter((node) => node.type === "audio").length, 0);
+
+  const oldMc = { type: "mc", studentResponses: { 0: "D", 1: "D" } };
+  const oldAudio = {
+    type: "audio",
+    files: { 0: "recording.webm" },
+    transcripts: { 0: "Existing transcript" },
+    grades: { 0: 4, 1: 5 },
+  };
+  const oldHybrid = {
+    ...oldAudio,
+    type: "audio_mc",
+    attempts: { 0: { assistanceOffered: true, selectedOption: "B", skipped: false } },
+  };
+  for (const [kind, response, expectedStatus, hasRecording] of [
+    ["mc", oldAudio, "0/1", false],
+    ["mc", oldHybrid, "0/1", false],
+    ["mc", undefined, "0/1", false],
+    ["mc", oldMc, "1/1", false],
+    ["audio", oldMc, "gradeAssessment.tab.graded 0/1", false],
+    ["audio_mc", oldMc, "gradeAssessment.tab.graded 0/1", false],
+    ["audio", oldHybrid, "gradeAssessment.tab.graded 1/1", true],
+    ["audio_mc", oldAudio, "gradeAssessment.tab.graded 1/1", true],
+  ]) {
+    const sectionIdx = data.sections.length;
+    const title = `Current section ${sectionIdx}`;
+    data.sections.push({
+      title,
+      kind,
+      length: 1,
+      questions: ["Current question", "Removed question"],
+      choices: [{ B: "first", D: "second" }],
+      correctAnswers: ["D", "D"],
+    });
+    if (response) data.studentResponsesBySection[sectionIdx] = response;
+    for (const effect of hooks.effects) effect();
+    await Promise.resolve();
+    await Promise.resolve();
+    const tab = nodes(renderGrade()).find(
+      (node) => node.type === "button" && node.props.children[0]?.props?.children?.includes(title),
+    );
+    assert.equal(tab.props.children[1].props.children[0], expectedStatus);
+    tab.props.onClick();
+    const sectionNodes = nodes(renderGrade());
+    const hasText = (text) => sectionNodes.some((node) => node.props.children.includes(text));
+    assert.equal(hasText("Current question"), true);
+    assert.equal(hasText("Removed question"), false);
+    assert.equal(sectionNodes.filter((node) => node.type === "audio").length, hasRecording ? 1 : 0);
+    assert.equal(
+      sectionNodes.filter(
+        (node) => node.type === "button" && node.props.className?.includes("w-10 h-10"),
+      ).length,
+      hasRecording ? 6 : 0,
+    );
+    assert.equal(hasText("question.mcOffered"), false);
+    if (kind === "mc") {
+      assert.equal(hasText("gradeAssessment.noAnswer"), response?.type !== "mc");
+      assert.equal(hasText("first"), true);
+      assert.equal(hasText("second"), true);
+    } else if (!hasRecording) {
+      assert.equal(hasText("gradeAssessment.noRecording"), true);
+    }
+  }
 }
 async function adminQuestionsChecks(app) {
   const hooks = hookRuntime(),
@@ -1165,6 +1227,33 @@ async function main() {
   assert.equal(data.studentResponsesBySection[1].files[1], null);
   assert.equal(scoring.getQuestionScore(0, 0, data.studentResponsesBySection, data.sections), 1);
   assert.equal(scoring.getQuestionScore(1, 0, data.studentResponsesBySection, data.sections), 3);
+  for (const kind of ["mc", "audio", "audio_mc"]) {
+    const sections = [{ ...config, kind, length: 1 }];
+    for (const response of [
+      undefined,
+      { type: "mc", studentResponses: { 0: "B", 1: "D" } },
+      { type: "audio", grades: { 0: 4, 1: 5 } },
+      { type: "audio_mc", grades: { 0: 4, 1: 5 } },
+    ]) {
+      const responses = response ? { 0: response } : {};
+      const compatible = response && (kind === "mc") === (response.type === "mc");
+      const expectedScore = compatible ? (kind === "mc" ? 1 : 4) : null;
+      assert.equal(scoring.getQuestionScore(0, 0, responses, sections), expectedScore);
+      assert.equal(scoring.getQuestionScore(0, 1, responses, sections), null);
+      const result = scoring.computeSubtaskScore(
+        [
+          { sectionIndex: 0, questionIndex: 0 },
+          { sectionIndex: 0, questionIndex: 1 },
+          { sectionIndex: 1, questionIndex: 0 },
+        ],
+        responses,
+        sections,
+      );
+      assert.equal(result.score, expectedScore ?? 0);
+      assert.equal(result.maxScore, kind === "mc" ? 1 : 5);
+      assert.equal(result.ungradedCount, kind !== "mc" && !compatible ? 1 : 0);
+    }
+  }
   const mixedScore = scoring.computeSubtaskScore(
     [
       { sectionIndex: 0, questionIndex: 0 },

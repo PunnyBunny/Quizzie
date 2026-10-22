@@ -1,4 +1,4 @@
-import { useParams, useLocation } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import { useCallable } from "../lib/firebase-hooks.ts";
 import { toUserMessage } from "../lib/errors.ts";
 import { useEffect, useState } from "react";
@@ -10,7 +10,7 @@ import { Tooltip } from "../components/Tooltip";
 import { CheckIcon, SpinnerIcon, XIcon } from "../components/icons";
 import { INPUT_CLASSES } from "../lib/ui";
 import type { HybridStudentResponseDto } from "../../../functions/src/types/models/student-responses-dto";
-import type { QuizSection } from "../lib/scoring";
+import { getQuestionScore, type QuizSection } from "../lib/scoring";
 import { useTranslation } from "../hooks/useTranslation";
 
 /**
@@ -266,32 +266,33 @@ export default function GradeAssessment() {
   };
 
   const getMcStudentResponse = (sectionIndex: number) => {
-    return studentResponseData.studentResponsesBySection[sectionIndex.toString()] as
-      | MCStudentResponse
-      | undefined;
+    const response = studentResponseData.studentResponsesBySection[sectionIndex.toString()];
+    return response?.type === "mc" ? response : undefined;
   };
 
+  // TODO: clean up DTOs
   const getAudioStudentResponse = (sectionIndex: number) => {
-    return studentResponseData.studentResponsesBySection[sectionIndex.toString()] as
-      | AudioStudentResponse
-      | HybridStudentResponseDto
-      | undefined;
+    const response = studentResponseData.studentResponsesBySection[sectionIndex.toString()];
+    return response && response.type !== "mc" ? response : undefined;
   };
 
   // Calculate score for MC section
   const calculateMcScore = (sectionIndex: number) => {
-    const mcStudentResponse = getMcStudentResponse(sectionIndex);
     const quizSection = quizQuestions[sectionIndex];
-    if (!mcStudentResponse || !quizSection.correctAnswers) return { correct: 0, total: 0 };
 
     let correct = 0;
-    Object.entries(mcStudentResponse.studentResponses).forEach(([q, answerKey]) => {
-      const questionIndex = parseInt(q);
-      const correctAnswerKey = quizSection.correctAnswers?.[questionIndex];
-      if (correctAnswerKey !== undefined && answerKey !== null && answerKey === correctAnswerKey) {
+    for (let questionIndex = 0; questionIndex < quizSection.length; questionIndex++) {
+      if (
+        getQuestionScore(
+          sectionIndex,
+          questionIndex,
+          studentResponseData.studentResponsesBySection,
+          quizQuestions,
+        ) === 1
+      ) {
         correct++;
       }
-    });
+    }
 
     return { correct, total: quizSection.length };
   };
@@ -302,18 +303,18 @@ export default function GradeAssessment() {
 
     let numGraded = 0;
     let totalScore = 0;
-    Object.entries(localAudioGrades[sectionIndex] ?? {}).forEach(([, grade]) => {
+    for (let questionIndex = 0; questionIndex < quizSection.length; questionIndex++) {
+      const grade = localAudioGrades[sectionIndex]?.[questionIndex];
+      if (grade === undefined) continue;
       ++numGraded;
       totalScore += grade;
-    });
+    }
 
     return { numGraded, total: quizSection.length, totalScore };
   };
 
   const currentQuizSection = quizQuestions[activeSectionIdx];
-  const isMcSection =
-    (studentResponseData.studentResponsesBySection[activeSectionIdx]?.type ??
-      currentQuizSection.kind) === "mc";
+  const isMcSection = currentQuizSection.kind === "mc";
   const mcStudentResponse = getMcStudentResponse(activeSectionIdx);
   const audioStudentResponse = getAudioStudentResponse(activeSectionIdx);
 
@@ -348,9 +349,7 @@ export default function GradeAssessment() {
           <div className="flex flex-wrap gap-1 pb-px">
             {quizQuestions.map((quizSection, sectionIdx) => {
               const isActive = activeSectionIdx === sectionIdx;
-              const isMc =
-                (studentResponseData.studentResponsesBySection[sectionIdx]?.type ??
-                  quizSection.kind) === "mc";
+              const isMc = quizSection.kind === "mc";
               // Leaving the section would strand the open editor off-screen, so hold the
               // grader here until they save or cancel.
               const isLocked = editingTranscriptKey !== null && !isActive;
@@ -404,12 +403,13 @@ export default function GradeAssessment() {
               {Array.from({ length: currentQuizSection.length }).map((_, questionIdx) => {
                 const studentMcChoiceKey =
                   mcStudentResponse?.studentResponses[questionIdx.toString()];
-                const hasAnswer = studentMcChoiceKey !== undefined && studentMcChoiceKey !== null;
                 const choicesMap = currentQuizSection.choices?.[questionIdx] ?? {};
                 const choiceEntries = Object.entries(choicesMap).sort(([a], [b]) =>
                   a.localeCompare(b),
                 );
                 const correctAnswerKey = currentQuizSection.correctAnswers?.[questionIdx];
+                const hasAnswer = studentMcChoiceKey != undefined;
+                const validAnswer = hasAnswer && studentMcChoiceKey in choicesMap;
                 const isCorrect = hasAnswer && studentMcChoiceKey === correctAnswerKey;
                 const questionText = currentQuizSection.questions?.[questionIdx];
 
@@ -422,20 +422,24 @@ export default function GradeAssessment() {
                       </span>
                       <div className="flex-1">
                         {questionText && <p className="mb-3 text-gray-800">{questionText}</p>}
-                        {!hasAnswer && (
+                        {!validAnswer && (
                           <div className="mb-3 p-2 bg-amber-50 border border-amber-200 rounded-md text-sm text-amber-800">
-                            {t("gradeAssessment.noAnswer")}
+                            {t(
+                              hasAnswer
+                                ? "gradeAssessment.invalidAnswer"
+                                : "gradeAssessment.noAnswer",
+                            )}
                           </div>
                         )}
                         <div className="grid gap-2">
                           {choiceEntries.map(([key, choice]) => {
-                            const isUserChoice = hasAnswer && studentMcChoiceKey === key;
+                            const isUserChoice = validAnswer && key === studentMcChoiceKey;
                             const isCorrectChoice = key === correctAnswerKey;
 
                             let choiceClass = "bg-gray-50";
-                            if (isCorrectChoice && hasAnswer) {
+                            if (isCorrectChoice && validAnswer) {
                               choiceClass = "bg-green-50 border border-green-200";
-                            } else if (isCorrectChoice && !hasAnswer) {
+                            } else if (isCorrectChoice && !validAnswer) {
                               choiceClass = "bg-amber-50 border border-amber-200";
                             } else if (isUserChoice && !isCorrect) {
                               choiceClass = "bg-red-50 border border-red-200";
@@ -448,10 +452,10 @@ export default function GradeAssessment() {
                               >
                                 <span className="font-medium text-gray-500">{key}.</span>
                                 <span>{choice}</span>
-                                {isCorrectChoice && hasAnswer && (
+                                {isCorrectChoice && validAnswer && (
                                   <CheckIcon className="w-5 h-5 text-green-600" />
                                 )}
-                                {isCorrectChoice && !hasAnswer && (
+                                {isCorrectChoice && !validAnswer && (
                                   <span className="text-xs text-amber-700 ml-auto">
                                     {t("gradeAssessment.correctAnswer")}
                                   </span>
@@ -500,7 +504,7 @@ export default function GradeAssessment() {
                           <p className="mb-3 text-gray-800 whitespace-pre-wrap">{questionText}</p>
                         )}
 
-                        {attempt && (
+                        {currentQuizSection.kind === "audio_mc" && attempt && (
                           <div className="p-3 bg-gray-50 mb-3">
                             <p>
                               {t(

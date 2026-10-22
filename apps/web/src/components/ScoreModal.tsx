@@ -12,7 +12,6 @@ import {
   getNormGrade,
   computeSubtaskScore,
   computeZScore,
-  getQuestionMaxScore,
 } from "../lib/scoring";
 
 interface Assessment {
@@ -92,16 +91,6 @@ export default function ScoreModal({ assessmentId, onClose, onGoToGrading }: Sco
       }
     }
     return computeSubtaskScore(allQuestionIds, responsesBySection, sections);
-  };
-
-  // Compute total max score
-  const computeTotalMaxScore = () => {
-    if (!sections) return 0;
-    return sections.reduce(
-      (sum, s, index) =>
-        sum + s.length * getQuestionMaxScore(responsesBySection?.[index]?.type ?? s.kind),
-      0,
-    );
   };
 
   return (
@@ -210,7 +199,6 @@ export default function ScoreModal({ assessmentId, onClose, onGoToGrading }: Sco
                       {/* Total row */}
                       {(() => {
                         const total = computeTotalScore();
-                        const totalMax = computeTotalMaxScore();
                         return (
                           <tr className="border-t-2 border-gray-300 font-semibold">
                             <td className="py-2 pr-4">{t("scoreModal.total")}</td>
@@ -221,7 +209,7 @@ export default function ScoreModal({ assessmentId, onClose, onGoToGrading }: Sco
                               )}
                             </td>
                             <td className="py-2 px-2 text-right tabular-nums text-gray-500">
-                              {totalMax}
+                              {total.maxScore}
                             </td>
                             <td className="py-2 px-2 text-right">{"\u2014"}</td>
                             <td className="py-2 px-2 text-right">{"\u2014"}</td>
