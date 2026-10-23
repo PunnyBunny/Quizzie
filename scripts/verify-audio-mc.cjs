@@ -60,7 +60,9 @@ function sourceLoader(overrides = {}, globals = {}) {
 function backend() {
   const documents = new Map(),
     routes = new Map(),
-    objects = new Set();
+    objects = new Set(),
+    errors = [];
+  let signingError = null;
   const timestamp = { toDate: () => new Date(0) };
   const fieldValue = {
     serverTimestamp: () => ({ _timestamp: true }),
@@ -146,25 +148,38 @@ function backend() {
       return result;
     },
   };
-  const load = sourceLoader({
-    express: { Router: () => ({ post: (name, ...handlers) => routes.set(name, handlers) }) },
-    [path.join(root, "apps/functions/src/firebase.ts")]: {
-      db,
-      FieldValue: fieldValue,
-      admin: {
-        firestore: () => db,
-        storage: () => ({
-          bucket: () => ({
-            name: "bucket",
-            file: (object) => ({
-              exists: async () => [objects.has(object)],
-              getSignedUrl: async () => [`signed:${object}`],
+  const load = sourceLoader(
+    {
+      express: { Router: () => ({ post: (name, ...handlers) => routes.set(name, handlers) }) },
+      [path.join(root, "apps/functions/src/firebase.ts")]: {
+        db,
+        FieldValue: fieldValue,
+        admin: {
+          firestore: () => db,
+          storage: () => ({
+            bucket: () => ({
+              name: "bucket",
+              file: (object) => ({
+                exists: async () => [objects.has(object)],
+                getSignedUrl: async () => {
+                  if (signingError) {
+                    const error = signingError;
+                    signingError = null;
+                    throw error;
+                  }
+                  return [`signed:${object}`];
+                },
+              }),
             }),
           }),
-        }),
+        },
       },
     },
-  });
+    {
+      Error,
+      console: { ...console, error: (...args) => errors.push(args) },
+    },
+  );
   for (const name of ["questions", "assessments", "submissions", "grading"])
     load(`apps/functions/src/routes/${name}.ts`);
   const call = async (name, data, email = "owner", claims = {}) => {
@@ -206,6 +221,10 @@ function backend() {
     load,
     ref,
     timestamp,
+    errors,
+    failNextSigning: (error) => {
+      signingError = error;
+    },
     failNextCommit: () => {
       failCommit = true;
     },
@@ -1222,6 +1241,19 @@ async function main() {
   });
   await app.call("/submit-audio-grade", { assessmentId: id, section: 1, question: 0, grade: 3 });
   const data = await app.call("/get-assessment-student-responses", { assessmentId: id });
+  app.failNextSigning(new Error("Cannot sign data without client_email"));
+  const signingFailure = await app.call("/get-assessment-student-responses", { assessmentId: id });
+  assert.equal(signingFailure.studentResponsesBySection[1].files[0], null);
+  assert.equal(signingFailure.studentResponsesBySection[1].grades[0], 3);
+  assert.equal(
+    signingFailure.studentResponsesBySection[1].transcripts[0],
+    data.studentResponsesBySection[1].transcripts[0],
+  );
+  assert.equal(app.documents.get(hybridRef).files[0], base.gsUri);
+  assert.equal(app.errors.at(-1)[0], "Failed to generate recording URL");
+  assert.equal(app.errors.at(-1)[1].error, "Cannot sign data without client_email");
+  const signingRetry = await app.call("/get-assessment-student-responses", { assessmentId: id });
+  assert(signingRetry.studentResponsesBySection[1].files[0].startsWith("signed:"));
   assert.equal(data.sections[1].correctAnswers[0], "B");
   assert.equal(data.studentResponsesBySection[1].type, "audio_mc");
   assert.equal(data.studentResponsesBySection[1].files[1], null);

@@ -70,8 +70,13 @@ router.post(
           if (!gsUri) continue;
           try {
             signedUrls[question] = await getSignedUrl(gsUri);
-          } catch {
-            console.error("Failed to generate recording URL", assessmentId, data.section, question);
+          } catch (error) {
+            console.error("Failed to generate recording URL", {
+              assessmentId,
+              section: data.section,
+              question,
+              error: error instanceof Error ? error.message : "Unknown signing error",
+            });
           }
         }
         dto.files = signedUrls;
