@@ -7,6 +7,8 @@ import {
   toAssessmentDto,
 } from "../types/models/assessments";
 import {
+  type AdminGetAssessmentsInput,
+  AdminGetAssessmentsSchema,
   type AdminCreateUserInput,
   AdminCreateUserSchema,
   type AdminRemoveUserInput,
@@ -33,15 +35,17 @@ router.use("/admin", adminHandler);
 // POST /admin/get-assessments
 router.post(
   "/admin/get-assessments",
+  validate(AdminGetAssessmentsSchema.optional()),
   async (
-    _req: FirebaseFunctionRequest<{}>,
+    req: FirebaseFunctionRequest<AdminGetAssessmentsInput | undefined>,
     res: FirebaseFunctionResponse<AdminGetAssessmentsOutput>,
   ) => {
+    const archived = req.body.data?.archived ?? false;
     const allAssessments = await assessmentsDb.collection().get();
 
     const assessments = allAssessments.docs.reduce((acc, doc) => {
       const assessment = toAssessmentDto(doc);
-      if (assessment) {
+      if (assessment?.archived === archived) {
         acc.push(assessment);
       }
       return acc;

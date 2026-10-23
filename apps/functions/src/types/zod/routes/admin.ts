@@ -15,3 +15,8 @@ export const AdminRemoveUserSchema = z.object({
 export type AdminCreateUserInput = z.infer<typeof AdminCreateUserSchema>;
 export type AdminResetPasswordInput = z.infer<typeof AdminResetPasswordSchema>;
 export type AdminRemoveUserInput = z.infer<typeof AdminRemoveUserSchema>;
+
+export const AdminGetAssessmentsSchema = z.object({
+  archived: z.boolean().optional(),
+});
+export type AdminGetAssessmentsInput = z.infer<typeof AdminGetAssessmentsSchema>;

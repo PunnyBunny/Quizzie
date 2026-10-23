@@ -2,12 +2,7 @@ import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuth from "../hooks/useAuth.tsx";
 import { Button } from "../components/Button";
-import {
-  AddUserIcon,
-  EyeIcon,
-  PencilSquareIcon,
-  ShieldCheckIcon,
-} from "../components/icons";
+import { AddUserIcon, EyeIcon, PencilSquareIcon, ShieldCheckIcon } from "../components/icons";
 import { useTranslation } from "../hooks/useTranslation";
 
 interface HomeCard {
@@ -49,6 +44,14 @@ export default function Home() {
       description: t("home.grade.description"),
       buttonLabel: t("home.grade.button"),
       onClick: () => navigate("/grade-assessments"),
+      variant: "dark",
+    },
+    {
+      icon: <EyeIcon />,
+      title: t("archive.title"),
+      description: t("archive.homeDescription"),
+      buttonLabel: t("archive.open"),
+      onClick: () => navigate("/archived-assessments"),
       variant: "dark",
     },
   ];

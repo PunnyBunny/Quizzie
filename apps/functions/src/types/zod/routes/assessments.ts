@@ -12,7 +12,8 @@ export const AssessmentSchema = z.object({
 });
 
 export const GetAssessmentsSchema = z.object({
-  finished: z.boolean(),
+  finished: z.boolean().optional(),
+  archived: z.boolean().optional(),
 });
 
 export const FinishAssessmentSchema = z.object({
@@ -22,3 +23,12 @@ export const FinishAssessmentSchema = z.object({
 export type AssessmentInput = z.infer<typeof AssessmentSchema>;
 export type GetAssessmentsInput = z.infer<typeof GetAssessmentsSchema>;
 export type FinishAssessmentInput = z.infer<typeof FinishAssessmentSchema>;
+
+export const SetAssessmentArchivedSchema = z.object({
+  assessmentId: z
+    .string()
+    .min(1)
+    .refine((id) => !id.includes("/")),
+  archived: z.boolean(),
+});
+export type SetAssessmentArchivedInput = z.infer<typeof SetAssessmentArchivedSchema>;

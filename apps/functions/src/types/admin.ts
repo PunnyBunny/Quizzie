@@ -1,4 +1,4 @@
-import type { AssessmentDto } from "./models/assessments";
+import type { AssessmentDto } from "./models/assessments-dto";
 
 export interface AdminGetAssessmentsOutput {
   assessments: AssessmentDto[];

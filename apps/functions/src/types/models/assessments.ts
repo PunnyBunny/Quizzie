@@ -1,3 +1,5 @@
+import type { AssessmentDto } from "./assessments-dto";
+export type { AssessmentDto } from "./assessments-dto";
 import { FieldValue } from "../../firebase";
 import type { Timestamp } from "firebase-admin/firestore";
 import type { Gender, LanguageEntry } from "../common";
@@ -20,28 +22,10 @@ export interface AssessmentDoc {
   currentSection: number;
   currentQuestion: number;
   finished: boolean;
+  archived?: boolean;
   createdAt: Timestamp | FieldValue;
   updatedAt?: Timestamp | FieldValue;
   finishedAt?: Timestamp | FieldValue;
-}
-
-/**
- * Assessment DTO with ID and ISO timestamp
- */
-export interface AssessmentDto {
-  id: string;
-  name: string;
-  birthDate: string;
-  gender: Gender;
-  grade: string;
-  school: string;
-  motherTongue: LanguageEntry;
-  otherLanguages: LanguageEntry[];
-  creatorEmail: string;
-  currentSection: number;
-  currentQuestion: number;
-  finished: boolean;
-  createdAtIsoTimestamp: string;
 }
 
 export const assessments = new BaseCollection<AssessmentDoc>(
@@ -75,6 +59,7 @@ export function toAssessmentDto(
     currentSection: data.currentSection,
     currentQuestion: data.currentQuestion,
     finished: data.finished,
+    archived: data.archived ?? false,
     createdAtIsoTimestamp: createdAt.toDate().toISOString(),
   };
 }

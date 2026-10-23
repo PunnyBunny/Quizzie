@@ -51,16 +51,19 @@ export default function AdminHome() {
       buttonLabel: t("admin.questions.button"),
       to: "/admin/questions",
     },
+    {
+      icon: <ClipboardIcon />,
+      title: t("archive.title"),
+      description: t("archive.homeDescription"),
+      buttonLabel: t("archive.open"),
+      to: "/admin/archived-assessments",
+    },
   ];
 
   return (
     <div className="p-4 sm:p-6">
       <div className="max-w-6xl mx-auto flex flex-col gap-4 sm:gap-6">
-        <PageHeader
-          title={t("admin.title")}
-          subtitle={t("admin.subtitle")}
-          backTo="/"
-        />
+        <PageHeader title={t("admin.title")} subtitle={t("admin.subtitle")} backTo="/" />
 
         {sections.map((section) => (
           <div

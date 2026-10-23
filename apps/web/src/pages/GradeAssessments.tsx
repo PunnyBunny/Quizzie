@@ -1,3 +1,5 @@
+import { ArchiveButton, ArchiveFeedback } from "../components/AssessmentArchive";
+import { useAssessmentArchive } from "../hooks/useAssessmentArchive";
 import { useNavigate } from "react-router-dom";
 import { useCallable } from "../lib/firebase-hooks.ts";
 import { toUserMessage } from "../lib/errors.ts";
@@ -9,47 +11,38 @@ import { Alert } from "../components/Alert";
 import { ClipboardCheckIcon } from "../components/icons";
 import { useTranslation } from "../hooks/useTranslation";
 
-interface LanguageEntry {
-  language: "cantonese" | "mandarin" | "english" | "other";
-  otherSpecify?: string;
-}
-
-interface Assessment {
-  id: string;
-  name: string;
-  birthDate: string;
-  gender: "male" | "female";
-  grade: string;
-  school: string;
-  motherTongue: LanguageEntry;
-  otherLanguages: LanguageEntry[];
-  createdAtIsoTimestamp: string;
-  currentSection: number;
-  currentQuestion: number;
-}
-interface GetAssessmentsRequest {
-  finished: boolean;
-}
-interface GetAssessmentsResponse {
-  assessments: Assessment[];
-}
+import type { AssessmentDto } from "../../../functions/src/types/models/assessments-dto";
+import type { GetAssessmentsInput } from "../../../functions/src/types/zod/routes/assessments";
+import type { GetAssessmentsOutput } from "../../../functions/src/types/assessments";
 
 export default function GradeAssessments() {
   const navigate = useNavigate();
   const { t, language } = useTranslation();
 
-  const [getAssessments, loading] = useCallable<GetAssessmentsRequest, GetAssessmentsResponse>(
+  const [getAssessments, loading] = useCallable<GetAssessmentsInput, GetAssessmentsOutput>(
     "api/get-assessments",
   );
 
-  const [assessments, setAssessments] = useState<Assessment[]>([]);
+  const [assessments, setAssessments] = useState<AssessmentDto[]>([]);
   const [scoreModalId, setScoreModalId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const archive = useAssessmentArchive((id) => {
+    setAssessments((items) => items.filter((item) => item.id !== id));
+  });
 
   useEffect(() => {
-    void getAssessments({ finished: true })
-      .then((response) => setAssessments(response.data.assessments))
-      .catch((err) => setError(toUserMessage(err, t("gradeAssessments.errorLoad"))));
+    let active = true;
+    setError(null);
+    void getAssessments({ finished: true, archived: false })
+      .then((response) => {
+        if (active) setAssessments(response.data.assessments);
+      })
+      .catch((err) => {
+        if (active) setError(toUserMessage(err, t("gradeAssessments.errorLoad")));
+      });
+    return () => {
+      active = false;
+    };
   }, [getAssessments, t]);
 
   const formatDate = (dateString: string) => {
@@ -69,12 +62,22 @@ export default function GradeAssessments() {
         <PageHeader
           title={t("gradeAssessments.title")}
           subtitle={t("gradeAssessments.subtitle")}
+          actions={
+            <Button variant="secondary" onClick={() => navigate("/archived-assessments")}>
+              {t("archive.title")}
+            </Button>
+          }
           backTo="/"
         />
+
+        <ArchiveFeedback error={archive.error} message={archive.message} />
 
         {error && (
           <Alert kind="error" className="mb-6">
             {error}
+            <Button variant="secondary" onClick={() => window.location.reload()}>
+              {t("common.retry")}
+            </Button>
           </Alert>
         )}
 
@@ -82,7 +85,7 @@ export default function GradeAssessments() {
           <div className="flex justify-center py-12">
             <div className="text-gray-500">{t("gradeAssessments.loading")}</div>
           </div>
-        ) : assessments.length === 0 ? (
+        ) : error ? null : assessments.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
             <div className="flex justify-center mb-4">
               <div className="p-4 bg-gray-100 rounded-full">
@@ -99,8 +102,7 @@ export default function GradeAssessments() {
             {assessments.map((assessment) => (
               <div
                 key={assessment.id}
-                className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => navigate(`/grade/${assessment.id}`)}
+                className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div className="flex items-start gap-3 sm:gap-4 min-w-0 flex-1">
@@ -121,7 +123,14 @@ export default function GradeAssessments() {
                     <p className="text-xs sm:text-sm text-gray-500">
                       {formatDate(assessment.createdAtIsoTimestamp)}
                     </p>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
+                      <ArchiveButton
+                        busy={archive.pendingId === assessment.id}
+                        disabled={archive.pendingId !== null}
+                        onClick={() =>
+                          void archive.setArchived(assessment.id, assessment.name, true)
+                        }
+                      />
                       <Button
                         size="sm"
                         onClick={(e) => {

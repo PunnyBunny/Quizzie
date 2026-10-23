@@ -1,3 +1,5 @@
+import { ArchiveButton, ArchiveFeedback } from "../components/AssessmentArchive";
+import { useAssessmentArchive } from "../hooks/useAssessmentArchive";
 import { useNavigate } from "react-router-dom";
 import { useCallable } from "../lib/firebase-hooks.ts";
 import { toUserMessage } from "../lib/errors.ts";
@@ -9,49 +11,38 @@ import { Alert } from "../components/Alert";
 import { ClipboardIcon } from "../components/icons";
 import { useTranslation } from "../hooks/useTranslation";
 
-interface LanguageEntry {
-  language: "cantonese" | "mandarin" | "english" | "other";
-  otherSpecify?: string;
-}
-
-interface Assessment {
-  id: string;
-  name: string;
-  birthDate: string;
-  gender: "male" | "female";
-  grade: string;
-  school: string;
-  motherTongue: LanguageEntry;
-  otherLanguages: LanguageEntry[];
-  createdAtIsoTimestamp: string;
-  currentSection: number;
-  currentQuestion: number;
-}
-
-interface GetAssessmentsRequest {
-  finished: boolean;
-}
-
-interface GetAssessmentsResponse {
-  assessments: Assessment[];
-}
+import type { AssessmentDto } from "../../../functions/src/types/models/assessments-dto";
+import type { GetAssessmentsInput } from "../../../functions/src/types/zod/routes/assessments";
+import type { GetAssessmentsOutput } from "../../../functions/src/types/assessments";
 
 export default function ViewAssessments() {
   const navigate = useNavigate();
   const { t, language } = useTranslation();
 
-  const [getAssessments, loading] = useCallable<GetAssessmentsRequest, GetAssessmentsResponse>(
+  const [getAssessments, loading] = useCallable<GetAssessmentsInput, GetAssessmentsOutput>(
     "api/get-assessments",
   );
 
-  const [assessments, setAssessments] = useState<Assessment[]>([]);
+  const [assessments, setAssessments] = useState<AssessmentDto[]>([]);
   const [scoreModalId, setScoreModalId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const archive = useAssessmentArchive((id) => {
+    setAssessments((items) => items.filter((item) => item.id !== id));
+  });
 
   useEffect(() => {
-    void getAssessments({ finished: false })
-      .then((response) => setAssessments(response.data.assessments))
-      .catch((err) => setError(toUserMessage(err, t("viewAssessments.errorLoad"))));
+    let active = true;
+    setError(null);
+    void getAssessments({ finished: false, archived: false })
+      .then((response) => {
+        if (active) setAssessments(response.data.assessments);
+      })
+      .catch((err) => {
+        if (active) setError(toUserMessage(err, t("viewAssessments.errorLoad")));
+      });
+    return () => {
+      active = false;
+    };
   }, [getAssessments, t]);
 
   const formatDate = (dateString: string) => {
@@ -71,13 +62,23 @@ export default function ViewAssessments() {
         <PageHeader
           title={t("viewAssessments.title")}
           subtitle={t("viewAssessments.subtitle")}
+          actions={
+            <Button variant="secondary" onClick={() => navigate("/archived-assessments")}>
+              {t("archive.title")}
+            </Button>
+          }
           backTo="/"
         />
+
+        <ArchiveFeedback error={archive.error} message={archive.message} />
 
         {error && (
           <Alert kind="error" className="mb-4">
             <p className="font-medium">{t("viewAssessments.errorTitle")}</p>
             <p className="text-sm mt-1">{error}</p>
+            <Button variant="secondary" onClick={() => window.location.reload()}>
+              {t("common.retry")}
+            </Button>
           </Alert>
         )}
 
@@ -85,7 +86,7 @@ export default function ViewAssessments() {
           <div className="flex justify-center items-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
           </div>
-        ) : assessments.length === 0 ? (
+        ) : error ? null : assessments.length === 0 ? (
           <div className="bg-white rounded-xl shadow border border-gray-100 overflow-hidden">
             <div className="p-8 text-center">
               <div className="rounded-xl bg-gray-100 p-4 w-fit mx-auto mb-4">
@@ -117,7 +118,9 @@ export default function ViewAssessments() {
                         </h3>
                         <div className="text-sm text-gray-600 space-y-1">
                           <p>
-                            <span className="font-medium">{t("viewAssessments.field.birthDate")}</span>{" "}
+                            <span className="font-medium">
+                              {t("viewAssessments.field.birthDate")}
+                            </span>{" "}
                             {assessment.birthDate}
                           </p>
                           <p>
@@ -129,12 +132,16 @@ export default function ViewAssessments() {
                             {assessment.school}
                           </p>
                           <p>
-                            <span className="font-medium">{t("viewAssessments.field.started")}</span>{" "}
+                            <span className="font-medium">
+                              {t("viewAssessments.field.started")}
+                            </span>{" "}
                             {formatDate(assessment.createdAtIsoTimestamp)}
                           </p>
                           {assessment.currentSection !== undefined && (
                             <p>
-                              <span className="font-medium">{t("viewAssessments.field.progress")}</span>{" "}
+                              <span className="font-medium">
+                                {t("viewAssessments.field.progress")}
+                              </span>{" "}
                               {t("viewAssessments.section")} {assessment.currentSection + 1}
                               {assessment.currentQuestion !== undefined &&
                                 `, ${t("viewAssessments.question")} ${assessment.currentQuestion + 1}`}
@@ -164,6 +171,13 @@ export default function ViewAssessments() {
                       >
                         {t("viewAssessments.viewScore")}
                       </Button>
+                      <ArchiveButton
+                        busy={archive.pendingId === assessment.id}
+                        disabled={archive.pendingId !== null}
+                        onClick={() =>
+                          void archive.setArchived(assessment.id, assessment.name, true)
+                        }
+                      />
                     </div>
                   </div>
                 </div>

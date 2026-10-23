@@ -8,6 +8,24 @@ export const LANGUAGES: { code: Language; label: string }[] = [
 type Dict = Record<string, string>;
 
 const en: Dict = {
+  "archive.title": "Archived assessments",
+  "archive.adminTitle": "All archived assessments",
+  "archive.subtitle":
+    "Unarchive an assessment to return it to the active lists. Answers, scores, and recordings are retained.",
+  "archive.action": "Archive",
+  "archive.restore": "Unarchive",
+  "archive.active": "Active assessments",
+  "archive.success": "Archived {{name}}. You can unarchive it from Archived assessments.",
+  "archive.restoreSuccess": "Unarchived {{name}}. It is now available in the active lists.",
+  "archive.errorSave": "Could not update the archive status. Please try again.",
+  "archive.errorLoad": "Could not load archived assessments. Please try again.",
+  "archive.empty": "No archived assessments",
+  "archive.emptyBody":
+    "Assessments you archive will appear here and can be unarchived at any time.",
+  "archive.homeDescription": "Find and unarchive completed or incomplete assessments.",
+  "archive.open": "View archived assessments",
+  "archive.loadMore": "Load more",
+
   "adminQuestions.hybridInvalid":
     "Each hybrid question needs at least two labeled options, and a matching correct key.",
   "question.choicesAudioError": "Could not load choices audio. Please reload and try again.",
@@ -406,6 +424,22 @@ const en: Dict = {
 };
 
 const zh: Dict = {
+  "archive.title": "已封存評估",
+  "archive.adminTitle": "所有已封存評估",
+  "archive.subtitle": "解除封存後，評估將返回原有列表。答案、分數及錄音均會保留。",
+  "archive.action": "封存",
+  "archive.restore": "解除封存",
+  "archive.active": "未封存評估",
+  "archive.success": "已封存 {{name}}。你可以在「已封存評估」頁面解除封存。",
+  "archive.restoreSuccess": "已解除封存 {{name}}。評估已返回原有列表。",
+  "archive.errorSave": "無法更新封存狀態，請重試。",
+  "archive.errorLoad": "無法載入已封存評估，請重試。",
+  "archive.empty": "沒有已封存評估",
+  "archive.emptyBody": "已封存的評估會顯示在這裡，你可以隨時解除封存。",
+  "archive.homeDescription": "尋找已封存的已完成或未完成評估，並解除封存。",
+  "archive.open": "查看已封存評估",
+  "archive.loadMore": "載入更多",
+
   "adminQuestions.hybridInvalid": "每題混合題須有至少兩個附標籤的選項，以及對應的正確答案鍵。",
   "question.choicesAudioError": "無法載入選項音訊，請重新載入後再試。",
   "recording.unsupported": "錄音需要使用支援此功能的 Chrome 或 Edge 瀏覽器。",

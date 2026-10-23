@@ -1,3 +1,4 @@
+import ArchivedAssessments from "./pages/ArchivedAssessments";
 import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
@@ -83,7 +84,11 @@ function App() {
           <Route element={<ProtectedRoute isAdminRoute={true} />}>
             <Route element={<DashboardLayout />}>
               <Route path="admin" element={<AdminHome />} />
-              <Route path="admin/assessments" element={<AdminViewAssessments />} />
+              <Route
+                path="admin/archived-assessments"
+                element={<AdminViewAssessments key="archived" archived />}
+              />
+              <Route path="admin/assessments" element={<AdminViewAssessments key="active" />} />
               <Route path="admin/grade/:id" element={<GradeAssessment />} />{" "}
               <Route path="admin/users" element={<AdminUserManagement />} />
               <Route path="admin/subtasks" element={<AdminSubtasks />} />
@@ -94,6 +99,7 @@ function App() {
           <Route element={<ProtectedRoute isAdminRoute={false} />}>
             <Route element={<DashboardLayout />}>
               <Route index element={<Home />} />
+              <Route path="archived-assessments" element={<ArchivedAssessments />} />
               <Route path="view-assessments" element={<ViewAssessments />} />
               <Route path="grade-assessments" element={<GradeAssessments />} />
               <Route path="grade/:id" element={<GradeAssessment />} />

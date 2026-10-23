@@ -1,3 +1,5 @@
+import { ArchiveButton, ArchiveFeedback } from "../components/AssessmentArchive";
+import { useAssessmentArchive } from "../hooks/useAssessmentArchive";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCallable } from "../lib/firebase-hooks.ts";
@@ -13,30 +15,9 @@ import {
 } from "../components/icons";
 import { useTranslation } from "../hooks/useTranslation";
 
-interface LanguageEntry {
-  language: "cantonese" | "mandarin" | "english" | "other";
-  otherSpecify?: string;
-}
-
-interface Assessment {
-  id: string;
-  name: string;
-  birthDate: string;
-  gender: "male" | "female";
-  grade: string;
-  school: string;
-  motherTongue: LanguageEntry;
-  otherLanguages: LanguageEntry[];
-  createdAtIsoTimestamp: string;
-  creatorEmail: string;
-  currentSection: number;
-  currentQuestion: number;
-  finished: boolean;
-}
-
-interface AdminGetAssessmentsResponse {
-  assessments: Assessment[];
-}
+import type { AssessmentDto } from "../../../functions/src/types/models/assessments-dto";
+import type { AdminGetAssessmentsOutput } from "../../../functions/src/types/admin";
+import type { AdminGetAssessmentsInput } from "../../../functions/src/types/zod/routes/admin";
 
 const SELECT_CLASSES =
   "w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-blue-500 focus:ring-blue-500 shadow-sm";
@@ -47,32 +28,44 @@ function SortGlyph({ active, order }: { active: boolean; order: "asc" | "desc" }
   return <Icon className="w-3.5 h-3.5 text-gray-700" />;
 }
 
-export default function AdminViewAssessments() {
+export default function AdminViewAssessments({ archived = false }: { archived?: boolean }) {
   const navigate = useNavigate();
   const { t, language } = useTranslation();
 
-  const [adminGetAssessments, loading] = useCallable<{}, AdminGetAssessmentsResponse>(
-    "api/admin/get-assessments",
-  );
+  const [adminGetAssessments, loading] = useCallable<
+    AdminGetAssessmentsInput,
+    AdminGetAssessmentsOutput
+  >("api/admin/get-assessments");
 
-  const [assessments, setAssessments] = useState<Assessment[]>([]);
+  const [assessments, setAssessments] = useState<AssessmentDto[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const archive = useAssessmentArchive((id) => {
+    setAssessments((items) => items.filter((item) => item.id !== id));
+  });
   const [filterSchool, setFilterSchool] = useState<string>("all");
   const [filterCreator, setFilterCreator] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<"all" | "finished" | "in-progress">("all");
+  const [visibleCount, setVisibleCount] = useState(20);
   const [sortBy, setSortBy] = useState<"date" | "name" | "school">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   useEffect(() => {
-    void adminGetAssessments()
+    let active = true;
+    setError(null);
+    void adminGetAssessments({ archived })
       .then((response) => {
+        if (!active) return;
         setAssessments(response.data.assessments);
         setError(null);
       })
       .catch((err) => {
+        if (!active) return;
         setError(toUserMessage(err, t("adminView.errorLoad")));
       });
-  }, [adminGetAssessments, t]);
+    return () => {
+      active = false;
+    };
+  }, [adminGetAssessments, archived, t]);
 
   const schools = useMemo(() => {
     const uniqueSchools = new Set(assessments.map((a) => a.school));
@@ -96,9 +89,7 @@ export default function AdminViewAssessments() {
     }
 
     if (filterStatus !== "all") {
-      filtered = filtered.filter((a) =>
-        filterStatus === "finished" ? a.finished : !a.finished,
-      );
+      filtered = filtered.filter((a) => (filterStatus === "finished" ? a.finished : !a.finished));
     }
 
     return [...filtered].sort((a, b) => {
@@ -146,22 +137,40 @@ export default function AdminViewAssessments() {
     <div className="p-4 sm:p-6">
       <div className="max-w-6xl mx-auto">
         <PageHeader
-          title={t("admin.assessments.title")}
-          subtitle={t("adminView.subtitle")}
+          title={t(archived ? "archive.adminTitle" : "admin.assessments.title")}
+          subtitle={t(archived ? "archive.subtitle" : "adminView.subtitle")}
           backTo="/admin"
+          actions={
+            <Button
+              variant="secondary"
+              onClick={() =>
+                navigate(archived ? "/admin/assessments" : "/admin/archived-assessments")
+              }
+            >
+              {t(archived ? "archive.active" : "archive.title")}
+            </Button>
+          }
         />
+
+        <ArchiveFeedback error={archive.error} message={archive.message} />
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
           <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
-            <div className="text-sm text-blue-600 font-medium mb-1">{t("adminView.stat.total")}</div>
+            <div className="text-sm text-blue-600 font-medium mb-1">
+              {t("adminView.stat.total")}
+            </div>
             <div className="text-2xl font-bold text-gray-900">{assessments.length}</div>
           </div>
           <div className="p-4 bg-green-50 rounded-lg border border-green-100">
-            <div className="text-sm text-green-600 font-medium mb-1">{t("adminView.stat.schools")}</div>
+            <div className="text-sm text-green-600 font-medium mb-1">
+              {t("adminView.stat.schools")}
+            </div>
             <div className="text-2xl font-bold text-gray-900">{schools.length}</div>
           </div>
           <div className="p-4 bg-purple-50 rounded-lg border border-purple-100">
-            <div className="text-sm text-purple-600 font-medium mb-1">{t("adminView.stat.creators")}</div>
+            <div className="text-sm text-purple-600 font-medium mb-1">
+              {t("adminView.stat.creators")}
+            </div>
             <div className="text-2xl font-bold text-gray-900">{creators.length}</div>
           </div>
         </div>
@@ -170,8 +179,14 @@ export default function AdminViewAssessments() {
           <h2 className="text-sm font-semibold text-gray-700 mb-3">{t("adminView.filters")}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
             <div className="min-w-0">
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t("adminView.filter.school")}</label>
+              <label
+                htmlFor="assessment-filter-school"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                {t("adminView.filter.school")}
+              </label>
               <select
+                id="assessment-filter-school"
                 value={filterSchool}
                 onChange={(e) => setFilterSchool(e.target.value)}
                 className={SELECT_CLASSES}
@@ -186,8 +201,14 @@ export default function AdminViewAssessments() {
             </div>
 
             <div className="min-w-0">
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t("adminView.filter.creator")}</label>
+              <label
+                htmlFor="assessment-filter-creator"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                {t("adminView.filter.creator")}
+              </label>
               <select
+                id="assessment-filter-creator"
                 value={filterCreator}
                 onChange={(e) => setFilterCreator(e.target.value)}
                 className={SELECT_CLASSES}
@@ -202,8 +223,14 @@ export default function AdminViewAssessments() {
             </div>
 
             <div className="min-w-0">
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t("adminView.filter.status")}</label>
+              <label
+                htmlFor="assessment-filter-status"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                {t("adminView.filter.status")}
+              </label>
               <select
+                id="assessment-filter-status"
                 value={filterStatus}
                 onChange={(e) =>
                   setFilterStatus(e.target.value as "all" | "finished" | "in-progress")
@@ -283,6 +310,9 @@ export default function AdminViewAssessments() {
         {error && (
           <Alert kind="error" className="mb-6">
             {error}
+            <Button variant="secondary" onClick={() => window.location.reload()}>
+              {t("common.retry")}
+            </Button>
           </Alert>
         )}
 
@@ -290,17 +320,19 @@ export default function AdminViewAssessments() {
           <div className="flex justify-center py-12">
             <div className="text-gray-500">{t("adminView.loading")}</div>
           </div>
-        ) : filteredAndSortedAssessments.length === 0 ? (
+        ) : error ? null : filteredAndSortedAssessments.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
             <div className="flex justify-center mb-4">
               <div className="p-4 bg-gray-100 rounded-full">
                 <ClipboardCheckIcon />
               </div>
             </div>
-            <h2 className="text-xl font-semibold text-gray-700 mt-4">{t("adminView.empty.title")}</h2>
+            <h2 className="text-xl font-semibold text-gray-700 mt-4">
+              {t(archived && assessments.length === 0 ? "archive.empty" : "adminView.empty.title")}
+            </h2>
             <p className="text-gray-500 mt-2">
               {assessments.length === 0
-                ? t("adminView.empty.none")
+                ? t(archived ? "archive.emptyBody" : "adminView.empty.none")
                 : t("adminView.empty.filtered")}
             </p>
           </div>
@@ -311,31 +343,51 @@ export default function AdminViewAssessments() {
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     <th
-                      className="px-4 py-3 text-left cursor-pointer select-none hover:bg-gray-100"
-                      onClick={() => toggleSort("name")}
+                      className="text-left"
+                      aria-sort={
+                        sortBy === "name"
+                          ? sortOrder === "asc"
+                            ? "ascending"
+                            : "descending"
+                          : "none"
+                      }
                     >
-                      <span className="inline-flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => toggleSort("name")}
+                        className="inline-flex w-full items-center gap-1 px-4 py-3 hover:bg-gray-100 focus-visible:outline focus-visible:outline-blue-600"
+                      >
                         {t("adminView.col.student")}
                         <SortGlyph active={sortBy === "name"} order={sortOrder} />
-                      </span>
+                      </button>
                     </th>
                     <th className="px-4 py-3 text-left">{t("adminView.col.birthDate")}</th>
                     <th className="px-4 py-3 text-left">{t("adminView.col.creator")}</th>
                     <th
-                      className="px-4 py-3 text-left cursor-pointer select-none hover:bg-gray-100"
-                      onClick={() => toggleSort("date")}
+                      className="text-left"
+                      aria-sort={
+                        sortBy === "date"
+                          ? sortOrder === "asc"
+                            ? "ascending"
+                            : "descending"
+                          : "none"
+                      }
                     >
-                      <span className="inline-flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => toggleSort("date")}
+                        className="inline-flex w-full items-center gap-1 px-4 py-3 hover:bg-gray-100 focus-visible:outline focus-visible:outline-blue-600"
+                      >
                         {t("adminView.col.created")}
                         <SortGlyph active={sortBy === "date"} order={sortOrder} />
-                      </span>
+                      </button>
                     </th>
                     <th className="px-4 py-3 text-left">{t("adminView.col.status")}</th>
                     <th className="px-4 py-3 text-right">{t("adminView.col.action")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {filteredAndSortedAssessments.map((assessment) => (
+                  {filteredAndSortedAssessments.slice(0, visibleCount).map((assessment) => (
                     <tr key={assessment.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3">
                         <div className="font-medium text-gray-900">{assessment.name}</div>
@@ -368,20 +420,34 @@ export default function AdminViewAssessments() {
                               {t("adminView.filter.inProgress")}
                             </span>
                             <span className="text-xs text-gray-500">
-                              {t("adminView.section")} {assessment.currentSection + 1}, {t("adminView.question")}{" "}
-                              {assessment.currentQuestion + 1}
+                              {t("adminView.section")} {assessment.currentSection + 1},{" "}
+                              {t("adminView.question")} {assessment.currentQuestion + 1}
                             </span>
                           </div>
                         )}
                       </td>
                       <td className="px-4 py-3 text-right whitespace-nowrap">
-                        <Button
-                          size="sm"
-                          variant={assessment.finished ? "primary" : "secondary"}
-                          onClick={() => navigate(`/admin/grade/${assessment.id}`)}
-                        >
-                          {assessment.finished ? t("adminView.action.grade") : t("adminView.action.view")}
-                        </Button>
+                        <div className="flex flex-row justify-end gap-2">
+                          <ArchiveButton
+                            archived={archived}
+                            busy={archive.pendingId === assessment.id}
+                            disabled={archive.pendingId !== null}
+                            onClick={() =>
+                              void archive.setArchived(assessment.id, assessment.name, !archived)
+                            }
+                          />
+                          {!archived && (
+                            <Button
+                              size="sm"
+                              variant={assessment.finished ? "primary" : "secondary"}
+                              onClick={() => navigate(`/admin/grade/${assessment.id}`)}
+                            >
+                              {assessment.finished
+                                ? t("adminView.action.grade")
+                                : t("adminView.action.view")}
+                            </Button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -389,9 +455,16 @@ export default function AdminViewAssessments() {
               </table>
             </div>
 
+            {visibleCount < filteredAndSortedAssessments.length && (
+              <div className="px-4 py-3">
+                <Button variant="secondary" onClick={() => setVisibleCount((value) => value + 20)}>
+                  {t("archive.loadMore")}
+                </Button>
+              </div>
+            )}
             <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 text-sm text-gray-600">
               {t("adminView.showing", {
-                shown: filteredAndSortedAssessments.length,
+                shown: Math.min(visibleCount, filteredAndSortedAssessments.length),
                 total: assessments.length,
               })}
             </div>

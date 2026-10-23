@@ -1007,6 +1007,126 @@ async function adminQuestionsChecks(app) {
     "B",
   );
 }
+async function archiveHookChecks() {
+  const hooks = hookRuntime();
+  let finish,
+    calls = 0;
+  const removed = [];
+  const hook = sourceLoader({
+    react: hooks.React,
+    [path.join(root, "apps/web/src/lib/firebase-hooks.ts")]: {
+      useCallable: () => [
+        () => {
+          calls++;
+          return new Promise((resolve, reject) => {
+            finish = { resolve, reject };
+          });
+        },
+        false,
+      ],
+    },
+    [path.join(root, "apps/web/src/lib/errors.ts")]: { toUserMessage: (error) => error.message },
+    [path.join(root, "apps/web/src/hooks/useTranslation.ts")]: {
+      useTranslation: () => ({ t: (key) => key }),
+    },
+  })("apps/web/src/hooks/useAssessmentArchive.ts").useAssessmentArchive;
+  const render = () => hooks.render(() => hook((id) => removed.push(id)));
+  let state = render();
+  const saving = state.setArchived("a", "Student", true);
+  await state.setArchived("a", "Student", true);
+  assert.equal(calls, 1);
+  assert.equal(render().pendingId, "a");
+  assert.equal(removed.length, 0);
+  finish.reject(new Error("Save failed"));
+  await saving;
+  state = render();
+  assert.equal(state.error, "Save failed");
+  assert.equal(state.pendingId, null);
+  assert.equal(removed.length, 0);
+  const retry = state.setArchived("a", "Student", true);
+  finish.resolve({ data: { ok: true } });
+  await retry;
+  state = render();
+  assert.equal(removed[0], "a");
+  assert.equal(state.message.key, "archive.success");
+  assert.equal(state.message.name, "Student");
+  assert.equal(state.error, null);
+  const restore = state.setArchived("a", "Student", false);
+  finish.resolve({ data: { ok: true } });
+  await restore;
+  assert.equal(render().message.key, "archive.restoreSuccess");
+}
+async function archiveChecks() {
+  const app = backend();
+  const seed = {
+    creatorEmail: "owner",
+    createdAt: app.timestamp,
+    finished: false,
+    name: "Archive test",
+    currentSection: 1,
+    currentQuestion: 2,
+  };
+  app.documents.set("assessments/legacy", { ...seed });
+  app.documents.set("assessments/complete", { ...seed, finished: true, archived: false });
+  app.documents.set("assessments/other", { ...seed, creatorEmail: "someone-else" });
+  app.documents.set("studentResponses/legacy-1", { "assessment-id": "legacy", grades: { 0: 4 } });
+  app.objects.add("assessments/legacy/1/0.webm");
+  const ids = async (input, email) =>
+    (await app.call("/get-assessments", input, email)).assessments.map((item) => item.id).sort();
+  assert.deepEqual(await ids({ finished: false }), ["legacy"]);
+  assert.equal(
+    (await app.call("/get-assessments", { finished: false })).assessments[0].archived,
+    false,
+  );
+  for (const id of ["legacy", "complete"]) {
+    await assert.rejects(
+      app.call("/set-assessment-archived", { assessmentId: id, archived: true }, "stranger"),
+      (error) => error.statusCode === 403,
+    );
+    await app.call("/set-assessment-archived", { assessmentId: id, archived: true });
+    await app.call("/set-assessment-archived", { assessmentId: id, archived: true });
+  }
+  assert.deepEqual(await ids({ finished: false }), []);
+  assert.deepEqual(await ids({ finished: true }), []);
+  assert.deepEqual(await ids({ archived: true }), ["complete", "legacy"]);
+  assert.deepEqual(await ids({ archived: true, finished: true }), ["complete"]);
+  assert.deepEqual(await ids({ archived: true }, "stranger"), []);
+  await app.call(
+    "/set-assessment-archived",
+    { assessmentId: "legacy", archived: false },
+    "administrator",
+    { isAdmin: true },
+  );
+  assert.deepEqual(await ids({ finished: false }), ["legacy"]);
+  assert.equal(app.documents.get("assessments/legacy").currentSection, 1);
+  assert.equal(app.documents.get("assessments/legacy").currentQuestion, 2);
+  assert.equal(app.documents.get("assessments/legacy").finished, false);
+  assert.equal(app.documents.get("studentResponses/legacy-1").grades[0], 4);
+  assert(app.objects.has("assessments/legacy/1/0.webm"));
+  await assert.rejects(
+    app.call("/set-assessment-archived", { assessmentId: "missing", archived: true }),
+    (error) => error.statusCode === 404,
+  );
+  for (const input of [
+    { assessmentId: "legacy" },
+    { assessmentId: "legacy", archived: "true" },
+    { assessmentId: "", archived: true },
+    { assessmentId: "a/b", archived: true },
+  ]) {
+    await assert.rejects(
+      app.call("/set-assessment-archived", input),
+      (error) => error.statusCode === 400,
+    );
+  }
+  await assert.rejects(
+    app.call("/get-assessments", { archived: "true" }),
+    (error) => error.statusCode === 400,
+  );
+  await mountedRouterChecks(app);
+  console.log(
+    "PASS: archive/restore, legacy defaults, ownership/admin access, filtering, validation, repeated requests, and retained evidence.",
+  );
+}
 async function mountedRouterChecks(app) {
   // Exercise real Express mounting (including the admin guard) without opening a socket.
   const router = sourceLoader({
@@ -1016,15 +1136,33 @@ async function mountedRouterChecks(app) {
   const call = (url, data = {}, claims = {}) =>
     new Promise((resolve, reject) => {
       const req = { method: "POST", url, headers: {}, body: { data } };
+      let statusCode = 200;
       const res = {
         locals: { callerEmail: "owner", callerClaims: claims },
-        status() {
+        status(code) {
+          statusCode = code;
           return this;
         },
-        json: (body) => resolve(body.data),
+        json: (body) => {
+          if (statusCode >= 400) {
+            const error = new Error(body.error);
+            error.statusCode = statusCode;
+            reject(error);
+          } else resolve(body.data);
+        },
       };
       router.handle(req, res, (error) => reject(error ?? new Error("Route not handled")));
     });
+  const active = await call("/admin/get-assessments", {}, { isAdmin: true });
+  assert(active.assessments.every((item) => item.archived === false));
+  const archived = await call("/admin/get-assessments", { archived: true }, { isAdmin: true });
+  assert(archived.assessments.every((item) => item.archived === true));
+  if (app.documents.has("assessments/complete"))
+    assert(archived.assessments.some((item) => item.id === "complete"));
+  await assert.rejects(
+    call("/admin/get-assessments", { archived: "true" }, { isAdmin: true }),
+    (error) => error.statusCode === 400,
+  );
   await call("/get-questions");
   await call("/get-subtasks");
   await assert.rejects(call("/admin/get-assessments"), (error) => error.statusCode === 403);
@@ -1371,6 +1509,8 @@ async function main() {
     scoring.getQuestionScore(2, 0, audioData.studentResponsesBySection, audioData.sections),
     4,
   );
+  await archiveChecks();
+  await archiveHookChecks();
   await recordingChecks();
   await questionProviderChecks();
   await uiChecks();

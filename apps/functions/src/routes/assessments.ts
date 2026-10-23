@@ -7,6 +7,7 @@ import {
   type AssessmentDto,
   assessments as assessmentsDb,
   toAssessmentDto,
+  getAssessmentWithAuth,
 } from "../types/models/assessments";
 import {
   type AssessmentInput,
@@ -15,8 +16,10 @@ import {
   FinishAssessmentSchema,
   type GetAssessmentsInput,
   GetAssessmentsSchema,
+  type SetAssessmentArchivedInput,
+  SetAssessmentArchivedSchema,
 } from "../types/zod/routes/assessments";
-import { type GetAssessmentsOutput } from "../types/assessments";
+import { type SetAssessmentArchivedOutput, type GetAssessmentsOutput } from "../types/assessments";
 import { type FirebaseFunctionRequest, type FirebaseFunctionResponse } from "../utils/express";
 
 export const router = express.Router();
@@ -44,6 +47,7 @@ router.post(
       currentSection: 0,
       currentQuestion: 0,
       finished: false,
+      archived: false,
       createdAt: FieldValue.serverTimestamp(),
     };
 
@@ -63,7 +67,7 @@ router.post(
     req: FirebaseFunctionRequest<GetAssessmentsInput>,
     res: FirebaseFunctionResponse<GetAssessmentsOutput>,
   ) => {
-    const { finished } = req.body.data;
+    const { finished, archived = false } = req.body.data;
     const { callerEmail } = res.locals;
 
     const allAssessments = await assessmentsDb
@@ -75,10 +79,11 @@ router.post(
       .map((doc) => toAssessmentDto(doc))
       .filter(
         (assessment): assessment is AssessmentDto =>
-          assessment !== null && assessment.finished === finished,
+          assessment !== null &&
+          (finished === undefined || assessment.finished === finished) &&
+          assessment.archived === archived,
       );
 
-    console.log("found assessments:", assessments);
     res.status(200).json({ data: { assessments } });
   },
 );
@@ -87,7 +92,10 @@ router.post(
 router.post(
   "/finish-assessment",
   validate(FinishAssessmentSchema),
-  async (req: FirebaseFunctionRequest<FinishAssessmentInput>, res) => {
+  async (
+    req: FirebaseFunctionRequest<FinishAssessmentInput>,
+    res: FirebaseFunctionResponse<{}>,
+  ) => {
     const { assessmentId } = req.body.data;
     const now = FieldValue.serverTimestamp();
 
@@ -104,6 +112,25 @@ router.post(
       updatedAt: now,
     });
 
+    res.status(200).json({ data: { ok: true } });
+  },
+);
+
+router.post(
+  "/set-assessment-archived",
+  validate(SetAssessmentArchivedSchema),
+  async (
+    req: FirebaseFunctionRequest<SetAssessmentArchivedInput>,
+    res: FirebaseFunctionResponse<SetAssessmentArchivedOutput>,
+  ) => {
+    const { assessmentId, archived } = req.body.data;
+    const { callerEmail, callerClaims } = res.locals;
+    const doc = await getAssessmentWithAuth(
+      assessmentId,
+      callerEmail,
+      callerClaims?.isAdmin === true,
+    );
+    await doc.ref.update({ archived, updatedAt: FieldValue.serverTimestamp() });
     res.status(200).json({ data: { ok: true } });
   },
 );
