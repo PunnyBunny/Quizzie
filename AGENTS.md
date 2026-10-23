@@ -52,11 +52,18 @@ failures separately from failures introduced by the change. Documentation-only
 changes do not require application builds.
 
 For the backend emulator, run `npm run serve --workspace apps/functions`. This
-builds the backend and starts **only** the Functions emulator, using the local
-ignored `apps/functions/firebase-service-account-key.json`. It requires the
-Firebase CLI and valid local credentials. `build:watch` is also available in this
-workspace. Firebase config lists Functions port 5001, Firestore 8080, and Storage
-9199, but the serve script does not start Firestore or Storage.
+builds the backend and starts **only** the Functions emulator. It requires the
+Firebase CLI and valid Application Default Credentials (ADC). For keyless local
+Storage URL signing, set `GOOGLE_APPLICATION_CREDENTIALS` to the absolute path of
+an impersonated service-account ADC JSON file and `GCLOUD_PROJECT` to `quizzie-hku`
+before starting the emulator. The `serve` and `shell` scripts inherit these
+variables; they do not select a service-account key automatically. Restart the
+emulator after changing its credential environment. The impersonated service
+account needs Storage access and Service Usage Consumer on the quota project;
+the caller needs Service Account Token Creator on that service account.
+`build:watch` is also available in this workspace. Firebase config lists Functions
+port 5001, Firestore 8080, and Storage 9199, but the serve script does not start
+Firestore or Storage.
 
 ## API and data conventions
 
