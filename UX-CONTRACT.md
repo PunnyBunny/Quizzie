@@ -32,6 +32,14 @@ of 20; admin tables preserve existing filters and sorting. Server pagination and
 live cross-tab subscriptions are outside this feature. Reloading a list retrieves
 current persisted status.
 
+## Home navigation
+
+Home uses native links for View, Grade, Archive, and Administration. The existing
+admin claim determines whether Administration is shown; route guards remain the
+authorization owner. Starting an assessment opens `/new-assessment` in a new tab,
+with that behavior explained next to the link. ButtonLink in the shared Button
+module owns button-styled navigation. See DESIGN.md for the task-hub layout.
+
 ## Verification
 
 Run both workspace builds/lints and the web formatting check. The in-memory

@@ -55,6 +55,12 @@ use rounded-lg or rounded-xl corners, light borders, and restrained shadows.
 User records stack as cards; administrative comparisons use semantic tables with
 horizontal overflow. Long names and Chinese labels wrap without hiding actions.
 
+The home page is a task hub: a blue-tinted new-assessment panel carries the primary
+action, View and Grade share a two-column row on wider screens, and Archive and
+Administration use compact utility links. Mobile layouts stack in task order.
+Navigation styled as a button uses the shared ButtonLink, which derives its color,
+size, and radius from the same variants as Button.
+
 ## Interaction states
 
 Reuse shared loading, error, and success treatments. Archive controls retain their

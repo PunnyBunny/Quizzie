@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes } from "react";
+import { Link, type LinkProps } from "react-router-dom";
 
 type Variant = "primary" | "dark" | "secondary" | "danger" | "success" | "muted" | "text";
 type Size = "xs" | "sm" | "md";
@@ -19,6 +20,8 @@ const sizeClasses: Record<Size, string> = {
   md: "px-4 py-2 text-sm",
 };
 
+const baseClasses = "rounded-lg font-medium transition-colors";
+
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
   size?: Size;
@@ -32,7 +35,26 @@ export function Button({
 }: ButtonProps) {
   return (
     <button
-      className={`rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
+      className={`${baseClasses} disabled:opacity-50 disabled:cursor-not-allowed ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
+      {...props}
+    />
+  );
+}
+
+interface ButtonLinkProps extends LinkProps {
+  variant?: Variant;
+  size?: Size;
+}
+
+export function ButtonLink({
+  variant = "primary",
+  size = "md",
+  className = "",
+  ...props
+}: ButtonLinkProps) {
+  return (
+    <Link
+      className={`${baseClasses} inline-flex cursor-pointer items-center justify-center gap-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 active:brightness-95 motion-reduce:transition-none ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
       {...props}
     />
   );

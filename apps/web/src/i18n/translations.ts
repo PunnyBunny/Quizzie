@@ -86,9 +86,13 @@ const en: Dict = {
   "nav.brand": "VACA",
 
   // Home page
-  "home.startNew.title": "Start New Test",
+  "home.title": "Assessments",
+  "home.subtitle": "Start a session or manage existing assessments.",
+  "home.opensNewTab": "Opens in a new tab",
+  "home.moreOptions": "More assessment options",
+  "home.startNew.title": "New assessment",
   "home.startNew.description": "Begin assessment for a new student",
-  "home.startNew.button": "Start New Assessment",
+  "home.startNew.button": "Start assessment",
   "home.view.title": "View existing assessments",
   "home.view.description": "View unfinished assessments from previous sessions",
   "home.view.button": "View Assessments",
@@ -498,9 +502,13 @@ const zh: Dict = {
   "nav.brand": "VACA",
 
   // Home page
-  "home.startNew.title": "開始新測試",
+  "home.title": "評估",
+  "home.subtitle": "開始新評估，或管理現有評估。",
+  "home.opensNewTab": "在新分頁開啟",
+  "home.moreOptions": "更多評估選項",
+  "home.startNew.title": "新評估",
   "home.startNew.description": "為新學生開始評估",
-  "home.startNew.button": "開始新評估",
+  "home.startNew.button": "開始評估",
   "home.view.title": "檢視現有評估",
   "home.view.description": "檢視之前未完成的評估",
   "home.view.button": "檢視評估",

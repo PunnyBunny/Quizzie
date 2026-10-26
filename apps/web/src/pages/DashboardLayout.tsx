@@ -43,14 +43,19 @@ export default function DashboardLayout() {
       <header className="bg-white shadow sticky top-0 z-30">
         <div className="max-w-5xl mx-auto px-3 sm:px-4">
           <nav className="flex items-center justify-between gap-3 h-14 sm:h-16">
-            <NavLink to="/" end aria-label={t("nav.brand")} className="rounded px-1 py-1 hover:bg-gray-100">
+            <NavLink
+              to="/"
+              end
+              aria-label={t("nav.brand")}
+              className="rounded px-1 py-1 hover:bg-gray-100"
+            >
               <VacaLogo />
             </NavLink>
             <div className="flex items-center gap-2 sm:gap-4">
               <NavLink
                 to="/"
                 end
-                className="rounded px-2 py-1 hover:bg-gray-100 text-sm sm:text-base"
+                className="hidden sm:inline-flex rounded px-2 py-1 hover:bg-gray-100 text-sm sm:text-base"
               >
                 {t("nav.home")}
               </NavLink>
