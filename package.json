@@ -4,5 +4,8 @@
   "workspaces": [
     "apps/functions",
     "apps/web"
-  ]
+  ],
+  "devDependencies": {
+    "shadcn": "^4.22.1"
+  }
 }

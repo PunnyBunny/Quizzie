@@ -3,19 +3,22 @@ version: alpha
 name: VACA
 description: Bilingual assessment workspace with quiet cards and dense administrative tables.
 colors:
-  primary: "oklch(54.6% 0.245 262.881)"
-  background: "oklch(98.5% 0.002 247.839)"
+  primary: "oklch(0.52 0.105 223.128)"
+  background: "oklch(1 0 0)"
   surface: "#ffffff"
-  text: "oklch(21% 0.034 264.665)"
-  border: "oklch(92.8% 0.006 264.531)"
+  text: "oklch(0.145 0 0)"
+  border: "oklch(0.922 0 0)"
   success: "oklch(52.7% 0.154 150.069)"
-  danger: "oklch(50.5% 0.213 27.518)"
+  danger: "oklch(0.577 0.245 27.325)"
 typography:
   sans:
-    fontFamily: "ui-sans-serif, system-ui, sans-serif"
+    fontFamily: "'Geist Variable', sans-serif"
+  heading:
+    fontFamily: "'Raleway Variable', sans-serif"
 rounded:
-  DEFAULT: "0.5rem"
-  lg: "0.75rem"
+  DEFAULT: "0.625rem"
+  lg: "0.625rem"
+  xl: "0.875rem"
 spacing:
   page-max: "64rem"
   page-padding: "1rem"
@@ -34,15 +37,30 @@ VACA supports assessors recording student answers and administrators reviewing
 assessments. The visual reference is an organized assessment folder: white cards,
 clear student identifiers, quiet metadata, and explicit task controls. Preserve
 this established product register rather than introducing marketing treatments.
-English and Traditional Chinese use the existing language provider and system font
-fallbacks. Locale alone does not establish a target market.
+English and Traditional Chinese use the existing language provider and available
+sans-serif fallbacks for scripts absent from the bundled fonts. Locale alone does
+not establish a target market.
 
 ## Runtime ownership
 
 This document records existing styling; it does not generate tokens. Tailwind 4's
 default theme, `apps/web/src/index.css`, and shared `Button`, `Alert`, and
-`PageHeader` components remain canonical. Blue denotes primary actions; gray
-secondary actions; green completion/success; red failure. Archive and Unarchive
+`PageHeader` components remain canonical. The selected shadcn preset is
+`b1vtHplOJk`: Nova with Base UI (`base-nova`), neutral base and chart colors, cyan
+theme, Geist body font, Raleway heading font, Lucide icons, default menu color,
+and subtle menu accent.
+
+The frontmatter mirrors the light semantic tokens in `src/index.css`, except
+success, which retains Tailwind green-700. The mapping is `primary` to
+`--primary`, `background` to `--background`, `surface` to `--card`, `text` to
+`--foreground`, `border` to `--border`, and `danger` to `--destructive`.
+`@theme inline` exposes these through semantic Tailwind utilities consumed by
+`src/components/ui/button.tsx`. The stylesheet also owns the dark token values;
+the application does not yet offer a complete dark-mode interface.
+
+The existing application `Button` and `ButtonLink` still use explicit blue primary,
+gray secondary, green success, and red danger utilities. The preset switch does
+not migrate their public API or consumers to the registry Button. Archive and Unarchive
 use the shared underlined text-button variant with transparent background and
 black text because both are reversible. The variant owns hover and focus styling;
 size remains independently selectable, with archive controls using xs.
@@ -51,14 +69,18 @@ Tailwind is compiled by `@tailwindcss/vite` from the CSS import in
 `apps/web/src/index.css`. The web workspace owns both Tailwind development
 dependencies. There is no project PostCSS pipeline or JavaScript Tailwind config.
 The CSS base layer preserves the v3 default border color for existing components.
-The palette above records Tailwind 4's default blue-600, gray-50, gray-900,
-gray-200, green-700, and red-700 tokens, replacing the v3 hex equivalents.
+Existing page surfaces and text may likewise retain explicit Tailwind gray
+utilities instead of the semantic preset palette.
 
 ## Layout and typography
 
 Use the existing 64rem dashboard shell with 1rem mobile and 1.5rem larger-screen
-padding. Headings use bold system sans; metadata uses smaller gray text. Cards
+padding. Body text and existing headings use Geist; `font-heading` opts into
+Raleway. Both fonts are bundled locally through Fontsource imports in
+`apps/web/src/index.css`. Metadata uses smaller gray text. Cards
 use rounded-lg or rounded-xl corners, light borders, and restrained shadows.
+The stylesheet owns the default `--radius` of 0.625rem, with `rounded-lg` using
+that value and `rounded-xl` using 1.4 times it (0.875rem).
 User records stack as cards; administrative comparisons use semantic tables with
 horizontal overflow. Long names and Chinese labels wrap without hiding actions.
 
@@ -72,5 +94,5 @@ size, and radius from the same variants as Button.
 
 Reuse shared loading, error, and success treatments. Archive controls retain their
 geometry while saving and expose busy state. Feedback uses an accessible live
-region. Keyboard focus remains visible. No new animation or font assets are
-required. See UX-CONTRACT.md for archive behavior and verification.
+region. Keyboard focus remains visible. The preset adds no new motion behavior.
+See UX-CONTRACT.md for archive behavior and verification.
