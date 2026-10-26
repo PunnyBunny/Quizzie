@@ -247,7 +247,7 @@ export default function AdminSubtasks() {
         )}
 
         {/* Subtask list */}
-        <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
+        <div className="bg-white rounded-lg border shadow-xs overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="bg-gray-50 text-gray-500">
@@ -354,7 +354,7 @@ export default function AdminSubtasks() {
                           type="checkbox"
                           checked={allSelected}
                           onChange={() => toggleAllInSection(sIdx, section.length)}
-                          className="rounded"
+                          className="rounded-sm"
                         />
                         <span className="text-sm font-medium text-gray-700">
                           {section.title}{" "}
@@ -422,7 +422,7 @@ export default function AdminSubtasks() {
                               onChange={(e) =>
                                 handleNormDraftChange(grade, field, e.target.value)
                               }
-                              className="w-20 border border-gray-300 rounded px-2 py-1 text-sm text-center focus:border-blue-500 focus:ring-blue-500"
+                              className="w-20 border border-gray-300 rounded-sm px-2 py-1 text-sm text-center focus:border-blue-500 focus:ring-blue-500"
                               placeholder="-"
                             />
                           </td>

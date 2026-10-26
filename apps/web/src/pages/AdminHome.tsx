@@ -68,11 +68,11 @@ export default function AdminHome() {
         {sections.map((section) => (
           <div
             key={section.to}
-            className="bg-white rounded-xl shadow border border-gray-100 overflow-hidden"
+            className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
           >
             <div className="p-4 sm:p-6 flex flex-col gap-4">
               <div className="flex items-start sm:items-center gap-3">
-                <div className="rounded-xl bg-gray-200 p-2 flex-shrink-0">{section.icon}</div>
+                <div className="rounded-xl bg-gray-200 p-2 shrink-0">{section.icon}</div>
                 <div className="min-w-0">
                   <h2 className="text-lg sm:text-2xl font-semibold">{section.title}</h2>
                   <p className="text-sm sm:text-base text-gray-600">{section.description}</p>

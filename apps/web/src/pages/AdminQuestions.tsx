@@ -348,7 +348,7 @@ export default function AdminQuestions() {
           <Button onClick={openNew}>{t("adminQuestions.new")}</Button>
         </div>
 
-        <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
+        <div className="bg-white rounded-lg border shadow-xs overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px] text-left text-sm">
               <thead className="bg-gray-50 text-gray-500">
@@ -387,14 +387,14 @@ export default function AdminQuestions() {
                       {section.id}
                     </td>
                     <td className="px-4 sm:px-6 py-3 font-medium text-gray-900 align-top">
-                      <div className="max-w-[180px] md:max-w-[260px] lg:max-w-none break-words">
+                      <div className="max-w-[180px] md:max-w-[260px] lg:max-w-none wrap-break-word">
                         {section.title}
                       </div>
                     </td>
                     <td className="px-4 sm:px-6 py-3 uppercase text-xs">{section.kind}</td>
                     <td className="px-4 sm:px-6 py-3 text-center">{section.length}</td>
                     <td className="px-4 sm:px-6 py-3 text-gray-600 align-top">
-                      <div className="max-w-[280px] md:max-w-[420px] lg:max-w-none break-words">
+                      <div className="max-w-[280px] md:max-w-[420px] lg:max-w-none wrap-break-word">
                         {section.goal}
                       </div>
                     </td>

@@ -88,8 +88,8 @@ export default function ArchivedAssessments() {
               className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
             >
               <div className="min-w-0 space-y-1">
-                <h2 className="text-lg font-semibold break-words">{assessment.name}</h2>
-                <p className="text-sm text-gray-600 break-words">
+                <h2 className="text-lg font-semibold wrap-break-word">{assessment.name}</h2>
+                <p className="text-sm text-gray-600 wrap-break-word">
                   {assessment.school} · {t("gradeAssessments.grade")} {assessment.grade} ·{" "}
                   {assessment.birthDate}
                 </p>

@@ -98,7 +98,7 @@ export function AssetUploader({
             <img
               src={previewUrl}
               alt={value}
-              className="max-h-32 rounded border border-gray-200"
+              className="max-h-32 rounded-sm border border-gray-200"
             />
           ) : (
             <audio controls src={previewUrl} className="w-full" />

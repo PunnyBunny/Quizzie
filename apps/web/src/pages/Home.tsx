@@ -12,7 +12,7 @@ import {
 import { useTranslation } from "../hooks/useTranslation";
 
 const navigationClasses =
-  "cursor-pointer rounded-xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 motion-reduce:transition-none";
+  "cursor-pointer rounded-xl transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 motion-reduce:transition-none";
 
 export default function Home() {
   const { loading, isAdmin } = useAuth();
@@ -94,7 +94,7 @@ export default function Home() {
                   to={task.to}
                   aria-labelledby={`home-${task.id}-title`}
                   aria-describedby={`home-${task.id}-description`}
-                  className={`${navigationClasses} group border border-gray-200 bg-white p-5 shadow-sm hover:border-blue-300 hover:bg-blue-50 active:bg-blue-100 sm:p-6`}
+                  className={`${navigationClasses} group border border-gray-200 bg-white p-5 shadow-xs hover:border-blue-300 hover:bg-blue-50 active:bg-blue-100 sm:p-6`}
                 >
                   <div aria-hidden="true" className="mb-5 flex items-center justify-between">
                     <span className="rounded-lg bg-gray-100 p-2.5 text-gray-700 group-hover:bg-white group-hover:text-blue-700">

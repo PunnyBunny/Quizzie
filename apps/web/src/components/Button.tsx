@@ -11,7 +11,7 @@ const variantClasses: Record<Variant, string> = {
   danger: "bg-red-600 text-white hover:bg-red-700",
   success: "bg-green-600 text-white hover:bg-green-700",
   muted: "bg-gray-600 text-white hover:bg-gray-700",
-  text: "bg-transparent text-black underline enabled:hover:text-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600",
+  text: "bg-transparent text-black underline enabled:hover:text-gray-700 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600",
 };
 
 const sizeClasses: Record<Size, string> = {
@@ -54,7 +54,7 @@ export function ButtonLink({
 }: ButtonLinkProps) {
   return (
     <Link
-      className={`${baseClasses} inline-flex cursor-pointer items-center justify-center gap-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 active:brightness-95 motion-reduce:transition-none ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
+      className={`${baseClasses} inline-flex cursor-pointer items-center justify-center gap-2 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 active:brightness-95 motion-reduce:transition-none ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
       {...props}
     />
   );

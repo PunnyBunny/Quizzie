@@ -130,7 +130,7 @@ export default function NewAssessment() {
             </div>
           )}
 
-          <div className="bg-white rounded-2xl shadow border border-gray-200">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200">
             <form onSubmit={submitForm} noValidate className="p-4 sm:p-6 md:p-8 flex flex-col gap-4">
               <h2 className="text-lg font-semibold">{t("newAssessment.participantDetails")}</h2>
 
@@ -141,7 +141,7 @@ export default function NewAssessment() {
                 <input
                   id="studentName"
                   type="text"
-                  className={`w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-400 ${
+                  className={`w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-hidden focus:ring-2 focus:ring-indigo-400 ${
                     !validator.current.fieldValid("studentName")
                       ? "border-red-300"
                       : "border-gray-300"
@@ -166,7 +166,7 @@ export default function NewAssessment() {
                   <div className="flex-1">
                     <select
                       id="birthYear"
-                      className={`w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-400 ${
+                      className={`w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-hidden focus:ring-2 focus:ring-indigo-400 ${
                         !validator.current.fieldValid("birthYear")
                           ? "border-red-300"
                           : "border-gray-300"
@@ -188,7 +188,7 @@ export default function NewAssessment() {
                   <div className="flex-1">
                     <select
                       id="birthMonth"
-                      className={`w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-400 ${
+                      className={`w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-hidden focus:ring-2 focus:ring-indigo-400 ${
                         !validator.current.fieldValid("birthMonth")
                           ? "border-red-300"
                           : "border-gray-300"
@@ -245,7 +245,7 @@ export default function NewAssessment() {
                 </label>
                 <select
                   id="grade"
-                  className={`w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-400 ${
+                  className={`w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-hidden focus:ring-2 focus:ring-indigo-400 ${
                     !validator.current.fieldValid("grade") ? "border-red-300" : "border-gray-300"
                   }`}
                   value={grade}
@@ -270,7 +270,7 @@ export default function NewAssessment() {
                 <input
                   id="school"
                   type="text"
-                  className={`w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-400 ${
+                  className={`w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-hidden focus:ring-2 focus:ring-indigo-400 ${
                     !validator.current.fieldValid("school") ? "border-red-300" : "border-gray-300"
                   }`}
                   placeholder={t("newAssessment.school.placeholder")}
@@ -289,7 +289,7 @@ export default function NewAssessment() {
                 </label>
                 <div className="flex flex-col gap-2">
                   <select
-                    className={`w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-400 ${
+                    className={`w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-hidden focus:ring-2 focus:ring-indigo-400 ${
                       !validator.current.fieldValid("motherTongue")
                         ? "border-red-300"
                         : "border-gray-300"
@@ -314,7 +314,7 @@ export default function NewAssessment() {
                   {motherTongue.language === "other" && (
                     <input
                       type="text"
-                      className={`w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-400 ${
+                      className={`w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-hidden focus:ring-2 focus:ring-indigo-400 ${
                         motherTongue.language === "other" && !motherTongueOther
                           ? "border-red-300"
                           : "border-gray-300"
@@ -337,7 +337,7 @@ export default function NewAssessment() {
                     <div key={index} className="flex gap-2 items-start">
                       <div className="flex-1 flex flex-col gap-2">
                         <select
-                          className={`w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-400 ${
+                          className={`w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-hidden focus:ring-2 focus:ring-indigo-400 ${
                             !validator.current.fieldValid(`otherLanguage-${index}`)
                               ? "border-red-300"
                               : "border-gray-300"
@@ -365,7 +365,7 @@ export default function NewAssessment() {
                         {entry.language === "other" && (
                           <input
                             type="text"
-                            className="w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-400 border-gray-300"
+                            className="w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-hidden focus:ring-2 focus:ring-indigo-400 border-gray-300"
                             placeholder={t("newAssessment.lang.specifyOther")}
                             value={entry.otherSpecify ?? ""}
                             onChange={(e) => {

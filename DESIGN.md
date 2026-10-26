@@ -3,13 +3,13 @@ version: alpha
 name: VACA
 description: Bilingual assessment workspace with quiet cards and dense administrative tables.
 colors:
-  primary: "#2563eb"
-  background: "#f9fafb"
+  primary: "oklch(54.6% 0.245 262.881)"
+  background: "oklch(98.5% 0.002 247.839)"
   surface: "#ffffff"
-  text: "#111827"
-  border: "#e5e7eb"
-  success: "#15803d"
-  danger: "#b91c1c"
+  text: "oklch(21% 0.034 264.665)"
+  border: "oklch(92.8% 0.006 264.531)"
+  success: "oklch(52.7% 0.154 150.069)"
+  danger: "oklch(50.5% 0.213 27.518)"
 typography:
   sans:
     fontFamily: "ui-sans-serif, system-ui, sans-serif"
@@ -39,13 +39,20 @@ fallbacks. Locale alone does not establish a target market.
 
 ## Runtime ownership
 
-This document records existing styling; it does not generate tokens. Tailwind 3's
+This document records existing styling; it does not generate tokens. Tailwind 4's
 default theme, `apps/web/src/index.css`, and shared `Button`, `Alert`, and
 `PageHeader` components remain canonical. Blue denotes primary actions; gray
 secondary actions; green completion/success; red failure. Archive and Unarchive
 use the shared underlined text-button variant with transparent background and
 black text because both are reversible. The variant owns hover and focus styling;
 size remains independently selectable, with archive controls using xs.
+
+Tailwind is compiled by `@tailwindcss/vite` from the CSS import in
+`apps/web/src/index.css`. The web workspace owns both Tailwind development
+dependencies. There is no project PostCSS pipeline or JavaScript Tailwind config.
+The CSS base layer preserves the v3 default border color for existing components.
+The palette above records Tailwind 4's default blue-600, gray-50, gray-900,
+gray-200, green-700, and red-700 tokens, replacing the v3 hex equivalents.
 
 ## Layout and typography
 

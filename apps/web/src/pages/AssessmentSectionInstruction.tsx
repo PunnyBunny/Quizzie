@@ -54,7 +54,7 @@ export default function AssessmentSectionInstruction() {
 
           <button
             type="button"
-            className="px-4 sm:px-6 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 shadow disabled:opacity-50 text-sm sm:text-base"
+            className="px-4 sm:px-6 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 shadow-sm disabled:opacity-50 text-sm sm:text-base"
             onClick={() => {
               navigate(`/assessment/${id}/s/${sectionIndex}/q/0`);
             }}

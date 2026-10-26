@@ -416,7 +416,7 @@ export default function GradeAssessment() {
                 return (
                   <div key={questionIdx} className="p-4">
                     <div className="flex items-start gap-3">
-                      <span className="font-medium text-gray-500 min-w-[2rem]">
+                      <span className="font-medium text-gray-500 min-w-8">
                         {t("gradeAssessment.q.short")}
                         {questionIdx + 1}
                       </span>
@@ -495,7 +495,7 @@ export default function GradeAssessment() {
                 return (
                   <div key={questionIdx} className="p-4">
                     <div className="flex items-start gap-3">
-                      <span className="font-medium text-gray-500 min-w-[2rem]">
+                      <span className="font-medium text-gray-500 min-w-8">
                         {t("gradeAssessment.q.short")}
                         {questionIdx + 1}
                       </span>
@@ -668,7 +668,7 @@ export default function GradeAssessment() {
                                       changeGrade(activeSectionIdx, questionIdx, grade)
                                     }
                                     disabled={submitting}
-                                    className={`w-10 h-10 rounded-full font-medium transition-colors flex-shrink-0 ${
+                                    className={`w-10 h-10 rounded-full font-medium transition-colors shrink-0 ${
                                       currentGrade === grade
                                         ? "bg-blue-600 text-white"
                                         : "bg-gray-100 text-gray-700 hover:bg-gray-200"

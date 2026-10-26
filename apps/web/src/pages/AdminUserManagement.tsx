@@ -45,7 +45,7 @@ interface AdminRemoveUserOutput {
   email: string;
 }
 
-const INPUT_CLASSES = `${BASE_INPUT_CLASSES} shadow-sm`;
+const INPUT_CLASSES = `${BASE_INPUT_CLASSES} shadow-xs`;
 
 export default function AdminUserManagement() {
   const { t } = useTranslation();
@@ -194,7 +194,7 @@ export default function AdminUserManagement() {
                 type="text"
                 readOnly
                 value={resetLinkPopup.resetLink}
-                className="flex-1 text-sm bg-white border border-gray-300 rounded px-3 py-2 text-gray-700"
+                className="flex-1 text-sm bg-white border border-gray-300 rounded-sm px-3 py-2 text-gray-700"
               />
               <Button variant={copied ? "success" : "primary"} onClick={handleCopyLink}>
                 {copied ? t("common.copied") : t("common.copy")}
@@ -220,7 +220,7 @@ export default function AdminUserManagement() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Create User Form */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg border shadow-sm p-4 sm:p-6 lg:sticky lg:top-20">
+            <div className="bg-white rounded-lg border shadow-xs p-4 sm:p-6 lg:sticky lg:top-20">
               <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <AddUserIcon className="w-5 h-5 text-green-600" />
                 {t("adminUsers.add")}
@@ -261,7 +261,7 @@ export default function AdminUserManagement() {
           <div className="lg:col-span-2 space-y-3">
             {actionError && <Alert kind="error">{actionError}</Alert>}
             {actionSuccess && <Alert kind="success">{actionSuccess}</Alert>}
-            <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
+            <div className="bg-white rounded-lg border shadow-xs overflow-hidden">
               <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 bg-gray-50 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
                 <h3 className="font-semibold text-gray-900">{t("adminUsers.systemUsers")}</h3>
                 <div className="relative">
@@ -270,7 +270,7 @@ export default function AdminUserManagement() {
                     placeholder={t("adminUsers.search")}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full sm:w-auto pl-8 pr-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full sm:w-auto pl-8 pr-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-hidden focus:ring-1 focus:ring-blue-500"
                   />
                   <div className="absolute left-2.5 top-2 text-gray-400">
                     <SearchIcon />

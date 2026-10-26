@@ -55,7 +55,7 @@ export function Tooltip({
       {label && (
         <span
           role="tooltip"
-          className={`pointer-events-none absolute z-20 w-max max-w-[15rem] rounded-md bg-gray-900 px-2 py-1 text-center text-xs font-medium leading-snug text-white shadow-lg opacity-0 transition-opacity duration-150 group-hover:opacity-100 ${placementClasses[placement]} ${alignClasses[align]}`}
+          className={`pointer-events-none absolute z-20 w-max max-w-60 rounded-md bg-gray-900 px-2 py-1 text-center text-xs font-medium leading-snug text-white shadow-lg opacity-0 transition-opacity duration-150 group-hover:opacity-100 ${placementClasses[placement]} ${alignClasses[align]}`}
         >
           {label}
           <span

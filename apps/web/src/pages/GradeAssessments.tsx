@@ -106,20 +106,20 @@ export default function GradeAssessments() {
               >
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div className="flex items-start gap-3 sm:gap-4 min-w-0 flex-1">
-                    <div className="p-2 bg-green-100 rounded-lg flex-shrink-0">
+                    <div className="p-2 bg-green-100 rounded-lg shrink-0">
                       <ClipboardCheckIcon />
                     </div>
                     <div className="min-w-0">
-                      <h3 className="font-semibold text-base sm:text-lg break-words">
+                      <h3 className="font-semibold text-base sm:text-lg wrap-break-word">
                         {assessment.name}
                       </h3>
-                      <p className="text-gray-500 text-sm break-words">
+                      <p className="text-gray-500 text-sm wrap-break-word">
                         {assessment.school} • {t("gradeAssessments.grade")} {assessment.grade} •{" "}
                         {t("gradeAssessments.born")} {assessment.birthDate}
                       </p>
                     </div>
                   </div>
-                  <div className="sm:text-right flex flex-col sm:items-end gap-2 sm:flex-shrink-0">
+                  <div className="sm:text-right flex flex-col sm:items-end gap-2 sm:shrink-0">
                     <p className="text-xs sm:text-sm text-gray-500">
                       {formatDate(assessment.createdAtIsoTimestamp)}
                     </p>

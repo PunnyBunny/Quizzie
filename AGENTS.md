@@ -8,7 +8,7 @@ subtask scores, and admin management of users, questions, and assessments.
 
 - npm workspaces: `apps/web` and `apps/functions`; use Node.js 22 and the root
   `package-lock.json`.
-- `apps/web`: React 19, TypeScript, Vite 8, React Router 6, Tailwind CSS 3, and
+- `apps/web`: React 19, TypeScript, Vite 8, React Router 6, Tailwind CSS 4, and
   the Firebase browser SDK. `src/main.tsx` installs the language provider, error
   boundary, and router; `src/App.tsx` defines routes and authentication/admin guards.
 - Web `src/pages` contains assessment, grading, and admin screens; `src/components`
@@ -100,6 +100,8 @@ Firestore or Storage.
 
 - Follow nearby React components/hooks and shared `Button`, `Alert`, `Modal`,
   and other UI components. Styling uses Tailwind plus `src/index.css`.
+  Tailwind uses `@tailwindcss/vite` and the CSS import in `src/index.css`;
+  there is no project PostCSS configuration or Tailwind JavaScript configuration.
 - Use `useTranslation` for new user-facing text and update both English and
   Traditional Chinese dictionaries in `src/i18n/translations.ts`.
   The language provider stores the preference under `quizzie.language`.

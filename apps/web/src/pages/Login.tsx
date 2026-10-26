@@ -57,7 +57,7 @@ export default function Login() {
   };
 
   return (
-    <div className="max-w-md mx-4 sm:mx-auto mt-6 sm:mt-10 bg-white shadow rounded-xl p-6">
+    <div className="max-w-md mx-4 sm:mx-auto mt-6 sm:mt-10 bg-white shadow-sm rounded-xl p-6">
       <div className="flex items-start justify-between mb-1">
         <h1 className="text-2xl font-semibold">{t("login.title")}</h1>
         <LanguageSwitcher />
@@ -75,7 +75,7 @@ export default function Login() {
             onChange={(e) => {
               setEmail(e.target.value);
             }}
-            className={`w-full rounded-md border px-3 py-2 text-gray-900 outline-none focus:ring-2 focus:ring-indigo-400 ${
+            className={`w-full rounded-md border px-3 py-2 text-gray-900 outline-hidden focus:ring-2 focus:ring-indigo-400 ${
               !validator.current.fieldValid("email") ? "border-red-300" : "border-gray-300"
             }`}
             placeholder={t("login.emailPlaceholder")}
@@ -95,7 +95,7 @@ export default function Login() {
             onChange={(e) => {
               setPassword(e.target.value);
             }}
-            className={`w-full rounded-md border px-3 py-2 text-gray-900 outline-none focus:ring-2 focus:ring-indigo-400 ${
+            className={`w-full rounded-md border px-3 py-2 text-gray-900 outline-hidden focus:ring-2 focus:ring-indigo-400 ${
               !validator.current.fieldValid("password") ? "border-red-300" : "border-gray-300"
             }`}
             placeholder={t("login.passwordPlaceholder")}

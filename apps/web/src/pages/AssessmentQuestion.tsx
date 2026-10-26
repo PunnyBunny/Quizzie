@@ -379,7 +379,7 @@ function AssessmentQuestionInner() {
         below={
           <div className="w-full">
             <div className="mx-auto w-full">
-              <div className="h-2 rounded bg-gray-300 overflow-hidden">
+              <div className="h-2 rounded-sm bg-gray-300 overflow-hidden">
                 <div
                   className="h-2 bg-blue-600 transition-all duration-300"
                   style={{ width: `${progressPercentage}%` }}
@@ -394,7 +394,7 @@ function AssessmentQuestionInner() {
       <main className="w-full max-w-3xl flex flex-col p-4 sm:p-6">
         <form className="flex flex-col gap-6" onSubmit={onSubmit}>
           {submitError && <Alert kind="error">{submitError}</Alert>}
-          <section className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
+          <section className="p-4 bg-white border border-gray-200 rounded-lg shadow-xs">
             {/* Image and audio, TODO: add heading to indicate this is question */}
             <section className="flex flex-col gap-4">
               {question.image != null && questionImage.url && (
@@ -414,7 +414,7 @@ function AssessmentQuestionInner() {
             {/* Question text */}
             {questionText && (
               <section className="self-center w-full">
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold text-gray-800 whitespace-pre-wrap break-words">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold text-gray-800 whitespace-pre-wrap wrap-break-word">
                   {questionText}
                 </h1>
               </section>
@@ -433,7 +433,7 @@ function AssessmentQuestionInner() {
                     if (assistanceOffered) choicesAudioPlayer.current?.pause();
                     setAssistanceOffered((offered) => !offered);
                   }}
-                  className="px-4 py-2 border rounded disabled:opacity-50"
+                  className="px-4 py-2 border rounded-sm disabled:opacity-50"
                 >
                   {t(assistanceOffered ? "question.hideMc" : "question.offerMc")}
                 </button>
@@ -443,7 +443,7 @@ function AssessmentQuestionInner() {
                 <div
                   className={
                     question.kind === "audio_mc"
-                      ? "flex flex-col gap-4 p-4 bg-white border border-gray-200 rounded-lg shadow-sm"
+                      ? "flex flex-col gap-4 p-4 bg-white border border-gray-200 rounded-lg shadow-xs"
                       : undefined
                   }
                 >
@@ -490,14 +490,14 @@ function AssessmentQuestionInner() {
 
           {/* Audio recording */}
           {question.kind !== "mc" && (
-            <section className="flex flex-col gap-4 p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
+            <section className="flex flex-col gap-4 p-4 bg-white border border-gray-200 rounded-lg shadow-xs">
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col sm:flex-row gap-3 sm:self-center">
                   <button
                     type="button"
                     onClick={handleStartRecording}
                     disabled={busy}
-                    className="px-4 py-2 rounded-md text-white shadow flex items-center justify-center gap-2 bg-gray-600 disabled:opacity-50"
+                    className="px-4 py-2 rounded-md text-white shadow-sm flex items-center justify-center gap-2 bg-gray-600 disabled:opacity-50"
                   >
                     <MicrophoneIcon />
                     {t("question.startRecording")}
@@ -507,7 +507,7 @@ function AssessmentQuestionInner() {
                     type="button"
                     onClick={handleStopRecording}
                     disabled={status !== "recording"}
-                    className="px-4 py-2 rounded-md text-white shadow flex items-center justify-center gap-2 bg-red-600 disabled:opacity-50"
+                    className="px-4 py-2 rounded-md text-white shadow-sm flex items-center justify-center gap-2 bg-red-600 disabled:opacity-50"
                   >
                     <StopIcon />
                     {t("question.stopRecording")}
@@ -581,7 +581,7 @@ function AssessmentQuestionInner() {
 
               <button
                 type="submit"
-                className="px-4 sm:px-6 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 shadow disabled:opacity-50 text-sm sm:text-base"
+                className="px-4 sm:px-6 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 shadow-sm disabled:opacity-50 text-sm sm:text-base"
                 disabled={
                   (question.kind === "audio_mc" &&
                     (assistanceOffered ? selectedIndex === null : audioBlob === null)) ||

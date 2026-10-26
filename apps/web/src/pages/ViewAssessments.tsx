@@ -87,7 +87,7 @@ export default function ViewAssessments() {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
           </div>
         ) : error ? null : assessments.length === 0 ? (
-          <div className="bg-white rounded-xl shadow border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="p-8 text-center">
               <div className="rounded-xl bg-gray-100 p-4 w-fit mx-auto mb-4">
                 <ClipboardIcon />
@@ -104,16 +104,16 @@ export default function ViewAssessments() {
             {assessments.map((assessment) => (
               <div
                 key={assessment.id}
-                className="bg-white rounded-xl shadow border border-gray-100 overflow-hidden hover:border-gray-300 transition-colors"
+                className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:border-gray-300 transition-colors"
               >
                 <div className="p-4 sm:p-6">
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                     <div className="flex gap-3 sm:gap-4 flex-1 min-w-0">
-                      <div className="rounded-xl bg-gray-100 p-2 sm:p-3 h-fit flex-shrink-0">
+                      <div className="rounded-xl bg-gray-100 p-2 sm:p-3 h-fit shrink-0">
                         <ClipboardIcon />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-lg sm:text-xl font-semibold mb-1 break-words">
+                        <h3 className="text-lg sm:text-xl font-semibold mb-1 wrap-break-word">
                           {assessment.name}
                         </h3>
                         <div className="text-sm text-gray-600 space-y-1">
@@ -127,7 +127,7 @@ export default function ViewAssessments() {
                             <span className="font-medium">{t("viewAssessments.field.grade")}</span>{" "}
                             {assessment.grade}
                           </p>
-                          <p className="break-words">
+                          <p className="wrap-break-word">
                             <span className="font-medium">{t("viewAssessments.field.school")}</span>{" "}
                             {assessment.school}
                           </p>
@@ -150,7 +150,7 @@ export default function ViewAssessments() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex flex-col gap-2 sm:flex-shrink-0">
+                    <div className="flex flex-col gap-2 sm:shrink-0">
                       <Button
                         variant="dark"
                         className="w-full sm:w-auto whitespace-nowrap"

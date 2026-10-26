@@ -40,14 +40,14 @@ export default function DashboardLayout() {
   const { t } = useTranslation();
   return (
     <>
-      <header className="bg-white shadow sticky top-0 z-30">
+      <header className="bg-white shadow-sm sticky top-0 z-30">
         <div className="max-w-5xl mx-auto px-3 sm:px-4">
           <nav className="flex items-center justify-between gap-3 h-14 sm:h-16">
             <NavLink
               to="/"
               end
               aria-label={t("nav.brand")}
-              className="rounded px-1 py-1 hover:bg-gray-100"
+              className="rounded-sm px-1 py-1 hover:bg-gray-100"
             >
               <VacaLogo />
             </NavLink>
@@ -55,7 +55,7 @@ export default function DashboardLayout() {
               <NavLink
                 to="/"
                 end
-                className="hidden sm:inline-flex rounded px-2 py-1 hover:bg-gray-100 text-sm sm:text-base"
+                className="hidden sm:inline-flex rounded-sm px-2 py-1 hover:bg-gray-100 text-sm sm:text-base"
               >
                 {t("nav.home")}
               </NavLink>

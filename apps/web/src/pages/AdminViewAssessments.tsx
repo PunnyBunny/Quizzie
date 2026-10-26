@@ -20,7 +20,7 @@ import type { AdminGetAssessmentsOutput } from "../../../functions/src/types/adm
 import type { AdminGetAssessmentsInput } from "../../../functions/src/types/zod/routes/admin";
 
 const SELECT_CLASSES =
-  "w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-blue-500 focus:ring-blue-500 shadow-sm";
+  "w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-blue-500 focus:ring-blue-500 shadow-xs";
 
 function SortGlyph({ active, order }: { active: boolean; order: "asc" | "desc" }) {
   if (!active) return <ArrowsUpDownIcon className="w-3.5 h-3.5 text-gray-300" />;
@@ -355,7 +355,7 @@ export default function AdminViewAssessments({ archived = false }: { archived?: 
                       <button
                         type="button"
                         onClick={() => toggleSort("name")}
-                        className="inline-flex w-full items-center gap-1 px-4 py-3 hover:bg-gray-100 focus-visible:outline focus-visible:outline-blue-600"
+                        className="inline-flex w-full items-center gap-1 px-4 py-3 hover:bg-gray-100 focus-visible:outline-solid focus-visible:outline-blue-600"
                       >
                         {t("adminView.col.student")}
                         <SortGlyph active={sortBy === "name"} order={sortOrder} />
@@ -376,7 +376,7 @@ export default function AdminViewAssessments({ archived = false }: { archived?: 
                       <button
                         type="button"
                         onClick={() => toggleSort("date")}
-                        className="inline-flex w-full items-center gap-1 px-4 py-3 hover:bg-gray-100 focus-visible:outline focus-visible:outline-blue-600"
+                        className="inline-flex w-full items-center gap-1 px-4 py-3 hover:bg-gray-100 focus-visible:outline-solid focus-visible:outline-blue-600"
                       >
                         {t("adminView.col.created")}
                         <SortGlyph active={sortBy === "date"} order={sortOrder} />

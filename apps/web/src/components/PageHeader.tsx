@@ -22,14 +22,14 @@ export function PageHeader({ title, subtitle, backTo, actions }: PageHeaderProps
         <button
           type="button"
           onClick={handleBack}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+          className="p-2 hover:bg-gray-100 rounded-lg transition-colors shrink-0"
           aria-label={t("common.goHome")}
         >
           <BackArrowIcon />
         </button>
       )}
       <div className="flex-1 min-w-0">
-        <h1 className="text-2xl sm:text-3xl font-bold break-words">{title}</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold wrap-break-word">{title}</h1>
         {subtitle && <p className="text-sm sm:text-base text-gray-600 mt-1">{subtitle}</p>}
       </div>
       {actions && <div className="w-full sm:w-auto flex flex-wrap gap-2">{actions}</div>}

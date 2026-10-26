@@ -20,10 +20,10 @@ export function AssessmentHeader({
 }: AssessmentHeaderProps) {
   const { t } = useTranslation();
   return (
-    <header className="w-full flex flex-col gap-4 sm:gap-6 p-4 sm:p-6 bg-white shadow">
+    <header className="w-full flex flex-col gap-4 sm:gap-6 p-4 sm:p-6 bg-white shadow-sm">
       <div className="w-full flex flex-col sm:flex-row sm:justify-between gap-3 mx-auto">
         <div className="min-w-0">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 break-words">{title}</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 wrap-break-word">{title}</h1>
           <p className="text-xs sm:text-sm text-gray-500 mt-1 break-all">
             {t("assessment.idLabel")} {assessmentId} • {t("assessment.section")}{" "}
             {sectionIndex + 1}
