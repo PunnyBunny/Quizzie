@@ -63,7 +63,7 @@ export default function ViewAssessments() {
           title={t("viewAssessments.title")}
           subtitle={t("viewAssessments.subtitle")}
           actions={
-            <Button variant="secondary" onClick={() => navigate("/archived-assessments")}>
+            <Button variant="outline" onClick={() => navigate("/archived-assessments")}>
               {t("archive.title")}
             </Button>
           }
@@ -76,7 +76,7 @@ export default function ViewAssessments() {
           <Alert kind="error" className="mb-4">
             <p className="font-medium">{t("viewAssessments.errorTitle")}</p>
             <p className="text-sm mt-1">{error}</p>
-            <Button variant="secondary" onClick={() => window.location.reload()}>
+            <Button variant="outline" onClick={() => window.location.reload()}>
               {t("common.retry")}
             </Button>
           </Alert>
@@ -94,7 +94,7 @@ export default function ViewAssessments() {
               </div>
               <h2 className="text-xl font-semibold mb-2">{t("viewAssessments.empty.title")}</h2>
               <p className="text-gray-600 mb-6">{t("viewAssessments.empty.body")}</p>
-              <Button variant="dark" onClick={() => navigate("/")}>
+              <Button variant="outline" onClick={() => navigate("/")}>
                 {t("viewAssessments.empty.button")}
               </Button>
             </div>
@@ -152,7 +152,7 @@ export default function ViewAssessments() {
                     </div>
                     <div className="flex flex-col gap-2 sm:shrink-0">
                       <Button
-                        variant="dark"
+                        variant="outline"
                         className="w-full sm:w-auto whitespace-nowrap"
                         onClick={() =>
                           window.open(
@@ -165,7 +165,7 @@ export default function ViewAssessments() {
                         {t("viewAssessments.continue")}
                       </Button>
                       <Button
-                        variant="muted"
+                        variant="secondary"
                         className="w-full sm:w-auto whitespace-nowrap"
                         onClick={() => setScoreModalId(assessment.id)}
                       >

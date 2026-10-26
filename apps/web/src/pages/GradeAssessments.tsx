@@ -63,7 +63,7 @@ export default function GradeAssessments() {
           title={t("gradeAssessments.title")}
           subtitle={t("gradeAssessments.subtitle")}
           actions={
-            <Button variant="secondary" onClick={() => navigate("/archived-assessments")}>
+            <Button variant="outline" onClick={() => navigate("/archived-assessments")}>
               {t("archive.title")}
             </Button>
           }
@@ -75,7 +75,7 @@ export default function GradeAssessments() {
         {error && (
           <Alert kind="error" className="mb-6">
             {error}
-            <Button variant="secondary" onClick={() => window.location.reload()}>
+            <Button variant="outline" onClick={() => window.location.reload()}>
               {t("common.retry")}
             </Button>
           </Alert>
@@ -142,7 +142,7 @@ export default function GradeAssessments() {
                       </Button>
                       <Button
                         size="sm"
-                        variant="muted"
+                        variant="secondary"
                         onClick={(e) => {
                           e.stopPropagation();
                           setScoreModalId(assessment.id);

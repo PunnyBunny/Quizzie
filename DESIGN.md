@@ -3,7 +3,7 @@ version: alpha
 name: VACA
 description: Bilingual assessment workspace with quiet cards and dense administrative tables.
 colors:
-  primary: "oklch(0.52 0.105 223.128)"
+  primary: "oklch(0.553 0.195 38.402)"
   background: "oklch(1 0 0)"
   surface: "#ffffff"
   text: "oklch(0.145 0 0)"
@@ -46,7 +46,7 @@ not establish a target market.
 This document records existing styling; it does not generate tokens. Tailwind 4's
 default theme, `apps/web/src/index.css`, and shared `Button`, `Alert`, and
 `PageHeader` components remain canonical. The selected shadcn preset is
-`b1vtHplOJk`: Nova with Base UI (`base-nova`), neutral base and chart colors, cyan
+`b1vtHrSz68`: Nova with Base UI (`base-nova`), neutral base and chart colors, orange
 theme, Geist body font, Raleway heading font, Lucide icons, default menu color,
 and subtle menu accent.
 
@@ -58,12 +58,27 @@ success, which retains Tailwind green-700. The mapping is `primary` to
 `src/components/ui/button.tsx`. The stylesheet also owns the dark token values;
 the application does not yet offer a complete dark-mode interface.
 
-The existing application `Button` and `ButtonLink` still use explicit blue primary,
-gray secondary, green success, and red danger utilities. The preset switch does
-not migrate their public API or consumers to the registry Button. Archive and Unarchive
-use the shared underlined text-button variant with transparent background and
-black text because both are reversible. The variant owns hover and focus styling;
-size remains independently selectable, with archive controls using xs.
+The application `Button` module re-exports `src/components/ui/button.tsx`, using
+the shadcn Base UI primitive. `ButtonLink` renders a native router link with the
+same variant recipe from `src/components/ui/button-variants.ts`. That recipe
+owns button colors, geometry, hover, keyboard focus, disabled states, and reduced
+motion. Every application-authored button uses this owner; native browser/media
+controls and the audio-player library retain their own implementations.
+
+Use orange `default` for the main action, `outline` for secondary actions,
+`secondary` for selected section controls, `ghost` for utilities, and
+`destructive` for removal or stopping recording. Selected grade and question
+buttons expose `aria-pressed` and use the primary variant. Archive and Unarchive
+are reversible utility actions with the compact ghost variant; their saving
+labels retain stable button geometry.
+
+The primary hover background mixes 8% black into the preset primary color to
+retain readable text contrast with the orange palette.
+
+Default buttons are 36px high; compact table actions are 32px, extra-small
+controls are 28px, and form/assessment primary actions are 44px. Icon sizes
+follow the same scale. Keep page-specific overrides for placement, full width,
+and genuinely different geometry such as full-width sorting headers.
 
 Tailwind is compiled by `@tailwindcss/vite` from the CSS import in
 `apps/web/src/index.css`. The web workspace owns both Tailwind development
@@ -75,8 +90,8 @@ utilities instead of the semantic preset palette.
 ## Layout and typography
 
 Use the existing 64rem dashboard shell with 1rem mobile and 1.5rem larger-screen
-padding. Body text and existing headings use Geist; `font-heading` opts into
-Raleway. Both fonts are bundled locally through Fontsource imports in
+padding. Body text uses Geist; h1, h2, and h3 use Raleway through the shared base
+layer's `font-heading` utility. Both fonts are bundled locally through Fontsource imports in
 `apps/web/src/index.css`. Metadata uses smaller gray text. Cards
 use rounded-lg or rounded-xl corners, light borders, and restrained shadows.
 The stylesheet owns the default `--radius` of 0.625rem, with `rounded-lg` using
@@ -84,7 +99,7 @@ that value and `rounded-xl` using 1.4 times it (0.875rem).
 User records stack as cards; administrative comparisons use semantic tables with
 horizontal overflow. Long names and Chinese labels wrap without hiding actions.
 
-The home page is a task hub: a blue-tinted new-assessment panel carries the primary
+The home page is a task hub: an orange-tinted new-assessment panel carries the primary
 action, View and Grade share a two-column row on wider screens, and Archive and
 Administration use compact utility links. Mobile layouts stack in task order.
 Navigation styled as a button uses the shared ButtonLink, which derives its color,

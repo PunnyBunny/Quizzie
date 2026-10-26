@@ -20,7 +20,7 @@ export default function ThankYou() {
               {t("thankYou.viewScores")}
             </Button>
           )}
-          <Button variant="dark" onClick={() => navigate("/")} className="w-full">
+          <Button variant="outline" onClick={() => navigate("/")} className="w-full">
             {t("thankYou.returnHome")}
           </Button>
         </div>

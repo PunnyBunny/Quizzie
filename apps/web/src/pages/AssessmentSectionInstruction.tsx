@@ -1,3 +1,4 @@
+import { Button } from "../components/Button";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSection } from "../providers/QuestionProvider.tsx";
 import { AssessmentHeader } from "../components/AssessmentHeader";
@@ -40,9 +41,9 @@ export default function AssessmentSectionInstruction() {
         </section>
 
         <section className="w-full py-4 sm:py-6 flex items-center justify-between gap-3">
-          <button
+          <Button
+            variant="outline"
             type="button"
-            className="px-3 sm:px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 text-sm sm:text-base whitespace-nowrap"
             onClick={() => {
               if (window.confirm(t("common.confirmExit"))) {
                 navigate("/");
@@ -50,17 +51,18 @@ export default function AssessmentSectionInstruction() {
             }}
           >
             {t("common.saveAndExit")}
-          </button>
+          </Button>
 
-          <button
+          <Button
+            variant="default"
+            size="lg"
             type="button"
-            className="px-4 sm:px-6 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 shadow-sm disabled:opacity-50 text-sm sm:text-base"
             onClick={() => {
               navigate(`/assessment/${id}/s/${sectionIndex}/q/0`);
             }}
           >
             {t("common.next")}
-          </button>
+          </Button>
         </section>
       </main>
     </div>

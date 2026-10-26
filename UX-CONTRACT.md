@@ -9,13 +9,13 @@ in `types/zod/routes/assessments.ts` define accepted archive requests.
 
 ## Canonical ownership
 
-| Capability       | Owner                            | Contract                                                                                            |
-| ---------------- | -------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Archive mutation | useAssessmentArchive             | Wait for server success, remove the record, announce success; retain on failure.                    |
-| Feedback         | AssessmentArchive + shared Alert | Localized inline success/error in a polite live region.                                             |
-| Buttons          | shared Button + ArchiveButton    | Text variant for archive actions, stable busy geometry, duplicate-submit protection, visible focus. |
-| Admin filtering  | AdminViewAssessments             | Existing native selects; operating-system popup appearance is accepted.                             |
-| Navigation       | App route guards + PageHeader    | User archive is owner-scoped; admin archive requires admin claims.                                  |
+| Capability       | Owner                                      | Contract                                                                                                        |
+| ---------------- | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| Archive mutation | useAssessmentArchive                       | Wait for server success, remove the record, announce success; retain on failure.                                |
+| Feedback         | AssessmentArchive + shared Alert           | Localized inline success/error in a polite live region.                                                         |
+| Buttons          | shadcn Button + ButtonLink + ArchiveButton | Shared variant recipe; ghost archive actions, stable busy geometry, duplicate-submit protection, visible focus. |
+| Admin filtering  | AdminViewAssessments                       | Existing native selects; operating-system popup appearance is accepted.                                         |
+| Navigation       | App route guards + PageHeader              | User archive is owner-scoped; admin archive requires admin claims.                                              |
 
 ## Flow
 

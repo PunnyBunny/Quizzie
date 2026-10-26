@@ -51,7 +51,7 @@ const ProtectedRoute = ({ isAdminRoute }: ProtectedRouteProps) => {
     return (
       <CenteredMessage>
         <Alert kind="error">{toUserMessage(error, t("common.couldNotVerifySession"))}</Alert>
-        <Button variant="primary" onClick={() => window.location.reload()} className="w-full">
+        <Button variant="default" onClick={() => window.location.reload()} className="w-full">
           {t("common.retry")}
         </Button>
       </CenteredMessage>
@@ -64,7 +64,7 @@ const ProtectedRoute = ({ isAdminRoute }: ProtectedRouteProps) => {
     return (
       <CenteredMessage>
         <Alert kind="error">{t("common.noPermission")}</Alert>
-        <Button variant="secondary" onClick={() => (window.location.href = "/")} className="w-full">
+        <Button variant="outline" onClick={() => (window.location.href = "/")} className="w-full">
           {t("common.goHome")}
         </Button>
       </CenteredMessage>

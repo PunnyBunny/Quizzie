@@ -1,3 +1,4 @@
+import { Button } from "../components/Button";
 import React, { useEffect, useRef, useState } from "react";
 import { auth, signInWithEmailAndPassword } from "../lib/firebase";
 import { useNavigate } from "react-router-dom";
@@ -108,13 +109,16 @@ export default function Login() {
 
         {error && <Alert kind="error">{error}</Alert>}
 
-        <button
+        <Button
+          variant="default"
+          size="lg"
+          aria-busy={submitting}
           type="submit"
           disabled={submitting}
-          className="relative inline-flex items-center justify-center gap-2 w-full rounded-md bg-indigo-600 text-white py-2.5 text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="relative w-full"
         >
           <span>{!submitting ? t("login.submit") : t("login.submitting")}</span>
-        </button>
+        </Button>
       </form>
     </div>
   );

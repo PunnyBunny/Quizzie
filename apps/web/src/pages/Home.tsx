@@ -12,7 +12,7 @@ import {
 import { useTranslation } from "../hooks/useTranslation";
 
 const navigationClasses =
-  "cursor-pointer rounded-xl transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 motion-reduce:transition-none";
+  "cursor-pointer rounded-xl transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring motion-reduce:transition-none";
 
 export default function Home() {
   const { loading, isAdmin } = useAuth();
@@ -48,14 +48,11 @@ export default function Home() {
           <div className="space-y-4 sm:space-y-6">
             <section
               aria-labelledby="home-start-title"
-              className="rounded-xl border border-blue-100 bg-blue-50 p-5 sm:p-6"
+              className="rounded-xl border border-primary/15 bg-primary/5 p-5 sm:p-6"
             >
               <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-start gap-4">
-                  <div
-                    aria-hidden="true"
-                    className="shrink-0 rounded-lg bg-white p-3 text-blue-700"
-                  >
+                  <div aria-hidden="true" className="shrink-0 rounded-lg bg-white p-3 text-primary">
                     <AddUserIcon />
                   </div>
                   <div className="min-w-0">
@@ -69,11 +66,12 @@ export default function Home() {
                 </div>
                 <div className="flex shrink-0 flex-col gap-2 md:items-end">
                   <ButtonLink
+                    size="lg"
                     to="/new-assessment"
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-describedby="home-new-tab"
-                    className="min-h-11 w-full md:w-auto"
+                    className="w-full md:w-auto"
                   >
                     {t("home.startNew.button")}
                     <span aria-hidden="true">
@@ -94,13 +92,13 @@ export default function Home() {
                   to={task.to}
                   aria-labelledby={`home-${task.id}-title`}
                   aria-describedby={`home-${task.id}-description`}
-                  className={`${navigationClasses} group border border-gray-200 bg-white p-5 shadow-xs hover:border-blue-300 hover:bg-blue-50 active:bg-blue-100 sm:p-6`}
+                  className={`${navigationClasses} group border border-gray-200 bg-white p-5 shadow-xs hover:border-primary/30 hover:bg-primary/5 active:bg-primary/10 sm:p-6`}
                 >
                   <div aria-hidden="true" className="mb-5 flex items-center justify-between">
-                    <span className="rounded-lg bg-gray-100 p-2.5 text-gray-700 group-hover:bg-white group-hover:text-blue-700">
+                    <span className="rounded-lg bg-gray-100 p-2.5 text-gray-700 group-hover:bg-white group-hover:text-primary">
                       {task.icon}
                     </span>
-                    <BackArrowIcon className="size-5 rotate-180 text-gray-400 group-hover:text-blue-700" />
+                    <BackArrowIcon className="size-5 rotate-180 text-gray-400 group-hover:text-primary" />
                   </div>
                   <h2 id={`home-${task.id}-title`} className="text-lg font-semibold text-gray-900">
                     {task.title}

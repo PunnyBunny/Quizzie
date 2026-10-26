@@ -439,6 +439,9 @@ function nodes(tree) {
   if (!tree || typeof tree !== "object") return [];
   return [tree, ...nodes(tree.props?.children)];
 }
+const isButton = (node) => node.type === "button" || node.type === "Button";
+const isGradeButton = (node) =>
+  isButton(node) && "aria-pressed" in node.props && typeof node.props.children[0] === "number";
 async function questionProviderChecks() {
   const hooks = hookRuntime();
   const key = (relative) => path.join(root, `apps/web/src/${relative}`);
@@ -572,7 +575,7 @@ async function uiChecks() {
         },
         [key("hooks/useTranslation.ts")]: { useTranslation: () => ({ t: (key) => key }) },
         ...Object.fromEntries(
-          ["Alert", "AssessmentHeader", "Modal", "SectionInstructionBody"].map((name) => [
+          ["Alert", "AssessmentHeader", "Button", "Modal", "SectionInstructionBody"].map((name) => [
             key(`components/${name}.tsx`),
             { [name]: name },
           ]),
@@ -592,7 +595,7 @@ async function uiChecks() {
         return element.type(element.props);
       });
     const findButton = (label) =>
-      nodes(render()).find((node) => node.type === "button" && node.props.children.includes(label));
+      nodes(render()).find((node) => isButton(node) && node.props.children.includes(label));
     const initial = render();
     for (const effect of hooks.effects) {
       const cleanup = effect();
@@ -631,7 +634,7 @@ async function uiChecks() {
       },
       unmount: () => cleanups.forEach((fn) => fn()),
       nextDisabled: () =>
-        nodes(render()).find((node) => node.type === "button" && node.props.type === "submit").props
+        nodes(render()).find((node) => isButton(node) && node.props.type === "submit").props
           .disabled,
     };
   }
@@ -824,17 +827,9 @@ async function uiChecks() {
     ),
   );
   nodes(renderGrade())
-    .find(
-      (node) =>
-        node.type === "button" && node.props.children[0]?.props?.children?.includes("Hybrid"),
-    )
+    .find((node) => isButton(node) && node.props.children[0]?.props?.children?.includes("Hybrid"))
     .props.onClick();
-  assert.equal(
-    nodes(renderGrade()).filter(
-      (node) => node.type === "button" && node.props.className?.includes("w-10 h-10"),
-    ).length,
-    6,
-  );
+  assert.equal(nodes(renderGrade()).filter(isGradeButton).length, 6);
   assert.equal(nodes(renderGrade()).filter((node) => node.type === "audio").length, 0);
 
   const oldMc = { type: "mc", studentResponses: { 0: "D", 1: "D" } };
@@ -874,7 +869,7 @@ async function uiChecks() {
     await Promise.resolve();
     await Promise.resolve();
     const tab = nodes(renderGrade()).find(
-      (node) => node.type === "button" && node.props.children[0]?.props?.children?.includes(title),
+      (node) => isButton(node) && node.props.children[0]?.props?.children?.includes(title),
     );
     assert.equal(tab.props.children[1].props.children[0], expectedStatus);
     tab.props.onClick();
@@ -883,12 +878,7 @@ async function uiChecks() {
     assert.equal(hasText("Current question"), true);
     assert.equal(hasText("Removed question"), false);
     assert.equal(sectionNodes.filter((node) => node.type === "audio").length, hasRecording ? 1 : 0);
-    assert.equal(
-      sectionNodes.filter(
-        (node) => node.type === "button" && node.props.className?.includes("w-10 h-10"),
-      ).length,
-      hasRecording ? 6 : 0,
-    );
+    assert.equal(sectionNodes.filter(isGradeButton).length, hasRecording ? 6 : 0);
     assert.equal(hasText("question.mcOffered"), false);
     if (kind === "mc") {
       assert.equal(hasText("gradeAssessment.noAnswer"), response?.type !== "mc");
@@ -994,7 +984,7 @@ async function adminQuestionsChecks(app) {
     .at(-1)
     .props.onClick();
   render()
-    .find((node) => node.type === "button" && "aria-expanded" in node.props)
+    .find((node) => isButton(node) && "aria-expanded" in node.props)
     .props.onClick();
   assert.equal(kindSelect().props.value, "audio_mc");
   assert.equal(

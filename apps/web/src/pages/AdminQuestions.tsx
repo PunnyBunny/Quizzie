@@ -399,7 +399,7 @@ export default function AdminQuestions() {
                       </div>
                     </td>
                     <td className="px-4 sm:px-6 py-3">
-                      <Button size="sm" onClick={() => openEdit(section)}>
+                      <Button variant="outline" size="sm" onClick={() => openEdit(section)}>
                         {t("common.edit")}
                       </Button>
                     </td>
@@ -421,17 +421,18 @@ export default function AdminQuestions() {
 
           <form onSubmit={handleSave} className="space-y-5">
             <div className="border border-gray-200 rounded-md">
-              <button
+              <Button
+                variant="ghost"
                 type="button"
                 onClick={() => setShowSettings((v) => !v)}
-                className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                className="h-auto w-full justify-between rounded-none px-4 py-3"
                 aria-expanded={showSettings}
               >
                 <span>{t("adminQuestions.settings")}</span>
                 <span className="text-gray-400 text-xs">
                   {showSettings ? t("adminQuestions.hide") : t("adminQuestions.show")}
                 </span>
-              </button>
+              </Button>
 
               {showSettings && (
                 <div className="border-t border-gray-200 px-4 py-4 space-y-4">
@@ -613,7 +614,7 @@ export default function AdminQuestions() {
                         <Button
                           type="button"
                           size="sm"
-                          variant="danger"
+                          variant="destructive"
                           onClick={() => removeRow(rowIdx)}
                         >
                           {t("common.remove")}
@@ -678,13 +679,14 @@ export default function AdminQuestions() {
                             <label className="block text-xs font-medium text-gray-600">
                               {t("adminQuestions.choices")}
                             </label>
-                            <button
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               type="button"
                               onClick={() => addChoice(rowIdx)}
-                              className="text-xs text-blue-600 hover:text-blue-800"
                             >
                               {t("adminQuestions.addChoice")}
-                            </button>
+                            </Button>
                           </div>
                           <div className="space-y-1">
                             {row.choices.map((choice, choiceIdx) => (
@@ -707,16 +709,17 @@ export default function AdminQuestions() {
                                   className={`${SMALL_INPUT_CLASSES} flex-1`}
                                   placeholder={t("adminQuestions.choiceValue")}
                                 />
-                                <button
+                                <Button
+                                  variant="destructive"
+                                  size="icon-sm"
                                   type="button"
                                   onClick={() => removeChoice(rowIdx, choiceIdx)}
-                                  className="text-xs text-red-600 hover:text-red-800 px-2"
                                   aria-label={t("adminQuestions.removeChoice", {
                                     label: choice.key || choiceIdx + 1,
                                   })}
                                 >
                                   ✕
-                                </button>
+                                </Button>
                               </div>
                             ))}
                             {row.choices.length === 0 && (
@@ -756,7 +759,7 @@ export default function AdminQuestions() {
                   <Button
                     type="button"
                     size="sm"
-                    variant="secondary"
+                    variant="outline"
                     disabled={clampedPage === 0}
                     onClick={() => setPage(clampedPage - 1)}
                   >
@@ -771,7 +774,7 @@ export default function AdminQuestions() {
                   <Button
                     type="button"
                     size="sm"
-                    variant="secondary"
+                    variant="outline"
                     disabled={clampedPage >= totalPages - 1}
                     onClick={() => setPage(clampedPage + 1)}
                   >
@@ -784,10 +787,16 @@ export default function AdminQuestions() {
             {error && <Alert kind="error">{error}</Alert>}
 
             <div className="flex justify-end gap-3">
-              <Button type="button" variant="secondary" onClick={requestClose}>
+              <Button type="button" variant="outline" onClick={requestClose}>
                 {t("common.cancel")}
               </Button>
-              <Button type="submit" variant="primary" disabled={saving}>
+              <Button
+                type="submit"
+                variant="default"
+                disabled={saving}
+                aria-busy={saving}
+                className="min-w-24"
+              >
                 {saving ? t("common.saving") : t("common.save")}
               </Button>
             </div>

@@ -2,10 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useCallable } from "../lib/firebase-hooks";
 import { INPUT_CLASSES } from "../lib/ui";
 import type { NormStats, SubtaskDef, QuizSection } from "../lib/scoring";
-import type {
-  GetSubtasksOutput,
-  SaveSubtaskOutput,
-} from "../../../functions/src/types/subtasks";
+import type { GetSubtasksOutput, SaveSubtaskOutput } from "../../../functions/src/types/subtasks";
 import type {
   SaveSubtaskInput,
   DeleteSubtaskInput,
@@ -291,12 +288,12 @@ export default function AdminSubtasks() {
                       {normConfiguredBadge(st.norms, "S5")}
                     </td>
                     <td className="px-4 sm:px-6 py-3 whitespace-nowrap space-x-2">
-                      <Button size="sm" onClick={() => openEdit(st)}>
+                      <Button variant="outline" size="sm" onClick={() => openEdit(st)}>
                         {t("common.edit")}
                       </Button>
                       <Button
                         size="sm"
-                        variant="danger"
+                        variant="destructive"
                         disabled={deleting}
                         onClick={() => handleDelete(st.id)}
                       >
@@ -321,7 +318,9 @@ export default function AdminSubtasks() {
           <form onSubmit={handleSave} className="space-y-6">
             {/* Name */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t("adminSubtasks.col.name")}</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t("adminSubtasks.col.name")}
+              </label>
               <input
                 type="text"
                 value={formName}
@@ -342,10 +341,9 @@ export default function AdminSubtasks() {
                   const allSelected = Array.from({ length: section.length }, (_, i) => i).every(
                     (qi) => isQuestionSelected(sIdx, qi),
                   );
-                  const selectedCount = Array.from(
-                    { length: section.length },
-                    (_, i) => i,
-                  ).filter((qi) => isQuestionSelected(sIdx, qi)).length;
+                  const selectedCount = Array.from({ length: section.length }, (_, i) => i).filter(
+                    (qi) => isQuestionSelected(sIdx, qi),
+                  ).length;
 
                   return (
                     <div key={sIdx} className="border-b border-gray-100 last:border-b-0">
@@ -372,18 +370,16 @@ export default function AdminSubtasks() {
                       </div>
                       <div className="flex flex-wrap gap-1 px-3 py-2">
                         {Array.from({ length: section.length }, (_, qIdx) => (
-                          <button
+                          <Button
+                            variant={isQuestionSelected(sIdx, qIdx) ? "default" : "outline"}
+                            size="icon-sm"
+                            aria-pressed={isQuestionSelected(sIdx, qIdx)}
                             key={qIdx}
                             type="button"
                             onClick={() => toggleQuestion(sIdx, qIdx)}
-                            className={`w-8 h-8 text-xs rounded font-medium transition-colors ${
-                              isQuestionSelected(sIdx, qIdx)
-                                ? "bg-blue-600 text-white"
-                                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                            }`}
                           >
                             {qIdx + 1}
-                          </button>
+                          </Button>
                         ))}
                       </div>
                     </div>
@@ -419,9 +415,7 @@ export default function AdminSubtasks() {
                               type="text"
                               inputMode="decimal"
                               value={normDrafts[grade][field]}
-                              onChange={(e) =>
-                                handleNormDraftChange(grade, field, e.target.value)
-                              }
+                              onChange={(e) => handleNormDraftChange(grade, field, e.target.value)}
                               className="w-20 border border-gray-300 rounded-sm px-2 py-1 text-sm text-center focus:border-blue-500 focus:ring-blue-500"
                               placeholder="-"
                             />
@@ -437,10 +431,16 @@ export default function AdminSubtasks() {
             {error && <Alert kind="error">{error}</Alert>}
 
             <div className="flex justify-end gap-3">
-              <Button type="button" variant="secondary" onClick={closeModal}>
+              <Button type="button" variant="outline" onClick={closeModal}>
                 {t("common.cancel")}
               </Button>
-              <Button type="submit" variant="primary" disabled={saving}>
+              <Button
+                type="submit"
+                variant="default"
+                disabled={saving}
+                aria-busy={saving}
+                className="min-w-24"
+              >
                 {saving ? t("common.saving") : t("common.save")}
               </Button>
             </div>

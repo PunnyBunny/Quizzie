@@ -58,7 +58,7 @@ export default function ArchivedAssessments() {
         subtitle={t("archive.subtitle")}
         backTo="/"
         actions={
-          <Button variant="secondary" onClick={() => navigate("/view-assessments")}>
+          <Button variant="outline" onClick={() => navigate("/view-assessments")}>
             {t("archive.active")}
           </Button>
         }
@@ -71,7 +71,7 @@ export default function ArchivedAssessments() {
       ) : error ? (
         <Alert kind="error">
           {error}{" "}
-          <Button variant="secondary" onClick={() => setReload((value) => value + 1)}>
+          <Button variant="outline" onClick={() => setReload((value) => value + 1)}>
             {t("common.retry")}
           </Button>
         </Alert>
@@ -121,7 +121,7 @@ export default function ArchivedAssessments() {
             </div>
           ))}
           {visibleCount < assessments.length && (
-            <Button variant="secondary" onClick={() => setVisibleCount((value) => value + 20)}>
+            <Button variant="outline" onClick={() => setVisibleCount((value) => value + 20)}>
               {t("archive.loadMore")}
             </Button>
           )}

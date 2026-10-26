@@ -330,7 +330,7 @@ export default function GradeAssessment() {
           subtitle={`${studentResponseData.assessment.name} • ${studentResponseData.assessment.school} • ${t("gradeAssessments.grade")} ${studentResponseData.assessment.grade}`}
           backTo={backPath}
           actions={
-            <Button variant="primary" onClick={() => setShowScore(true)}>
+            <Button variant="default" onClick={() => setShowScore(true)}>
               {t("gradeAssessment.viewScore")}
             </Button>
           }
@@ -361,16 +361,11 @@ export default function GradeAssessment() {
                   align="left"
                   label={isLocked ? t("gradeAssessment.editLockedHint") : undefined}
                 >
-                  <button
+                  <Button
+                    variant={isActive ? "secondary" : "ghost"}
+                    aria-pressed={isActive}
                     onClick={() => setActiveSectionIdx(sectionIdx)}
                     disabled={isLocked}
-                    className={`px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
-                      isActive
-                        ? "border-blue-600 text-blue-600"
-                        : isLocked
-                          ? "border-transparent text-gray-300 cursor-not-allowed"
-                          : "border-transparent text-gray-500 hover:text-gray-700"
-                    }`}
                   >
                     <span>{quizSection.title}</span>
                     <span className="ml-2 text-xs">
@@ -384,7 +379,7 @@ export default function GradeAssessment() {
                             return `${t("gradeAssessment.tab.graded")} ${score.numGraded}/${score.total}`;
                           })()}
                     </span>
-                  </button>
+                  </Button>
                 </Tooltip>
               );
             })}
@@ -582,7 +577,7 @@ export default function GradeAssessment() {
                                         }
                                       >
                                         <Button
-                                          variant="secondary"
+                                          variant="outline"
                                           size="sm"
                                           disabled={editingTranscriptKey !== null}
                                           onClick={() =>
@@ -624,9 +619,11 @@ export default function GradeAssessment() {
                                   />
                                   <div className="flex items-center gap-2 mt-1">
                                     <Button
-                                      variant="primary"
+                                      variant="default"
                                       size="sm"
                                       disabled={isSaving || value === saved}
+                                      aria-busy={isSaving}
+                                      className="min-w-24"
                                       onClick={() =>
                                         void saveTranscript(activeSectionIdx, questionIdx)
                                       }
@@ -641,7 +638,7 @@ export default function GradeAssessment() {
                                       )}
                                     </Button>
                                     <Button
-                                      variant="secondary"
+                                      variant="outline"
                                       size="sm"
                                       disabled={isSaving}
                                       onClick={() =>
@@ -662,20 +659,18 @@ export default function GradeAssessment() {
                               </label>
                               <div className="flex flex-wrap items-center gap-2">
                                 {[0, 1, 2, 3, 4, 5].map((grade) => (
-                                  <button
+                                  <Button
+                                    variant={currentGrade === grade ? "default" : "outline"}
+                                    size="icon-lg"
+                                    aria-pressed={currentGrade === grade}
                                     key={grade}
                                     onClick={() =>
                                       changeGrade(activeSectionIdx, questionIdx, grade)
                                     }
                                     disabled={submitting}
-                                    className={`w-10 h-10 rounded-full font-medium transition-colors shrink-0 ${
-                                      currentGrade === grade
-                                        ? "bg-blue-600 text-white"
-                                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                                    } ${submitting ? "opacity-50" : ""}`}
                                   >
                                     {grade}
-                                  </button>
+                                  </Button>
                                 ))}
                                 {submitting && (
                                   <span className="text-sm text-gray-500 ml-2">

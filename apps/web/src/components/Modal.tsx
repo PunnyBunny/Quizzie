@@ -1,3 +1,4 @@
+import { Button } from "./Button";
 import type { ReactNode } from "react";
 import { CloseIcon } from "./icons";
 import { useTranslation } from "../hooks/useTranslation";
@@ -23,21 +24,23 @@ export function Modal({ onClose, children, maxWidth = "3xl" }: ModalProps) {
   const { t } = useTranslation();
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4"
+      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-3 sm:p-4"
       onClick={onClose}
     >
       <div
         className={`relative bg-white rounded-lg shadow-xl p-4 sm:p-6 w-full max-h-[90vh] overflow-y-auto ${widthClasses[maxWidth]}`}
         onClick={(e) => e.stopPropagation()}
       >
-        <button
+        <Button
+          variant="ghost"
+          size="icon-sm"
           type="button"
           onClick={onClose}
           aria-label={t("common.close")}
-          className="absolute top-3 right-3 p-1.5 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+          className="absolute top-3 right-3 text-muted-foreground"
         >
           <CloseIcon />
-        </button>
+        </Button>
         {children}
       </div>
     </div>

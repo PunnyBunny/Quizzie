@@ -142,7 +142,7 @@ export default function AdminViewAssessments({ archived = false }: { archived?: 
           backTo="/admin"
           actions={
             <Button
-              variant="secondary"
+              variant="outline"
               onClick={() =>
                 navigate(archived ? "/admin/assessments" : "/admin/archived-assessments")
               }
@@ -250,23 +250,29 @@ export default function AdminViewAssessments({ archived = false }: { archived?: 
               {filterSchool !== "all" && (
                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                   {t("adminView.filterChip.school", { value: filterSchool })}
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    aria-label={t("common.removeFilter", { name: t("adminView.filter.school") })}
                     onClick={() => setFilterSchool("all")}
-                    className="ml-1 hover:text-blue-900"
+                    className="ml-1 rounded-full"
                   >
                     ×
-                  </button>
+                  </Button>
                 </span>
               )}
               {filterCreator !== "all" && (
                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                   {t("adminView.filterChip.creator", { value: filterCreator })}
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    aria-label={t("common.removeFilter", { name: t("adminView.filter.creator") })}
                     onClick={() => setFilterCreator("all")}
-                    className="ml-1 hover:text-purple-900"
+                    className="ml-1 rounded-full"
                   >
                     ×
-                  </button>
+                  </Button>
                 </span>
               )}
               {filterStatus !== "all" && (
@@ -283,26 +289,28 @@ export default function AdminViewAssessments({ archived = false }: { archived?: 
                         ? t("adminView.filter.finished")
                         : t("adminView.filter.inProgress"),
                   })}
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    aria-label={t("common.removeFilter", { name: t("adminView.filter.status") })}
                     onClick={() => setFilterStatus("all")}
-                    className={`ml-1 ${
-                      filterStatus === "finished" ? "hover:text-green-900" : "hover:text-amber-900"
-                    }`}
+                    className="ml-1 rounded-full"
                   >
                     ×
-                  </button>
+                  </Button>
                 </span>
               )}
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => {
                   setFilterSchool("all");
                   setFilterCreator("all");
                   setFilterStatus("all");
                 }}
-                className="text-sm text-blue-600 hover:text-blue-800"
               >
                 {t("adminView.clearAll")}
-              </button>
+              </Button>
             </div>
           )}
         </div>
@@ -310,7 +318,7 @@ export default function AdminViewAssessments({ archived = false }: { archived?: 
         {error && (
           <Alert kind="error" className="mb-6">
             {error}
-            <Button variant="secondary" onClick={() => window.location.reload()}>
+            <Button variant="outline" onClick={() => window.location.reload()}>
               {t("common.retry")}
             </Button>
           </Alert>
@@ -352,14 +360,15 @@ export default function AdminViewAssessments({ archived = false }: { archived?: 
                           : "none"
                       }
                     >
-                      <button
+                      <Button
+                        variant="ghost"
                         type="button"
                         onClick={() => toggleSort("name")}
-                        className="inline-flex w-full items-center gap-1 px-4 py-3 hover:bg-gray-100 focus-visible:outline-solid focus-visible:outline-blue-600"
+                        className="h-auto w-full justify-start rounded-none px-4 py-3 text-xs font-semibold"
                       >
                         {t("adminView.col.student")}
                         <SortGlyph active={sortBy === "name"} order={sortOrder} />
-                      </button>
+                      </Button>
                     </th>
                     <th className="px-4 py-3 text-left">{t("adminView.col.birthDate")}</th>
                     <th className="px-4 py-3 text-left">{t("adminView.col.creator")}</th>
@@ -373,14 +382,15 @@ export default function AdminViewAssessments({ archived = false }: { archived?: 
                           : "none"
                       }
                     >
-                      <button
+                      <Button
+                        variant="ghost"
                         type="button"
                         onClick={() => toggleSort("date")}
-                        className="inline-flex w-full items-center gap-1 px-4 py-3 hover:bg-gray-100 focus-visible:outline-solid focus-visible:outline-blue-600"
+                        className="h-auto w-full justify-start rounded-none px-4 py-3 text-xs font-semibold"
                       >
                         {t("adminView.col.created")}
                         <SortGlyph active={sortBy === "date"} order={sortOrder} />
-                      </button>
+                      </Button>
                     </th>
                     <th className="px-4 py-3 text-left">{t("adminView.col.status")}</th>
                     <th className="px-4 py-3 text-right">{t("adminView.col.action")}</th>
@@ -439,7 +449,7 @@ export default function AdminViewAssessments({ archived = false }: { archived?: 
                           {!archived && (
                             <Button
                               size="sm"
-                              variant={assessment.finished ? "primary" : "secondary"}
+                              variant={assessment.finished ? "default" : "outline"}
                               onClick={() => navigate(`/admin/grade/${assessment.id}`)}
                             >
                               {assessment.finished
@@ -457,7 +467,7 @@ export default function AdminViewAssessments({ archived = false }: { archived?: 
 
             {visibleCount < filteredAndSortedAssessments.length && (
               <div className="px-4 py-3">
-                <Button variant="secondary" onClick={() => setVisibleCount((value) => value + 20)}>
+                <Button variant="outline" onClick={() => setVisibleCount((value) => value + 20)}>
                   {t("archive.loadMore")}
                 </Button>
               </div>

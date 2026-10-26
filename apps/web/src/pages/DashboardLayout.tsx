@@ -1,3 +1,4 @@
+import { Button } from "../components/Button";
 import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
@@ -25,14 +26,17 @@ function LogoutButton() {
   };
 
   return (
-    <button
+    <Button
+      variant="outline"
+      size="sm"
+      aria-busy={loading}
+      className="min-w-28"
       type="button"
       onClick={handleClick}
       disabled={loading}
-      className="px-3 py-1.5 rounded-md text-sm font-medium bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-50 whitespace-nowrap"
     >
       {loading ? t("logout.signingOut") : t("logout.button")}
-    </button>
+    </Button>
   );
 }
 

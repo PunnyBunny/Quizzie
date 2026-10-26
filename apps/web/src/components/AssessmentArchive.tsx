@@ -45,12 +45,12 @@ export function ArchiveButton({
   return (
     <Button
       type="button"
-      variant="text"
-      size="xs"
+      variant="ghost"
+      size="sm"
       disabled={disabled}
       aria-busy={busy}
       onClick={onClick}
-      className="relative whitespace-nowrap"
+      className="relative min-w-24"
     >
       <span className={busy ? "invisible" : ""}>
         {t(archived ? "archive.restore" : "archive.action")}

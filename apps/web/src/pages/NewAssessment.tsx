@@ -1,3 +1,4 @@
+import { Button } from "../components/Button";
 import React, { useRef, useState } from "react";
 import SimpleReactValidator from "simple-react-validator";
 import useForceUpdate from "use-force-update";
@@ -22,7 +23,9 @@ function BrowserSupportCheck({ children }: { children: React.ReactNode }) {
   if (!browserSupport) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center">
-        <h1 className="text-2xl sm:text-3xl font-semibold mb-4">{t("browser.unsupported.title")}</h1>
+        <h1 className="text-2xl sm:text-3xl font-semibold mb-4">
+          {t("browser.unsupported.title")}
+        </h1>
         <p className="text-base sm:text-lg mb-4 max-w-md">{t("browser.unsupported.body")}</p>
       </div>
     );
@@ -131,7 +134,11 @@ export default function NewAssessment() {
           )}
 
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200">
-            <form onSubmit={submitForm} noValidate className="p-4 sm:p-6 md:p-8 flex flex-col gap-4">
+            <form
+              onSubmit={submitForm}
+              noValidate
+              className="p-4 sm:p-6 md:p-8 flex flex-col gap-4"
+            >
               <h2 className="text-lg font-semibold">{t("newAssessment.participantDetails")}</h2>
 
               <div className="space-y-1">
@@ -376,36 +383,41 @@ export default function NewAssessment() {
                           />
                         )}
                       </div>
-                      <button
+                      <Button
+                        variant="destructive"
+                        size="lg"
                         type="button"
                         onClick={() => {
                           setOtherLanguages(otherLanguages.filter((_, i) => i !== index));
                         }}
-                        className="px-3 py-2.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg"
                       >
                         {t("common.remove")}
-                      </button>
+                      </Button>
                     </div>
                   ))}
-                  <button
+                  <Button
+                    variant="ghost"
                     type="button"
                     onClick={() =>
                       setOtherLanguages([...otherLanguages, { language: "" as Language }])
                     }
-                    className="text-left text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+                    className="self-start"
                   >
                     {t("newAssessment.lang.addAnother")}
-                  </button>
+                  </Button>
                 </div>
               </div>
 
-              <button
+              <Button
+                variant="default"
+                size="lg"
+                aria-busy={submitting}
                 type="submit"
-                className="w-full rounded-lg bg-gray-700 text-white py-3 text-base font-semibold hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full"
                 disabled={submitting}
               >
                 {!submitting ? t("newAssessment.start") : t("newAssessment.starting")}
-              </button>
+              </Button>
             </form>
           </div>
         </div>

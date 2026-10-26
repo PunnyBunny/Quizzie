@@ -1,3 +1,4 @@
+import { Button } from "./Button";
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { BackArrowIcon } from "./icons";
@@ -19,14 +20,16 @@ export function PageHeader({ title, subtitle, backTo, actions }: PageHeaderProps
   return (
     <div className="mb-4 sm:mb-6 flex flex-wrap items-start gap-2 sm:gap-3">
       {handleBack && (
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           type="button"
           onClick={handleBack}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors shrink-0"
+          className="shrink-0"
           aria-label={t("common.goHome")}
         >
           <BackArrowIcon />
-        </button>
+        </Button>
       )}
       <div className="flex-1 min-w-0">
         <h1 className="text-2xl sm:text-3xl font-bold wrap-break-word">{title}</h1>

@@ -1,3 +1,4 @@
+import { Button } from "../components/Button";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuestion, useSection } from "../providers/QuestionProvider.tsx";
 import React, { useLayoutEffect, useRef, useState } from "react";
@@ -356,13 +357,14 @@ function AssessmentQuestionInner() {
         questionIndex={questionIndex}
         right={
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-            <button
+            <Button
+              variant="outline"
               type="button"
               onClick={() => setShowInstructions(true)}
-              className="px-3 sm:px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 text-sm sm:text-base whitespace-nowrap self-start sm:self-auto"
+              className="self-start sm:self-auto"
             >
               {t("question.viewInstructions")}
-            </button>
+            </Button>
             <div className="flex flex-col sm:items-end">
               <div className="text-sm sm:text-md text-gray-600">
                 {t("question.questionXofY", {
@@ -381,7 +383,7 @@ function AssessmentQuestionInner() {
             <div className="mx-auto w-full">
               <div className="h-2 rounded-sm bg-gray-300 overflow-hidden">
                 <div
-                  className="h-2 bg-blue-600 transition-all duration-300"
+                  className="h-2 bg-primary transition-all duration-300"
                   style={{ width: `${progressPercentage}%` }}
                   role="progressbar"
                 />
@@ -425,7 +427,8 @@ function AssessmentQuestionInner() {
           {(question.kind === "mc" || question.kind === "audio_mc") && (
             <section className="space-y-3">
               {question.kind === "audio_mc" && (
-                <button
+                <Button
+                  variant="outline"
                   type="button"
                   disabled={saving}
                   aria-expanded={assistanceOffered}
@@ -433,10 +436,9 @@ function AssessmentQuestionInner() {
                     if (assistanceOffered) choicesAudioPlayer.current?.pause();
                     setAssistanceOffered((offered) => !offered);
                   }}
-                  className="px-4 py-2 border rounded-sm disabled:opacity-50"
                 >
                   {t(assistanceOffered ? "question.hideMc" : "question.offerMc")}
-                </button>
+                </Button>
               )}
               {(question.kind === "mc" || assistanceOffered) && (
                 // wrap player and choices in surface if displayed by audio_mc
@@ -467,7 +469,7 @@ function AssessmentQuestionInner() {
                     {(question.choices ?? []).map((choice, idx) => (
                       <label
                         key={question.choiceKeys[idx]}
-                        className="flex items-center gap-3 p-3 bg-white rounded-md border-2 hover:border-blue-400 cursor-pointer"
+                        className="flex items-center gap-3 p-3 bg-white rounded-md border-2 hover:border-primary/60 cursor-pointer"
                       >
                         <input
                           type="radio"
@@ -475,7 +477,7 @@ function AssessmentQuestionInner() {
                           disabled={saving}
                           checked={selectedIndex === idx}
                           onChange={() => setSelectedIndex(idx)}
-                          className="h-4 w-4 text-blue-600"
+                          className="h-4 w-4 accent-primary"
                         />
                         <span>
                           {question.choiceKeys[idx]}. {choice}
@@ -493,25 +495,27 @@ function AssessmentQuestionInner() {
             <section className="flex flex-col gap-4 p-4 bg-white border border-gray-200 rounded-lg shadow-xs">
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col sm:flex-row gap-3 sm:self-center">
-                  <button
+                  <Button
+                    variant="default"
+                    size="lg"
                     type="button"
                     onClick={handleStartRecording}
                     disabled={busy}
-                    className="px-4 py-2 rounded-md text-white shadow-sm flex items-center justify-center gap-2 bg-gray-600 disabled:opacity-50"
                   >
                     <MicrophoneIcon />
                     {t("question.startRecording")}
-                  </button>
+                  </Button>
 
-                  <button
+                  <Button
+                    variant="destructive"
+                    size="lg"
                     type="button"
                     onClick={handleStopRecording}
                     disabled={status !== "recording"}
-                    className="px-4 py-2 rounded-md text-white shadow-sm flex items-center justify-center gap-2 bg-red-600 disabled:opacity-50"
                   >
                     <StopIcon />
                     {t("question.stopRecording")}
-                  </button>
+                  </Button>
                 </div>
 
                 {status === "finalizing" && <p>{t("question.finalizing")}</p>}
@@ -556,9 +560,9 @@ function AssessmentQuestionInner() {
 
           {/* Bottom actions */}
           <section className="w-full py-4 sm:py-6 flex flex-wrap gap-3 items-center justify-between">
-            <button
+            <Button
+              variant="outline"
               type="button"
-              className="px-3 sm:px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 text-sm sm:text-base whitespace-nowrap"
               disabled={busy}
               onClick={() => {
                 if (window.confirm(t("common.confirmExit"))) {
@@ -567,21 +571,19 @@ function AssessmentQuestionInner() {
               }}
             >
               {t("common.saveAndExit")}
-            </button>
+            </Button>
 
             <div className="flex gap-2 sm:gap-3">
-              <button
-                type="button"
-                className="px-3 sm:px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 text-sm sm:text-base"
-                onClick={handleSkip}
-                disabled={busy}
-              >
+              <Button variant="ghost" type="button" onClick={handleSkip} disabled={busy}>
                 {t("common.skip")}
-              </button>
+              </Button>
 
-              <button
+              <Button
+                variant="default"
+                size="lg"
                 type="submit"
-                className="px-4 sm:px-6 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 shadow-sm disabled:opacity-50 text-sm sm:text-base"
+                aria-busy={busy}
+                className="min-w-28"
                 disabled={
                   (question.kind === "audio_mc" &&
                     (assistanceOffered ? selectedIndex === null : audioBlob === null)) ||
@@ -591,7 +593,7 @@ function AssessmentQuestionInner() {
                 }
               >
                 {busy ? t("common.loadingDots") : t("common.next")}
-              </button>
+              </Button>
             </div>
           </section>
         </form>

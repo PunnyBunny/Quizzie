@@ -20,10 +20,10 @@ function DefaultFallback({ error, reset }: { error: Error; reset: () => void }) 
         <h1 className="text-2xl font-semibold text-gray-900">{t("common.somethingWentWrong")}</h1>
         <Alert kind="error">{error.message || t("common.unexpectedError")}</Alert>
         <div className="flex gap-3">
-          <Button variant="primary" onClick={reset}>
+          <Button variant="default" onClick={reset}>
             {t("common.tryAgain")}
           </Button>
-          <Button variant="secondary" onClick={() => (window.location.href = "/")}>
+          <Button variant="outline" onClick={() => (window.location.href = "/")}>
             {t("common.goHome")}
           </Button>
         </div>

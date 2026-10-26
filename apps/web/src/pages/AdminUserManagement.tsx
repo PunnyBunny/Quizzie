@@ -6,7 +6,7 @@ import { PageHeader } from "../components/PageHeader";
 import { Button } from "../components/Button";
 import { Modal } from "../components/Modal";
 import { Alert } from "../components/Alert";
-import { AddUserIcon, CloseIcon, SearchIcon } from "../components/icons";
+import { AddUserIcon, SearchIcon } from "../components/icons";
 import { useTranslation } from "../hooks/useTranslation";
 
 interface User {
@@ -173,14 +173,6 @@ export default function AdminUserManagement() {
         <Modal onClose={closePopup} maxWidth="lg">
           <div className="flex justify-between items-start mb-4">
             <h3 className="text-lg font-semibold text-gray-900">{resetLinkPopup.title}</h3>
-            <button
-              type="button"
-              onClick={closePopup}
-              className="text-gray-400 hover:text-gray-600"
-              aria-label={t("common.close")}
-            >
-              <CloseIcon />
-            </button>
           </div>
 
           <p className="text-gray-600 mb-4">{resetLinkPopup.message}</p>
@@ -196,14 +188,18 @@ export default function AdminUserManagement() {
                 value={resetLinkPopup.resetLink}
                 className="flex-1 text-sm bg-white border border-gray-300 rounded-sm px-3 py-2 text-gray-700"
               />
-              <Button variant={copied ? "success" : "primary"} onClick={handleCopyLink}>
+              <Button
+                variant={copied ? "secondary" : "default"}
+                onClick={handleCopyLink}
+                className="min-w-24"
+              >
                 {copied ? t("common.copied") : t("common.copy")}
               </Button>
             </div>
           </div>
 
           <div className="flex justify-end">
-            <Button variant="secondary" onClick={closePopup}>
+            <Button variant="outline" onClick={closePopup}>
               {t("common.close")}
             </Button>
           </div>
@@ -247,8 +243,10 @@ export default function AdminUserManagement() {
 
                 <Button
                   type="submit"
-                  variant="success"
+                  variant="default"
+                  size="lg"
                   disabled={creatingUser}
+                  aria-busy={creatingUser}
                   className="w-full"
                 >
                   {creatingUser ? t("adminUsers.creating") : t("adminUsers.create")}
@@ -281,7 +279,9 @@ export default function AdminUserManagement() {
               {/* Mobile: stacked card list */}
               <div className="sm:hidden divide-y divide-gray-200">
                 {gettingUsers && (
-                  <div className="px-4 py-8 text-center text-gray-500">{t("adminUsers.loading")}</div>
+                  <div className="px-4 py-8 text-center text-gray-500">
+                    {t("adminUsers.loading")}
+                  </div>
                 )}
                 {loadUsersError && (
                   <div className="px-4 py-8 text-center text-red-600">{loadUsersError}</div>
@@ -314,7 +314,7 @@ export default function AdminUserManagement() {
                           <div className="flex gap-2 pt-1">
                             <Button
                               size="sm"
-                              variant="primary"
+                              variant="default"
                               onClick={() => user.email && handleResetPassword(user.email)}
                               disabled={resettingPassword || !user.email}
                             >
@@ -322,7 +322,7 @@ export default function AdminUserManagement() {
                             </Button>
                             <Button
                               size="sm"
-                              variant="danger"
+                              variant="destructive"
                               onClick={() => user.email && handleRemoveUser(user.email)}
                               disabled={removingUser || !user.email}
                             >
@@ -342,8 +342,12 @@ export default function AdminUserManagement() {
                     <tr>
                       <th className="px-4 sm:px-6 py-3 font-medium">{t("adminUsers.col.user")}</th>
                       <th className="px-4 sm:px-6 py-3 font-medium">{t("adminUsers.col.role")}</th>
-                      <th className="px-4 sm:px-6 py-3 font-medium">{t("adminUsers.col.status")}</th>
-                      <th className="px-4 sm:px-6 py-3 font-medium">{t("adminUsers.col.actions")}</th>
+                      <th className="px-4 sm:px-6 py-3 font-medium">
+                        {t("adminUsers.col.status")}
+                      </th>
+                      <th className="px-4 sm:px-6 py-3 font-medium">
+                        {t("adminUsers.col.actions")}
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -388,7 +392,9 @@ export default function AdminUserManagement() {
                                     : "bg-gray-100 text-gray-800"
                                 }`}
                               >
-                                {user.isAdmin ? t("adminUsers.role.admin") : t("adminUsers.role.user")}
+                                {user.isAdmin
+                                  ? t("adminUsers.role.admin")
+                                  : t("adminUsers.role.user")}
                               </span>
                             </td>
                             <td className="px-4 sm:px-6 py-3">
@@ -403,7 +409,7 @@ export default function AdminUserManagement() {
                                 <>
                                   <Button
                                     size="sm"
-                                    variant="primary"
+                                    variant="default"
                                     onClick={() => user.email && handleResetPassword(user.email)}
                                     disabled={resettingPassword || !user.email}
                                   >
@@ -411,7 +417,7 @@ export default function AdminUserManagement() {
                                   </Button>
                                   <Button
                                     size="sm"
-                                    variant="danger"
+                                    variant="destructive"
                                     onClick={() => user.email && handleRemoveUser(user.email)}
                                     disabled={removingUser || !user.email}
                                   >
