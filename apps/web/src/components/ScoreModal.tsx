@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useCallable } from "../lib/firebase-hooks";
 import { toUserMessage } from "../lib/errors";
 import { Modal } from "./Modal";
-import { Button } from "./Button";
+import { Button } from "@/components/ui/button";
 import { Alert } from "./Alert";
 import { useTranslation } from "../hooks/useTranslation";
 import {

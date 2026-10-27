@@ -9,7 +9,7 @@ import { useTranslation } from "../hooks/useTranslation";
 import { useAssessmentArchive } from "../hooks/useAssessmentArchive";
 import { ArchiveButton, ArchiveFeedback } from "../components/AssessmentArchive";
 import { PageHeader } from "../components/PageHeader";
-import { Button } from "../components/Button";
+import { Button } from "@/components/ui/button";
 import { Alert } from "../components/Alert";
 
 export default function ArchivedAssessments() {

@@ -1,4 +1,4 @@
-import { Button } from "../components/Button";
+import { Button } from "@/components/ui/button";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSection } from "../providers/QuestionProvider.tsx";
 import { AssessmentHeader } from "../components/AssessmentHeader";

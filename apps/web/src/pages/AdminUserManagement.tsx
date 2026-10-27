@@ -3,7 +3,7 @@ import { useCallable } from "../lib/firebase-hooks.ts";
 import { toUserMessage } from "../lib/errors";
 import { INPUT_CLASSES as BASE_INPUT_CLASSES } from "../lib/ui";
 import { PageHeader } from "../components/PageHeader";
-import { Button } from "../components/Button";
+import { Button } from "@/components/ui/button";
 import { Modal } from "../components/Modal";
 import { Alert } from "../components/Alert";
 import { AddUserIcon, SearchIcon } from "../components/icons";

@@ -1,4 +1,4 @@
-import { Button } from "../components/Button";
+import { Button } from "@/components/ui/button";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuestion, useSection } from "../providers/QuestionProvider.tsx";
 import React, { useLayoutEffect, useRef, useState } from "react";

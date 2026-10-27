@@ -6,7 +6,7 @@ import { toUserMessage } from "../lib/errors.ts";
 import { useEffect, useState } from "react";
 import ScoreModal from "../components/ScoreModal";
 import { PageHeader } from "../components/PageHeader";
-import { Button } from "../components/Button";
+import { Button } from "@/components/ui/button";
 import { Alert } from "../components/Alert";
 import { ClipboardCheckIcon } from "../components/icons";
 import { useTranslation } from "../hooks/useTranslation";

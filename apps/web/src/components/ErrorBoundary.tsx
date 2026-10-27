@@ -1,6 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { Alert } from "./Alert";
-import { Button } from "./Button";
+import { Button } from "@/components/ui/button";
 import { useTranslation } from "../hooks/useTranslation";
 
 interface Props {

@@ -12,7 +12,7 @@ import type {
   SectionInstruction,
 } from "../../../functions/src/types/models/questions-dto";
 import { PageHeader } from "../components/PageHeader";
-import { Button } from "../components/Button";
+import { Button } from "@/components/ui/button";
 import { Modal } from "../components/Modal";
 import { Alert } from "../components/Alert";
 import { AssetUploader } from "../components/AssetUploader";

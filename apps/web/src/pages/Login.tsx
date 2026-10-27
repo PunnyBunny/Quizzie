@@ -1,4 +1,4 @@
-import { Button } from "../components/Button";
+import { Button } from "@/components/ui/button";
 import React, { useEffect, useRef, useState } from "react";
 import { auth, signInWithEmailAndPassword } from "../lib/firebase";
 import { useNavigate } from "react-router-dom";

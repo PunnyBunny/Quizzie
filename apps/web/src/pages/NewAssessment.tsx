@@ -1,4 +1,4 @@
-import { Button } from "../components/Button";
+import { Button } from "@/components/ui/button";
 import React, { useRef, useState } from "react";
 import SimpleReactValidator from "simple-react-validator";
 import useForceUpdate from "use-force-update";

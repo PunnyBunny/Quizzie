@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import ScoreModal from "../components/ScoreModal";
-import { Button } from "../components/Button";
+import { Button } from "@/components/ui/button";
 import { useTranslation } from "../hooks/useTranslation";
 
 export default function ThankYou() {

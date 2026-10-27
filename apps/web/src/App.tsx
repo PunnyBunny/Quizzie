@@ -21,7 +21,7 @@ import AdminSubtasks from "./pages/AdminSubtasks.tsx";
 import AdminQuestions from "./pages/AdminQuestions.tsx";
 import useAuth from "./hooks/useAuth.tsx";
 import { Alert } from "./components/Alert";
-import { Button } from "./components/Button";
+import { Button } from "@/components/ui/button";
 import { toUserMessage } from "./lib/errors";
 import { useTranslation } from "./hooks/useTranslation";
 

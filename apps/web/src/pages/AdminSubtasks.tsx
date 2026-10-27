@@ -9,7 +9,7 @@ import type {
 } from "../../../functions/src/types/subtasks-inputs";
 import type { GetQuestionsOutput } from "../../../functions/src/types/questions";
 import { PageHeader } from "../components/PageHeader";
-import { Button } from "../components/Button";
+import { Button } from "@/components/ui/button";
 import { Modal } from "../components/Modal";
 import { Alert } from "../components/Alert";
 import { toUserMessage } from "../lib/errors";

@@ -1,4 +1,4 @@
-import { Button } from "./Button";
+import { Button } from "@/components/ui/button";
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { BackArrowIcon } from "./icons";

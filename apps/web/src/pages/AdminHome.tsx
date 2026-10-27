@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
-import { Button } from "../components/Button";
+import { Button } from "@/components/ui/button";
 import {
   ChartBarIcon,
   PencilSquareIcon,

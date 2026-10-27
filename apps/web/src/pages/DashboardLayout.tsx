@@ -1,4 +1,4 @@
-import { Button } from "../components/Button";
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";

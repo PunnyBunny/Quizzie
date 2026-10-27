@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import useAuth from "../hooks/useAuth.tsx";
-import { ButtonLink } from "../components/Button";
 import { PageHeader } from "../components/PageHeader";
 import {
   AddUserIcon,
@@ -10,6 +9,7 @@ import {
   ShieldCheckIcon,
 } from "../components/icons";
 import { useTranslation } from "../hooks/useTranslation";
+import { buttonVariants } from "@/components/ui/button-variants.ts";
 
 const navigationClasses =
   "cursor-pointer rounded-xl transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring motion-reduce:transition-none";
@@ -65,22 +65,15 @@ export default function Home() {
                   </div>
                 </div>
                 <div className="flex shrink-0 flex-col gap-2 md:items-end">
-                  <ButtonLink
-                    size="lg"
+                  <Link
                     to="/new-assessment"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-describedby="home-new-tab"
-                    className="w-full md:w-auto"
+                    className={buttonVariants({
+                      variant: "default",
+                      size: "lg",
+                    })}
                   >
                     {t("home.startNew.button")}
-                    <span aria-hidden="true">
-                      <BackArrowIcon className="size-4 rotate-180" />
-                    </span>
-                  </ButtonLink>
-                  <p id="home-new-tab" className="text-center text-xs text-gray-600 md:text-right">
-                    {t("home.opensNewTab")}
-                  </p>
+                  </Link>
                 </div>
               </div>
             </section>

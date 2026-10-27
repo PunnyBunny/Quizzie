@@ -1,4 +1,4 @@
-import { Button } from "./Button";
+import { Button } from "@/components/ui/button";
 import type { ReactNode } from "react";
 import { CloseIcon } from "./icons";
 import { useTranslation } from "../hooks/useTranslation";

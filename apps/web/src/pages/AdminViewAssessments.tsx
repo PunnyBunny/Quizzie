@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useCallable } from "../lib/firebase-hooks.ts";
 import { toUserMessage } from "../lib/errors.ts";
 import { PageHeader } from "../components/PageHeader";
-import { Button } from "../components/Button";
+import { Button } from "@/components/ui/button";
 import { Alert } from "../components/Alert";
 import {
   ArrowDownIcon,
