@@ -4,7 +4,16 @@ import { toUserMessage } from "../lib/errors";
 import { INPUT_CLASSES as BASE_INPUT_CLASSES } from "../lib/ui";
 import { PageHeader } from "../components/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Modal } from "../components/Modal";
+import {
+  Dialog,
+  DialogBody,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AddUserIcon, SearchIcon } from "../components/icons";
 import { useTranslation } from "../hooks/useTranslation";
@@ -188,40 +197,45 @@ export default function AdminUserManagement() {
   return (
     <div className="p-4 sm:p-6">
       {resetLinkPopup && (
-        <Modal onClose={closePopup} maxWidth="lg">
-          <div className="flex justify-between items-start mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">{resetLinkPopup.title}</h3>
-          </div>
+        <Dialog
+          open
+          onOpenChange={(open) => {
+            if (!open) closePopup();
+          }}
+        >
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>{resetLinkPopup.title}</DialogTitle>
+              <DialogDescription>{resetLinkPopup.message}</DialogDescription>
+            </DialogHeader>
+            <DialogBody>
+              <div className="bg-gray-50 border border-gray-200 rounded-md p-3">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t("adminUsers.popup.linkLabel")}
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={resetLinkPopup.resetLink}
+                    className="min-w-0 flex-1 text-sm bg-white border border-gray-300 rounded-sm px-3 py-2 text-gray-700"
+                  />
+                  <Button
+                    variant={copied ? "secondary" : "default"}
+                    onClick={handleCopyLink}
+                    className="min-w-24"
+                  >
+                    {copied ? t("common.copied") : t("common.copy")}
+                  </Button>
+                </div>
+              </div>
+            </DialogBody>
 
-          <p className="text-gray-600 mb-4">{resetLinkPopup.message}</p>
-
-          <div className="bg-gray-50 border border-gray-200 rounded-md p-3 mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("adminUsers.popup.linkLabel")}
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                readOnly
-                value={resetLinkPopup.resetLink}
-                className="flex-1 text-sm bg-white border border-gray-300 rounded-sm px-3 py-2 text-gray-700"
-              />
-              <Button
-                variant={copied ? "secondary" : "default"}
-                onClick={handleCopyLink}
-                className="min-w-24"
-              >
-                {copied ? t("common.copied") : t("common.copy")}
-              </Button>
-            </div>
-          </div>
-
-          <div className="flex justify-end">
-            <Button variant="outline" onClick={closePopup}>
-              {t("common.close")}
-            </Button>
-          </div>
-        </Modal>
+            <DialogFooter>
+              <DialogClose render={<Button variant="outline" />}>{t("common.close")}</DialogClose>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
 
       <div className="max-w-6xl mx-auto">

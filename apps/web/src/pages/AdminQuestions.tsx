@@ -13,7 +13,15 @@ import type {
 } from "../../../functions/src/types/models/questions-dto";
 import { PageHeader } from "../components/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Modal } from "../components/Modal";
+import {
+  Dialog,
+  DialogBody,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AssetUploader } from "../components/AssetUploader";
 import { useTranslation } from "../hooks/useTranslation";
@@ -250,8 +258,9 @@ export default function AdminQuestions() {
   const closeModal = () => setEditing(null);
 
   const requestClose = () => {
-    if (isDirty && !window.confirm(t("adminQuestions.confirmDiscard"))) return;
+    if (isDirty && !window.confirm(t("adminQuestions.confirmDiscard"))) return false;
     closeModal();
+    return true;
   };
 
   const updateForm = <K extends keyof FormState>(key: K, value: FormState[K]) => {
@@ -412,400 +421,414 @@ export default function AdminQuestions() {
       </div>
 
       {editing && (
-        <Modal onClose={requestClose}>
-          <h2 className="text-xl font-semibold mb-4">
-            {editing.isNew
-              ? t("adminQuestions.new")
-              : t("adminQuestions.editTitle", { id: form.id })}
-          </h2>
+        <Dialog
+          open
+          onOpenChange={(open, details) => {
+            if (!open && !requestClose()) details.cancel();
+          }}
+        >
+          <DialogContent className="sm:max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>
+                {editing.isNew
+                  ? t("adminQuestions.new")
+                  : t("adminQuestions.editTitle", { id: form.id })}
+              </DialogTitle>
+            </DialogHeader>
 
-          <form onSubmit={handleSave} className="space-y-5">
-            <div className="border border-gray-200 rounded-md">
-              <Button
-                variant="ghost"
-                type="button"
-                onClick={() => setShowSettings((v) => !v)}
-                className="h-auto w-full justify-between rounded-none px-4 py-3"
-                aria-expanded={showSettings}
-              >
-                <span>{t("adminQuestions.settings")}</span>
-                <span className="text-gray-400 text-xs">
-                  {showSettings ? t("adminQuestions.hide") : t("adminQuestions.show")}
-                </span>
-              </Button>
+            <form onSubmit={handleSave} className="flex min-h-0 flex-1 flex-col gap-4">
+              <DialogBody className="space-y-5">
+                <div className="border border-gray-200 rounded-md">
+                  <Button
+                    variant="ghost"
+                    type="button"
+                    onClick={() => setShowSettings((v) => !v)}
+                    className="h-auto w-full justify-between rounded-none px-4 py-3"
+                    aria-expanded={showSettings}
+                  >
+                    <span>{t("adminQuestions.settings")}</span>
+                    <span className="text-gray-400 text-xs">
+                      {showSettings ? t("adminQuestions.hide") : t("adminQuestions.show")}
+                    </span>
+                  </Button>
 
-              {showSettings && (
-                <div className="border-t border-gray-200 px-4 py-4 space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        {t("adminQuestions.sectionId")}
-                      </label>
-                      <input
-                        type="text"
-                        value={form.id}
-                        onChange={(e) => updateForm("id", e.target.value)}
-                        className={INPUT_CLASSES}
-                        placeholder="e.g. 0"
-                        disabled={!editing.isNew}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        {t("adminQuestions.kind")}
-                      </label>
-                      <select
-                        value={form.kind}
-                        onChange={(e) => {
-                          const kind = e.target.value as Kind;
-                          setForm((previous) => ({
-                            ...previous,
-                            kind,
-                            ...(kind === "audio_mc"
-                              ? {
-                                  choicesEnabled: true,
-                                  correctAnswersEnabled: true,
-                                  rows: previous.rows.map((row) => ({
-                                    ...row,
-                                    choices: row.choices.length
-                                      ? row.choices
-                                      : DEFAULT_CHOICE_KEYS.map((key) => ({ key, value: "" })),
-                                  })),
-                                }
-                              : {}),
-                          }));
-                        }}
-                        className={INPUT_CLASSES}
-                      >
-                        {KINDS.map((k) => (
-                          <option key={k} value={k}>
-                            {k.toUpperCase()}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t("adminQuestions.titleField")}
-                    </label>
-                    <input
-                      type="text"
-                      value={form.title}
-                      onChange={(e) => updateForm("title", e.target.value)}
-                      className={INPUT_CLASSES}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t("adminQuestions.goal")}
-                    </label>
-                    <input
-                      type="text"
-                      value={form.goal}
-                      onChange={(e) => updateForm("goal", e.target.value)}
-                      className={INPUT_CLASSES}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t("adminQuestions.instructionsText")}
-                    </label>
-                    <textarea
-                      value={form.instructionText}
-                      onChange={(e) => updateForm("instructionText", e.target.value)}
-                      className={INPUT_CLASSES}
-                      rows={3}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t("adminQuestions.instructionsAudio")}
-                    </label>
-                    <AssetUploader
-                      kind="audio"
-                      sectionId={form.id || "instructions"}
-                      value={form.instructionAudio}
-                      onChange={(p) => updateForm("instructionAudio", p)}
-                      placeholder="e.g. instructions/section-0.mp3"
-                    />
-                  </div>
-
-                  <fieldset className="border border-gray-200 rounded-md px-4 py-3">
-                    <legend className="text-sm font-medium text-gray-700 px-1">
-                      {t("adminQuestions.perQuestionFields")}
-                    </legend>
-                    <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-700">
-                      <label className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={!form.questionsNull}
-                          onChange={(e) => updateForm("questionsNull", !e.target.checked)}
-                        />
-                        {t("adminQuestions.questionText")}
-                      </label>
-                      <label className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          disabled={form.kind === "audio_mc"}
-                          checked={form.choicesEnabled}
-                          onChange={(e) => updateForm("choicesEnabled", e.target.checked)}
-                        />
-                        {t("adminQuestions.choices")}
-                      </label>
-                      <label className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          disabled={form.kind === "audio_mc"}
-                          checked={form.correctAnswersEnabled}
-                          onChange={(e) => updateForm("correctAnswersEnabled", e.target.checked)}
-                        />
-                        {t("adminQuestions.correctAnswers")}
-                      </label>
-                      <label className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={form.imagesEnabled}
-                          onChange={(e) => updateForm("imagesEnabled", e.target.checked)}
-                        />
-                        {t("adminQuestions.images")}
-                      </label>
-                    </div>
-                  </fieldset>
-                </div>
-              )}
-            </div>
-
-            {/* Per-question cards */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  {t("adminQuestions.questionsLabel", { count: form.rows.length })}
-                </label>
-                <Button type="button" size="sm" onClick={addRow}>
-                  {t("adminQuestions.addQuestion")}
-                </Button>
-              </div>
-
-              {form.rows.length === 0 && (
-                <p className="text-sm text-gray-500 py-4 text-center border border-dashed border-gray-200 rounded-md">
-                  {t("adminQuestions.noQuestions")}
-                </p>
-              )}
-
-              <div className="space-y-3">
-                {pageRows.map((row, pageIdx) => {
-                  const rowIdx = pageStart + pageIdx;
-                  return (
-                    <div
-                      key={rowIdx}
-                      className="border border-gray-200 rounded-md p-3 bg-gray-50 space-y-3"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-semibold text-gray-700">
-                          {t("adminQuestions.qShort")}
-                          {rowIdx + 1}
-                        </span>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => removeRow(rowIdx)}
-                        >
-                          {t("common.remove")}
-                        </Button>
-                      </div>
-
-                      {!form.questionsNull && (
+                  {showSettings && (
+                    <div className="border-t border-gray-200 px-4 py-4 space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">
-                            {t("adminQuestions.questionText")}
-                          </label>
-                          <textarea
-                            value={row.question}
-                            onChange={(e) => updateRow(rowIdx, { question: e.target.value })}
-                            className={INPUT_CLASSES}
-                            rows={2}
-                          />
-                        </div>
-                      )}
-
-                      <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">
-                          {t("adminQuestions.audio")}
-                        </label>
-                        <AssetUploader
-                          kind="audio"
-                          sectionId={form.id}
-                          value={row.audio}
-                          onChange={(p) => updateRow(rowIdx, { audio: p })}
-                          placeholder="e.g. section-0/q1.mp3"
-                        />
-                      </div>
-
-                      {form.kind === "audio_mc" && (
-                        <div>
-                          <label>{t("question.choicesAudio")}</label>
-                          <AssetUploader
-                            kind="audio"
-                            sectionId={form.id}
-                            value={row.choicesAudio}
-                            onChange={(p) => updateRow(rowIdx, { choicesAudio: p })}
-                          />
-                        </div>
-                      )}
-                      {form.imagesEnabled && (
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">
-                            {t("adminQuestions.image")}
-                          </label>
-                          <AssetUploader
-                            kind="image"
-                            sectionId={form.id}
-                            value={row.image}
-                            onChange={(p) => updateRow(rowIdx, { image: p })}
-                          />
-                        </div>
-                      )}
-
-                      {form.choicesEnabled && (
-                        <div>
-                          <div className="flex items-center justify-between mb-1">
-                            <label className="block text-xs font-medium text-gray-600">
-                              {t("adminQuestions.choices")}
-                            </label>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              type="button"
-                              onClick={() => addChoice(rowIdx)}
-                            >
-                              {t("adminQuestions.addChoice")}
-                            </Button>
-                          </div>
-                          <div className="space-y-1">
-                            {row.choices.map((choice, choiceIdx) => (
-                              <div key={choiceIdx} className="flex items-center gap-2">
-                                <input
-                                  type="text"
-                                  value={choice.key}
-                                  onChange={(e) =>
-                                    updateChoice(rowIdx, choiceIdx, { key: e.target.value })
-                                  }
-                                  className={`${SMALL_INPUT_CLASSES} w-16 font-medium`}
-                                  placeholder={t("adminQuestions.choiceKey")}
-                                />
-                                <input
-                                  type="text"
-                                  value={choice.value}
-                                  onChange={(e) =>
-                                    updateChoice(rowIdx, choiceIdx, { value: e.target.value })
-                                  }
-                                  className={`${SMALL_INPUT_CLASSES} flex-1`}
-                                  placeholder={t("adminQuestions.choiceValue")}
-                                />
-                                <Button
-                                  variant="destructive"
-                                  size="icon-sm"
-                                  type="button"
-                                  onClick={() => removeChoice(rowIdx, choiceIdx)}
-                                  aria-label={t("adminQuestions.removeChoice", {
-                                    label: choice.key || choiceIdx + 1,
-                                  })}
-                                >
-                                  ✕
-                                </Button>
-                              </div>
-                            ))}
-                            {row.choices.length === 0 && (
-                              <p className="text-xs text-gray-400 italic">
-                                {t("adminQuestions.noChoices")}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {form.correctAnswersEnabled && (
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">
-                            {t("adminQuestions.correctAnswer")}
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            {t("adminQuestions.sectionId")}
                           </label>
                           <input
                             type="text"
-                            value={row.correctAnswer}
-                            onChange={(e) => updateRow(rowIdx, { correctAnswer: e.target.value })}
+                            value={form.id}
+                            onChange={(e) => updateForm("id", e.target.value)}
                             className={INPUT_CLASSES}
-                            placeholder={
-                              form.choicesEnabled && row.choices.length > 0
-                                ? `e.g. ${row.choices[0].key}`
-                                : ""
-                            }
+                            placeholder="e.g. 0"
+                            disabled={!editing.isNew}
+                            required
                           />
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            {t("adminQuestions.kind")}
+                          </label>
+                          <select
+                            value={form.kind}
+                            onChange={(e) => {
+                              const kind = e.target.value as Kind;
+                              setForm((previous) => ({
+                                ...previous,
+                                kind,
+                                ...(kind === "audio_mc"
+                                  ? {
+                                      choicesEnabled: true,
+                                      correctAnswersEnabled: true,
+                                      rows: previous.rows.map((row) => ({
+                                        ...row,
+                                        choices: row.choices.length
+                                          ? row.choices
+                                          : DEFAULT_CHOICE_KEYS.map((key) => ({ key, value: "" })),
+                                      })),
+                                    }
+                                  : {}),
+                              }));
+                            }}
+                            className={INPUT_CLASSES}
+                          >
+                            {KINDS.map((k) => (
+                              <option key={k} value={k}>
+                                {k.toUpperCase()}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
 
-              {form.rows.length > PAGE_SIZE && (
-                <div className="flex items-center justify-between mt-3 text-sm">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    disabled={clampedPage === 0}
-                    onClick={() => setPage(clampedPage - 1)}
-                  >
-                    {t("common.previous")}
-                  </Button>
-                  <div className="text-gray-600">
-                    {t("adminQuestions.questionPager", {
-                      current: clampedPage + 1,
-                      total: totalPages,
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          {t("adminQuestions.titleField")}
+                        </label>
+                        <input
+                          type="text"
+                          value={form.title}
+                          onChange={(e) => updateForm("title", e.target.value)}
+                          className={INPUT_CLASSES}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          {t("adminQuestions.goal")}
+                        </label>
+                        <input
+                          type="text"
+                          value={form.goal}
+                          onChange={(e) => updateForm("goal", e.target.value)}
+                          className={INPUT_CLASSES}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          {t("adminQuestions.instructionsText")}
+                        </label>
+                        <textarea
+                          value={form.instructionText}
+                          onChange={(e) => updateForm("instructionText", e.target.value)}
+                          className={INPUT_CLASSES}
+                          rows={3}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          {t("adminQuestions.instructionsAudio")}
+                        </label>
+                        <AssetUploader
+                          kind="audio"
+                          sectionId={form.id || "instructions"}
+                          value={form.instructionAudio}
+                          onChange={(p) => updateForm("instructionAudio", p)}
+                          placeholder="e.g. instructions/section-0.mp3"
+                        />
+                      </div>
+
+                      <fieldset className="border border-gray-200 rounded-md px-4 py-3">
+                        <legend className="text-sm font-medium text-gray-700 px-1">
+                          {t("adminQuestions.perQuestionFields")}
+                        </legend>
+                        <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-700">
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={!form.questionsNull}
+                              onChange={(e) => updateForm("questionsNull", !e.target.checked)}
+                            />
+                            {t("adminQuestions.questionText")}
+                          </label>
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              disabled={form.kind === "audio_mc"}
+                              checked={form.choicesEnabled}
+                              onChange={(e) => updateForm("choicesEnabled", e.target.checked)}
+                            />
+                            {t("adminQuestions.choices")}
+                          </label>
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              disabled={form.kind === "audio_mc"}
+                              checked={form.correctAnswersEnabled}
+                              onChange={(e) =>
+                                updateForm("correctAnswersEnabled", e.target.checked)
+                              }
+                            />
+                            {t("adminQuestions.correctAnswers")}
+                          </label>
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={form.imagesEnabled}
+                              onChange={(e) => updateForm("imagesEnabled", e.target.checked)}
+                            />
+                            {t("adminQuestions.images")}
+                          </label>
+                        </div>
+                      </fieldset>
+                    </div>
+                  )}
+                </div>
+
+                {/* Per-question cards */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      {t("adminQuestions.questionsLabel", { count: form.rows.length })}
+                    </label>
+                    <Button type="button" size="sm" onClick={addRow}>
+                      {t("adminQuestions.addQuestion")}
+                    </Button>
+                  </div>
+
+                  {form.rows.length === 0 && (
+                    <p className="text-sm text-gray-500 py-4 text-center border border-dashed border-gray-200 rounded-md">
+                      {t("adminQuestions.noQuestions")}
+                    </p>
+                  )}
+
+                  <div className="space-y-3">
+                    {pageRows.map((row, pageIdx) => {
+                      const rowIdx = pageStart + pageIdx;
+                      return (
+                        <div
+                          key={rowIdx}
+                          className="border border-gray-200 rounded-md p-3 bg-gray-50 space-y-3"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-semibold text-gray-700">
+                              {t("adminQuestions.qShort")}
+                              {rowIdx + 1}
+                            </span>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => removeRow(rowIdx)}
+                            >
+                              {t("common.remove")}
+                            </Button>
+                          </div>
+
+                          {!form.questionsNull && (
+                            <div>
+                              <label className="block text-xs font-medium text-gray-600 mb-1">
+                                {t("adminQuestions.questionText")}
+                              </label>
+                              <textarea
+                                value={row.question}
+                                onChange={(e) => updateRow(rowIdx, { question: e.target.value })}
+                                className={INPUT_CLASSES}
+                                rows={2}
+                              />
+                            </div>
+                          )}
+
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">
+                              {t("adminQuestions.audio")}
+                            </label>
+                            <AssetUploader
+                              kind="audio"
+                              sectionId={form.id}
+                              value={row.audio}
+                              onChange={(p) => updateRow(rowIdx, { audio: p })}
+                              placeholder="e.g. section-0/q1.mp3"
+                            />
+                          </div>
+
+                          {form.kind === "audio_mc" && (
+                            <div>
+                              <label>{t("question.choicesAudio")}</label>
+                              <AssetUploader
+                                kind="audio"
+                                sectionId={form.id}
+                                value={row.choicesAudio}
+                                onChange={(p) => updateRow(rowIdx, { choicesAudio: p })}
+                              />
+                            </div>
+                          )}
+                          {form.imagesEnabled && (
+                            <div>
+                              <label className="block text-xs font-medium text-gray-600 mb-1">
+                                {t("adminQuestions.image")}
+                              </label>
+                              <AssetUploader
+                                kind="image"
+                                sectionId={form.id}
+                                value={row.image}
+                                onChange={(p) => updateRow(rowIdx, { image: p })}
+                              />
+                            </div>
+                          )}
+
+                          {form.choicesEnabled && (
+                            <div>
+                              <div className="flex items-center justify-between mb-1">
+                                <label className="block text-xs font-medium text-gray-600">
+                                  {t("adminQuestions.choices")}
+                                </label>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  type="button"
+                                  onClick={() => addChoice(rowIdx)}
+                                >
+                                  {t("adminQuestions.addChoice")}
+                                </Button>
+                              </div>
+                              <div className="space-y-1">
+                                {row.choices.map((choice, choiceIdx) => (
+                                  <div key={choiceIdx} className="flex items-center gap-2">
+                                    <input
+                                      type="text"
+                                      value={choice.key}
+                                      onChange={(e) =>
+                                        updateChoice(rowIdx, choiceIdx, { key: e.target.value })
+                                      }
+                                      className={`${SMALL_INPUT_CLASSES} w-16 font-medium`}
+                                      placeholder={t("adminQuestions.choiceKey")}
+                                    />
+                                    <input
+                                      type="text"
+                                      value={choice.value}
+                                      onChange={(e) =>
+                                        updateChoice(rowIdx, choiceIdx, { value: e.target.value })
+                                      }
+                                      className={`${SMALL_INPUT_CLASSES} min-w-0 flex-1`}
+                                      placeholder={t("adminQuestions.choiceValue")}
+                                    />
+                                    <Button
+                                      variant="destructive"
+                                      size="icon-sm"
+                                      type="button"
+                                      onClick={() => removeChoice(rowIdx, choiceIdx)}
+                                      aria-label={t("adminQuestions.removeChoice", {
+                                        label: choice.key || choiceIdx + 1,
+                                      })}
+                                    >
+                                      ✕
+                                    </Button>
+                                  </div>
+                                ))}
+                                {row.choices.length === 0 && (
+                                  <p className="text-xs text-gray-400 italic">
+                                    {t("adminQuestions.noChoices")}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {form.correctAnswersEnabled && (
+                            <div>
+                              <label className="block text-xs font-medium text-gray-600 mb-1">
+                                {t("adminQuestions.correctAnswer")}
+                              </label>
+                              <input
+                                type="text"
+                                value={row.correctAnswer}
+                                onChange={(e) =>
+                                  updateRow(rowIdx, { correctAnswer: e.target.value })
+                                }
+                                className={INPUT_CLASSES}
+                                placeholder={
+                                  form.choicesEnabled && row.choices.length > 0
+                                    ? `e.g. ${row.choices[0].key}`
+                                    : ""
+                                }
+                              />
+                            </div>
+                          )}
+                        </div>
+                      );
                     })}
                   </div>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    disabled={clampedPage >= totalPages - 1}
-                    onClick={() => setPage(clampedPage + 1)}
-                  >
-                    {t("common.next")}
-                  </Button>
+
+                  {form.rows.length > PAGE_SIZE && (
+                    <div className="flex items-center justify-between mt-3 text-sm">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={clampedPage === 0}
+                        onClick={() => setPage(clampedPage - 1)}
+                      >
+                        {t("common.previous")}
+                      </Button>
+                      <div className="text-gray-600">
+                        {t("adminQuestions.questionPager", {
+                          current: clampedPage + 1,
+                          total: totalPages,
+                        })}
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={clampedPage >= totalPages - 1}
+                        onClick={() => setPage(clampedPage + 1)}
+                      >
+                        {t("common.next")}
+                      </Button>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            {error && (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
-            <div className="flex justify-end gap-3">
-              <Button type="button" variant="outline" onClick={requestClose}>
-                {t("common.cancel")}
-              </Button>
-              <Button
-                type="submit"
-                variant="default"
-                disabled={saving}
-                aria-busy={saving}
-                className="min-w-24"
-              >
-                {saving ? t("common.saving") : t("common.save")}
-              </Button>
-            </div>
-          </form>
-        </Modal>
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+              </DialogBody>
+              <DialogFooter>
+                <DialogClose render={<Button type="button" variant="outline" />}>
+                  {t("common.cancel")}
+                </DialogClose>
+                <Button
+                  type="submit"
+                  variant="default"
+                  disabled={saving}
+                  aria-busy={saving}
+                  className="min-w-24"
+                >
+                  {saving ? t("common.saving") : t("common.save")}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

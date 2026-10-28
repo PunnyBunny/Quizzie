@@ -28,6 +28,7 @@ components:
   card: {}
   table: {}
   alert: {}
+  dialog: {}
 ---
 
 # VACA design context
@@ -45,7 +46,7 @@ not establish a target market.
 ## Runtime ownership
 
 This document records existing styling; it does not generate tokens. Tailwind 4's
-default theme, `apps/web/src/index.css`, and shared `Button`, `Alert`, and
+default theme, `apps/web/src/index.css`, and shared `Button`, `Alert`, `Dialog`, and
 `PageHeader` components remain canonical. The selected shadcn preset is
 `b1vtHrSz68`: Nova with Base UI (`base-nova`), neutral base and chart colors, orange
 theme, Geist body font, Raleway heading font, Lucide icons, default menu color,
@@ -90,6 +91,15 @@ Alerts persist until a relevant action replaces them or the user navigates away;
 they never disappear on a timer. Transcription failures that leave audio usable
 are warnings; capture failures remain errors. A successful user mutation followed
 by a failed list refresh produces a warning confirming the completed action.
+
+Modal content uses the shadcn Nova `Dialog` in `src/components/ui/dialog.tsx`.
+`DialogHeader`, `DialogTitle`, and `DialogFooter` provide the preset structure;
+the shared `DialogBody` scrolls long content while headers and actions stay visible.
+The surface stays within the dynamic viewport. Existing editors, score reports,
+and assessment instructions use the 3xl width; password-link dialogs use lg.
+The primitive owns the overlay, Escape/backdrop dismissal, focus handling, and
+localized close labels. The question editor's existing discard guard applies to
+every dismissal route. Overlay animations respect reduced motion.
 
 The primary hover background mixes 8% black into the preset primary color to
 retain readable text contrast with the orange palette.

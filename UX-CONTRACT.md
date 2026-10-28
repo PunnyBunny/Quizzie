@@ -9,13 +9,14 @@ in `types/zod/routes/assessments.ts` define accepted archive requests.
 
 ## Canonical ownership
 
-| Capability       | Owner                                      | Contract                                                                                                        |
-| ---------------- | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
-| Archive mutation | useAssessmentArchive                       | Wait for server success, remove the record, announce success; retain on failure.                                |
-| Feedback         | AssessmentArchive + shadcn Alert           | Localized inline success/error in one polite live region; nested alerts use presentation roles.                 |
-| Buttons          | shadcn Button + ButtonLink + ArchiveButton | Shared variant recipe; ghost archive actions, stable busy geometry, duplicate-submit protection, visible focus. |
-| Admin filtering  | AdminViewAssessments                       | Existing native selects; operating-system popup appearance is accepted.                                         |
-| Navigation       | App route guards + PageHeader              | User archive is owner-scoped; admin archive requires admin claims.                                              |
+| Capability       | Owner                                      | Contract                                                                                                          |
+| ---------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| Archive mutation | useAssessmentArchive                       | Wait for server success, remove the record, announce success; retain on failure.                                  |
+| Feedback         | AssessmentArchive + shadcn Alert           | Localized inline success/error in one polite live region; nested alerts use presentation roles.                   |
+| Dialogs          | shadcn Dialog                              | Controlled dismissal; shared scrolling body with visible title/actions, localized close labels, and focus return. |
+| Buttons          | shadcn Button + ButtonLink + ArchiveButton | Shared variant recipe; ghost archive actions, stable busy geometry, duplicate-submit protection, visible focus.   |
+| Admin filtering  | AdminViewAssessments                       | Existing native selects; operating-system popup appearance is accepted.                                           |
+| Navigation       | App route guards + PageHeader              | User archive is owner-scoped; admin archive requires admin claims.                                                |
 
 ## Flow
 
@@ -28,6 +29,14 @@ from the provider: transcription failures preserve audio and appear as warnings;
 capture failures remain errors. User creation/removal and the subsequent list
 refresh are handled separately so a refresh failure produces a warning confirming
 the completed action. Confirmed removals leave the local list immediately.
+
+Question/subtask editors, password links, score reports, and section instructions
+use the shared Dialog primitives. Close buttons, Escape, and backdrop dismissal
+invoke the same page-owned close handler. The question editor retains its discard
+confirmation and remains open when the user cancels it. Save errors remain in the
+open editor. Score dialogs keep their title and close action during loading and
+failure. Long bodies scroll independently of the header and footer; dialog widths
+preserve the previous wide-editor and compact-password-link layouts.
 
 Archive from an active list; restore from its archive page. Both actions stay on
 the current page. Completed records return to completed lists; incomplete records

@@ -6,20 +6,27 @@ const vm = require("node:vm");
 const ts = require("typescript");
 const root = path.resolve(__dirname, "..");
 function componentStubs(names) {
+  const uiExports = {
+    Alert: ["Alert", "AlertAction", "AlertDescription", "AlertTitle"],
+    Button: ["Button"],
+    Dialog: [
+      "Dialog",
+      "DialogBody",
+      "DialogClose",
+      "DialogContent",
+      "DialogDescription",
+      "DialogFooter",
+      "DialogHeader",
+      "DialogTitle",
+    ],
+  };
   return Object.fromEntries(
     names.map((name) => [
       path.join(
         root,
-        `apps/web/src/components/${name === "Alert" || name === "Button" ? `ui/${name.toLowerCase()}` : name}.tsx`,
+        `apps/web/src/components/${name in uiExports ? `ui/${name.toLowerCase()}` : name}.tsx`,
       ),
-      name === "Alert"
-        ? {
-            Alert: "Alert",
-            AlertAction: "AlertAction",
-            AlertDescription: "AlertDescription",
-            AlertTitle: "AlertTitle",
-          }
-        : { [name]: name },
+      Object.fromEntries((uiExports[name] ?? [name]).map((exportName) => [exportName, exportName])),
     ]),
   );
 }
@@ -623,7 +630,7 @@ async function uiChecks() {
           "Alert",
           "AssessmentHeader",
           "Button",
-          "Modal",
+          "Dialog",
           "SectionInstructionBody",
         ]),
       },
@@ -962,7 +969,7 @@ async function adminQuestionsChecks(app) {
     },
     [key("lib/errors.ts")]: { toUserMessage: (error) => error.message },
     [key("hooks/useTranslation.ts")]: { useTranslation: () => ({ t: (key) => key }) },
-    ...componentStubs(["PageHeader", "Button", "Modal", "Alert", "AssetUploader"]),
+    ...componentStubs(["PageHeader", "Button", "Dialog", "Alert", "AssetUploader"]),
   })("apps/web/src/pages/AdminQuestions.tsx").default;
   const render = () => nodes(hooks.render(() => AdminQuestions()));
   const button = (label) =>
@@ -1482,10 +1489,10 @@ async function main() {
   ).SaveQuestionSectionSchema;
   for (const invalid of [
     { ...hybrid, id: "" },
-    { ...hybrid, choicesAudios: [] },
     { ...hybrid, correctAnswers: ["missing", "D"] },
   ])
     assert.equal(schema.safeParse(invalid).success, false);
+  assert.equal(schema.safeParse({ ...hybrid, choicesAudios: [] }).success, true);
   const sharedAudio = { ...hybrid, choicesAudios: config.audios };
   assert.equal(schema.safeParse(sharedAudio).success, true);
   await app.call("/admin/save-question-section", sharedAudio, "owner", { isAdmin: true });

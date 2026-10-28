@@ -10,7 +10,15 @@ import type {
 import type { GetQuestionsOutput } from "../../../functions/src/types/questions";
 import { PageHeader } from "../components/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Modal } from "../components/Modal";
+import {
+  Dialog,
+  DialogBody,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toUserMessage } from "../lib/errors";
 import { useTranslation } from "../hooks/useTranslation";
@@ -314,146 +322,169 @@ export default function AdminSubtasks() {
 
       {/* Create/Edit Modal */}
       {editing && (
-        <Modal onClose={closeModal}>
-          <h2 className="text-xl font-semibold mb-4">
-            {editing.id ? t("adminSubtasks.editTitle") : t("adminSubtasks.newTitle")}
-          </h2>
+        <Dialog
+          open
+          onOpenChange={(open) => {
+            if (!open) closeModal();
+          }}
+        >
+          <DialogContent className="sm:max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>
+                {editing.id ? t("adminSubtasks.editTitle") : t("adminSubtasks.newTitle")}
+              </DialogTitle>
+            </DialogHeader>
 
-          <form onSubmit={handleSave} className="space-y-6">
-            {/* Name */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t("adminSubtasks.col.name")}
-              </label>
-              <input
-                type="text"
-                value={formName}
-                onChange={(e) => setFormName(e.target.value)}
-                className={INPUT_CLASSES}
-                placeholder={t("adminSubtasks.namePlaceholder")}
-                required
-              />
-            </div>
+            <form onSubmit={handleSave} className="flex min-h-0 flex-1 flex-col gap-4">
+              <DialogBody className="space-y-6">
+                {/* Name */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {t("adminSubtasks.col.name")}
+                  </label>
+                  <input
+                    type="text"
+                    value={formName}
+                    onChange={(e) => setFormName(e.target.value)}
+                    className={INPUT_CLASSES}
+                    placeholder={t("adminSubtasks.namePlaceholder")}
+                    required
+                  />
+                </div>
 
-            {/* Question picker */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {t("adminSubtasks.questionsLabel", { count: formQuestionIds.length })}
-              </label>
-              <div className="border border-gray-200 rounded-lg max-h-64 overflow-y-auto">
-                {sections.map((section, sIdx) => {
-                  const allSelected = Array.from({ length: section.length }, (_, i) => i).every(
-                    (qi) => isQuestionSelected(sIdx, qi),
-                  );
-                  const selectedCount = Array.from({ length: section.length }, (_, i) => i).filter(
-                    (qi) => isQuestionSelected(sIdx, qi),
-                  ).length;
+                {/* Question picker */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t("adminSubtasks.questionsLabel", { count: formQuestionIds.length })}
+                  </label>
+                  <div className="border border-gray-200 rounded-lg max-h-64 overflow-y-auto">
+                    {sections.map((section, sIdx) => {
+                      const allSelected = Array.from({ length: section.length }, (_, i) => i).every(
+                        (qi) => isQuestionSelected(sIdx, qi),
+                      );
+                      const selectedCount = Array.from(
+                        { length: section.length },
+                        (_, i) => i,
+                      ).filter((qi) => isQuestionSelected(sIdx, qi)).length;
 
-                  return (
-                    <div key={sIdx} className="border-b border-gray-100 last:border-b-0">
-                      <div className="flex items-center gap-2 px-3 py-2 bg-gray-50">
-                        <input
-                          type="checkbox"
-                          checked={allSelected}
-                          onChange={() => toggleAllInSection(sIdx, section.length)}
-                          className="rounded-sm"
-                        />
-                        <span className="text-sm font-medium text-gray-700">
-                          {section.title}{" "}
-                          <span className="text-gray-400 font-normal">
-                            {t("adminSubtasks.sectionMeta", {
-                              kind: section.kind.toUpperCase(),
-                              count: section.length,
-                              selected:
-                                selectedCount > 0
-                                  ? t("adminSubtasks.selectedSuffix", { count: selectedCount })
-                                  : "",
-                            })}
-                          </span>
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap gap-1 px-3 py-2">
-                        {Array.from({ length: section.length }, (_, qIdx) => (
-                          <Button
-                            variant={isQuestionSelected(sIdx, qIdx) ? "default" : "outline"}
-                            size="icon-sm"
-                            aria-pressed={isQuestionSelected(sIdx, qIdx)}
-                            key={qIdx}
-                            type="button"
-                            onClick={() => toggleQuestion(sIdx, qIdx)}
-                          >
-                            {qIdx + 1}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Norm stats grid */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {t("adminSubtasks.normsLabel")}
-              </label>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="pb-1 text-gray-500">
-                      <th className="pr-2 text-left font-medium">{t("adminSubtasks.col.grade")}</th>
-                      <th className="px-1 text-left font-medium">{t("adminSubtasks.col.min")}</th>
-                      <th className="px-1 text-left font-medium">{t("adminSubtasks.col.max")}</th>
-                      <th className="px-1 text-left font-medium">{t("adminSubtasks.col.n")}</th>
-                      <th className="px-1 text-left font-medium">{t("adminSubtasks.col.std")}</th>
-                      <th className="px-1 text-left font-medium">{t("adminSubtasks.col.mean")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {NORM_GRADES.map((grade) => (
-                      <tr key={grade}>
-                        <td className="py-1 pr-2 font-medium text-gray-700">{grade}</td>
-                        {NORM_FIELDS.map((field) => (
-                          <td key={field} className="py-1 px-1">
+                      return (
+                        <div key={sIdx} className="border-b border-gray-100 last:border-b-0">
+                          <div className="flex items-center gap-2 px-3 py-2 bg-gray-50">
                             <input
-                              type="text"
-                              inputMode="decimal"
-                              value={normDrafts[grade][field]}
-                              onChange={(e) => handleNormDraftChange(grade, field, e.target.value)}
-                              className="w-20 border border-gray-300 rounded-sm px-2 py-1 text-sm text-center focus:border-blue-500 focus:ring-blue-500"
-                              placeholder="-"
+                              type="checkbox"
+                              checked={allSelected}
+                              onChange={() => toggleAllInSection(sIdx, section.length)}
+                              className="rounded-sm"
                             />
-                          </td>
+                            <span className="text-sm font-medium text-gray-700">
+                              {section.title}{" "}
+                              <span className="text-gray-400 font-normal">
+                                {t("adminSubtasks.sectionMeta", {
+                                  kind: section.kind.toUpperCase(),
+                                  count: section.length,
+                                  selected:
+                                    selectedCount > 0
+                                      ? t("adminSubtasks.selectedSuffix", { count: selectedCount })
+                                      : "",
+                                })}
+                              </span>
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap gap-1 px-3 py-2">
+                            {Array.from({ length: section.length }, (_, qIdx) => (
+                              <Button
+                                variant={isQuestionSelected(sIdx, qIdx) ? "default" : "outline"}
+                                size="icon-sm"
+                                aria-pressed={isQuestionSelected(sIdx, qIdx)}
+                                key={qIdx}
+                                type="button"
+                                onClick={() => toggleQuestion(sIdx, qIdx)}
+                              >
+                                {qIdx + 1}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Norm stats grid */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t("adminSubtasks.normsLabel")}
+                  </label>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="pb-1 text-gray-500">
+                          <th className="pr-2 text-left font-medium">
+                            {t("adminSubtasks.col.grade")}
+                          </th>
+                          <th className="px-1 text-left font-medium">
+                            {t("adminSubtasks.col.min")}
+                          </th>
+                          <th className="px-1 text-left font-medium">
+                            {t("adminSubtasks.col.max")}
+                          </th>
+                          <th className="px-1 text-left font-medium">{t("adminSubtasks.col.n")}</th>
+                          <th className="px-1 text-left font-medium">
+                            {t("adminSubtasks.col.std")}
+                          </th>
+                          <th className="px-1 text-left font-medium">
+                            {t("adminSubtasks.col.mean")}
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {NORM_GRADES.map((grade) => (
+                          <tr key={grade}>
+                            <td className="py-1 pr-2 font-medium text-gray-700">{grade}</td>
+                            {NORM_FIELDS.map((field) => (
+                              <td key={field} className="py-1 px-1">
+                                <input
+                                  type="text"
+                                  inputMode="decimal"
+                                  value={normDrafts[grade][field]}
+                                  onChange={(e) =>
+                                    handleNormDraftChange(grade, field, e.target.value)
+                                  }
+                                  className="w-20 border border-gray-300 rounded-sm px-2 py-1 text-sm text-center focus:border-blue-500 focus:ring-blue-500"
+                                  placeholder="-"
+                                />
+                              </td>
+                            ))}
+                          </tr>
                         ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
 
-            {error && (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
-            <div className="flex justify-end gap-3">
-              <Button type="button" variant="outline" onClick={closeModal}>
-                {t("common.cancel")}
-              </Button>
-              <Button
-                type="submit"
-                variant="default"
-                disabled={saving}
-                aria-busy={saving}
-                className="min-w-24"
-              >
-                {saving ? t("common.saving") : t("common.save")}
-              </Button>
-            </div>
-          </form>
-        </Modal>
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+              </DialogBody>
+              <DialogFooter>
+                <DialogClose render={<Button type="button" variant="outline" />}>
+                  {t("common.cancel")}
+                </DialogClose>
+                <Button
+                  type="submit"
+                  variant="default"
+                  disabled={saving}
+                  aria-busy={saving}
+                  className="min-w-24"
+                >
+                  {saving ? t("common.saving") : t("common.save")}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

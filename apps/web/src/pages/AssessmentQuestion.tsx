@@ -17,7 +17,13 @@ import mime from "mime";
 import { toUserMessage } from "../lib/errors.ts";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AssessmentHeader } from "../components/AssessmentHeader";
-import { Modal } from "../components/Modal";
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { SectionInstructionBody } from "../components/SectionInstructionBody";
 import { useStorageUrl } from "../hooks/useStorageUrl.ts";
 import { audioStoragePath, imageStoragePath } from "../lib/asset-paths.ts";
@@ -613,14 +619,21 @@ function AssessmentQuestionInner() {
       </main>
 
       {showInstructions && (
-        <Modal onClose={() => setShowInstructions(false)}>
-          <div className="flex flex-col gap-4 pr-8">
-            <h2 className="text-2xl font-bold text-gray-900">
-              {t("question.sectionInstructions")}
-            </h2>
-            <SectionInstructionBody instruction={section.instruction} />
-          </div>
-        </Modal>
+        <Dialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setShowInstructions(false);
+          }}
+        >
+          <DialogContent className="sm:max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>{t("question.sectionInstructions")}</DialogTitle>
+            </DialogHeader>
+            <DialogBody>
+              <SectionInstructionBody instruction={section.instruction} />
+            </DialogBody>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
