@@ -24,7 +24,6 @@ export default function GradeAssessments() {
   );
 
   const [assessments, setAssessments] = useState<AssessmentDto[]>([]);
-  const [scoreModalId, setScoreModalId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const archive = useAssessmentArchive((id) => {
     setAssessments((items) => items.filter((item) => item.id !== id));
@@ -142,16 +141,15 @@ export default function GradeAssessments() {
                       >
                         {t("adminView.action.grade")}
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setScoreModalId(assessment.id);
-                        }}
-                      >
-                        {t("gradeAssessments.score")}
-                      </Button>
+                      <ScoreModal
+                        assessmentId={assessment.id}
+                        trigger={
+                          <Button size="sm" variant="secondary">
+                            {t("gradeAssessments.score")}
+                          </Button>
+                        }
+                        onGoToGrading={() => navigate(`/grade/${assessment.id}`)}
+                      />
                     </div>
                   </div>
                 </div>
@@ -160,14 +158,6 @@ export default function GradeAssessments() {
           </div>
         )}
       </div>
-
-      {scoreModalId && (
-        <ScoreModal
-          assessmentId={scoreModalId}
-          onClose={() => setScoreModalId(null)}
-          onGoToGrading={() => navigate(`/grade/${scoreModalId}`)}
-        />
-      )}
     </div>
   );
 }

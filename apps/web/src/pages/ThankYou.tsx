@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import ScoreModal from "../components/ScoreModal";
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,6 @@ import { useTranslation } from "../hooks/useTranslation";
 export default function ThankYou() {
   const navigate = useNavigate();
   const { id = "" } = useParams<{ id: string }>();
-  const [showScore, setShowScore] = useState(false);
   const { t } = useTranslation();
 
   return (
@@ -16,23 +14,17 @@ export default function ThankYou() {
         <h1 className="text-2xl sm:text-3xl font-semibold mb-6">{t("thankYou.title")}</h1>
         <div className="flex flex-col gap-3">
           {id && (
-            <Button onClick={() => setShowScore(true)} className="w-full">
-              {t("thankYou.viewScores")}
-            </Button>
+            <ScoreModal
+              assessmentId={id}
+              trigger={<Button className="w-full">{t("thankYou.viewScores")}</Button>}
+              onGoToGrading={() => navigate(`/grade/${id}`)}
+            />
           )}
           <Button variant="outline" onClick={() => navigate("/")} className="w-full">
             {t("thankYou.returnHome")}
           </Button>
         </div>
       </div>
-
-      {showScore && id && (
-        <ScoreModal
-          assessmentId={id}
-          onClose={() => setShowScore(false)}
-          onGoToGrading={() => navigate(`/grade/${id}`)}
-        />
-      )}
     </div>
   );
 }

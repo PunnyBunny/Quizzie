@@ -18,6 +18,7 @@ function componentStubs(names) {
       "DialogFooter",
       "DialogHeader",
       "DialogTitle",
+      "DialogTrigger",
     ],
   };
   return Object.fromEntries(
@@ -491,7 +492,7 @@ function nodes(tree) {
   if (!tree || typeof tree !== "object") return [];
   return [tree, ...nodes(tree.props?.children)];
 }
-const isButton = (node) => node.type === "button" || node.type === "Button";
+const isButton = (node) => ["button", "Button", "DialogTrigger"].includes(node.type);
 const isGradeButton = (node) =>
   isButton(node) && "aria-pressed" in node.props && typeof node.props.children[0] === "number";
 async function questionProviderChecks() {
@@ -973,7 +974,7 @@ async function adminQuestionsChecks(app) {
   })("apps/web/src/pages/AdminQuestions.tsx").default;
   const render = () => nodes(hooks.render(() => AdminQuestions()));
   const button = (label) =>
-    render().find((node) => node.type === "Button" && node.props.children.includes(label));
+    render().find((node) => isButton(node) && node.props.children.includes(label));
   const kindSelect = () => render().find((node) => node.type === "select");
   const submit = () =>
     render()
@@ -1024,7 +1025,7 @@ async function adminQuestionsChecks(app) {
   assert.equal(stored.choices[0].B, "Option 2");
   assert.equal(stored.correctAnswers[0], "B");
   render()
-    .filter((node) => node.type === "Button" && node.props.children.includes("common.edit"))
+    .filter((node) => isButton(node) && node.props.children.includes("common.edit"))
     .at(-1)
     .props.onClick();
   render()

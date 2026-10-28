@@ -102,7 +102,6 @@ export default function GradeAssessment() {
   const [localAudioGrades, setLocalAudioGrades] = useState<Record<string, Record<string, number>>>(
     {},
   );
-  const [showScore, setShowScore] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [gradeError, setGradeError] = useState<string | null>(null);
 
@@ -332,9 +331,10 @@ export default function GradeAssessment() {
           subtitle={`${studentResponseData.assessment.name} • ${studentResponseData.assessment.school} • ${t("gradeAssessments.grade")} ${studentResponseData.assessment.grade}`}
           backTo={backPath}
           actions={
-            <Button variant="default" onClick={() => setShowScore(true)}>
-              {t("gradeAssessment.viewScore")}
-            </Button>
+            <ScoreModal
+              assessmentId={id}
+              trigger={<Button variant="default">{t("gradeAssessment.viewScore")}</Button>}
+            />
           }
         />
 
@@ -701,8 +701,6 @@ export default function GradeAssessment() {
           )}
         </div>
       </div>
-
-      {showScore && <ScoreModal assessmentId={id} onClose={() => setShowScore(false)} />}
     </div>
   );
 }

@@ -23,6 +23,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { SectionInstructionBody } from "../components/SectionInstructionBody";
 import { useStorageUrl } from "../hooks/useStorageUrl.ts";
@@ -179,7 +180,6 @@ function AssessmentQuestionInner() {
   const [finishAssessmentFunc] = useCallable<FinishAssessmentRequest>("api/finish-assessment");
 
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [showInstructions, setShowInstructions] = useState(false);
 
   // TODO: fix this type
   const [submitHybrid] = useCallable<
@@ -363,14 +363,23 @@ function AssessmentQuestionInner() {
         questionIndex={questionIndex}
         right={
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-            <Button
-              variant="outline"
-              type="button"
-              onClick={() => setShowInstructions(true)}
-              className="self-start sm:self-auto"
-            >
-              {t("question.viewInstructions")}
-            </Button>
+            <Dialog>
+              <DialogTrigger
+                render={
+                  <Button variant="outline" type="button" className="self-start sm:self-auto" />
+                }
+              >
+                {t("question.viewInstructions")}
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-3xl">
+                <DialogHeader>
+                  <DialogTitle>{t("question.sectionInstructions")}</DialogTitle>
+                </DialogHeader>
+                <DialogBody>
+                  <SectionInstructionBody instruction={section.instruction} />
+                </DialogBody>
+              </DialogContent>
+            </Dialog>
             <div className="flex flex-col sm:items-end">
               <div className="text-sm sm:text-md text-gray-600">
                 {t("question.questionXofY", {
@@ -617,24 +626,6 @@ function AssessmentQuestionInner() {
           </section>
         </form>
       </main>
-
-      {showInstructions && (
-        <Dialog
-          open
-          onOpenChange={(open) => {
-            if (!open) setShowInstructions(false);
-          }}
-        >
-          <DialogContent className="sm:max-w-3xl">
-            <DialogHeader>
-              <DialogTitle>{t("question.sectionInstructions")}</DialogTitle>
-            </DialogHeader>
-            <DialogBody>
-              <SectionInstructionBody instruction={section.instruction} />
-            </DialogBody>
-          </DialogContent>
-        </Dialog>
-      )}
     </div>
   );
 }

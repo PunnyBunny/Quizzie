@@ -31,8 +31,12 @@ refresh are handled separately so a refresh failure produces a warning confirmin
 the completed action. Confirmed removals leave the local list immediately.
 
 Question/subtask editors, password links, score reports, and section instructions
-use the shared Dialog primitives. Close buttons, Escape, and backdrop dismissal
-invoke the same page-owned close handler. The question editor retains its discard
+use the shared Dialog primitives. Direct open buttons use `DialogTrigger`;
+password links open programmatically after their API call succeeds. Editor
+triggers prepare the selected form before opening, and score dialogs fetch only
+when opened, refreshing their data on each reopening. Footer dismissal uses
+`DialogClose`; Escape and backdrop dismissal follow the same Dialog close path.
+The question editor retains its discard
 confirmation and remains open when the user cancels it. Save errors remain in the
 open editor. Score dialogs keep their title and close action during loading and
 failure. Long bodies scroll independently of the header and footer; dialog widths

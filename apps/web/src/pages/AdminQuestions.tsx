@@ -21,6 +21,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AssetUploader } from "../components/AssetUploader";
@@ -345,88 +346,99 @@ export default function AdminQuestions() {
   };
 
   return (
-    <div className="p-4 sm:p-6">
-      <div className="max-w-6xl mx-auto">
-        <PageHeader
-          title={t("admin.questions.title")}
-          subtitle={t("adminQuestions.subtitle")}
-          backTo="/admin"
-        />
+    <Dialog
+      open={editing !== null}
+      onOpenChange={(open, details) => {
+        if (!open && !requestClose()) details.cancel();
+      }}
+    >
+      <div className="p-4 sm:p-6">
+        <div className="max-w-6xl mx-auto">
+          <PageHeader
+            title={t("admin.questions.title")}
+            subtitle={t("adminQuestions.subtitle")}
+            backTo="/admin"
+          />
 
-        <div className="mb-4 flex justify-end">
-          <Button onClick={openNew}>{t("adminQuestions.new")}</Button>
-        </div>
+          <div className="mb-4 flex justify-end">
+            <DialogTrigger render={<Button />} onClick={openNew}>
+              {t("adminQuestions.new")}
+            </DialogTrigger>
+          </div>
 
-        <div className="bg-white rounded-lg border shadow-xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] text-left text-sm">
-              <thead className="bg-gray-50 text-gray-500">
-                <tr>
-                  <th className="px-4 sm:px-6 py-3 font-medium">{t("adminQuestions.col.id")}</th>
-                  <th className="px-4 sm:px-6 py-3 font-medium">{t("adminQuestions.col.title")}</th>
-                  <th className="px-4 sm:px-6 py-3 font-medium">{t("adminQuestions.col.kind")}</th>
-                  <th className="px-4 sm:px-6 py-3 font-medium text-center">
-                    {" "}
-                    {t("adminQuestions.col.length")}{" "}
-                  </th>
-                  <th className="px-4 sm:px-6 py-3 font-medium">{t("adminQuestions.col.goal")}</th>
-                  <th className="px-4 sm:px-6 py-3 font-medium">
-                    {t("adminQuestions.col.actions")}
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {loadingSections && (
+          <div className="bg-white rounded-lg border shadow-xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[720px] text-left text-sm">
+                <thead className="bg-gray-50 text-gray-500">
                   <tr>
-                    <td colSpan={6} className="px-4 sm:px-6 py-8 text-center text-gray-500">
-                      {t("common.loadingDots")}
-                    </td>
+                    <th className="px-4 sm:px-6 py-3 font-medium">{t("adminQuestions.col.id")}</th>
+                    <th className="px-4 sm:px-6 py-3 font-medium">
+                      {t("adminQuestions.col.title")}
+                    </th>
+                    <th className="px-4 sm:px-6 py-3 font-medium">
+                      {t("adminQuestions.col.kind")}
+                    </th>
+                    <th className="px-4 sm:px-6 py-3 font-medium text-center">
+                      {" "}
+                      {t("adminQuestions.col.length")}{" "}
+                    </th>
+                    <th className="px-4 sm:px-6 py-3 font-medium">
+                      {t("adminQuestions.col.goal")}
+                    </th>
+                    <th className="px-4 sm:px-6 py-3 font-medium">
+                      {t("adminQuestions.col.actions")}
+                    </th>
                   </tr>
-                )}
-                {!loadingSections && sections.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="px-4 sm:px-6 py-8 text-center text-gray-500">
-                      {t("adminQuestions.empty")}
-                    </td>
-                  </tr>
-                )}
-                {sections.map((section) => (
-                  <tr key={section.id} className="hover:bg-gray-50">
-                    <td className="px-4 sm:px-6 py-3 font-mono text-xs text-gray-500">
-                      {section.id}
-                    </td>
-                    <td className="px-4 sm:px-6 py-3 font-medium text-gray-900 align-top">
-                      <div className="max-w-[180px] md:max-w-[260px] lg:max-w-none wrap-break-word">
-                        {section.title}
-                      </div>
-                    </td>
-                    <td className="px-4 sm:px-6 py-3 uppercase text-xs">{section.kind}</td>
-                    <td className="px-4 sm:px-6 py-3 text-center">{section.length}</td>
-                    <td className="px-4 sm:px-6 py-3 text-gray-600 align-top">
-                      <div className="max-w-[280px] md:max-w-[420px] lg:max-w-none wrap-break-word">
-                        {section.goal}
-                      </div>
-                    </td>
-                    <td className="px-4 sm:px-6 py-3">
-                      <Button variant="outline" size="sm" onClick={() => openEdit(section)}>
-                        {t("common.edit")}
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {loadingSections && (
+                    <tr>
+                      <td colSpan={6} className="px-4 sm:px-6 py-8 text-center text-gray-500">
+                        {t("common.loadingDots")}
+                      </td>
+                    </tr>
+                  )}
+                  {!loadingSections && sections.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="px-4 sm:px-6 py-8 text-center text-gray-500">
+                        {t("adminQuestions.empty")}
+                      </td>
+                    </tr>
+                  )}
+                  {sections.map((section) => (
+                    <tr key={section.id} className="hover:bg-gray-50">
+                      <td className="px-4 sm:px-6 py-3 font-mono text-xs text-gray-500">
+                        {section.id}
+                      </td>
+                      <td className="px-4 sm:px-6 py-3 font-medium text-gray-900 align-top">
+                        <div className="max-w-[180px] md:max-w-[260px] lg:max-w-none wrap-break-word">
+                          {section.title}
+                        </div>
+                      </td>
+                      <td className="px-4 sm:px-6 py-3 uppercase text-xs">{section.kind}</td>
+                      <td className="px-4 sm:px-6 py-3 text-center">{section.length}</td>
+                      <td className="px-4 sm:px-6 py-3 text-gray-600 align-top">
+                        <div className="max-w-[280px] md:max-w-[420px] lg:max-w-none wrap-break-word">
+                          {section.goal}
+                        </div>
+                      </td>
+                      <td className="px-4 sm:px-6 py-3">
+                        <DialogTrigger
+                          render={<Button variant="outline" size="sm" />}
+                          onClick={() => openEdit(section)}
+                        >
+                          {t("common.edit")}
+                        </DialogTrigger>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
-      </div>
 
-      {editing && (
-        <Dialog
-          open
-          onOpenChange={(open, details) => {
-            if (!open && !requestClose()) details.cancel();
-          }}
-        >
+        {editing && (
           <DialogContent className="sm:max-w-3xl">
             <DialogHeader>
               <DialogTitle>
@@ -828,8 +840,8 @@ export default function AdminQuestions() {
               </DialogFooter>
             </form>
           </DialogContent>
-        </Dialog>
-      )}
-    </div>
+        )}
+      </div>
+    </Dialog>
   );
 }

@@ -100,6 +100,9 @@ and assessment instructions use the 3xl width; password-link dialogs use lg.
 The primitive owns the overlay, Escape/backdrop dismissal, focus handling, and
 localized close labels. The question editor's existing discard guard applies to
 every dismissal route. Overlay animations respect reduced motion.
+Direct open buttons use `DialogTrigger`; editor form setup remains page-owned,
+and score data loads only while its dialog is open. Password-link dialogs open
+programmatically after the API returns a link.
 
 The primary hover background mixes 8% black into the preset primary color to
 retain readable text contrast with the orange palette.

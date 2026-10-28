@@ -18,6 +18,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toUserMessage } from "../lib/errors";
@@ -228,106 +229,111 @@ export default function AdminSubtasks() {
     );
 
   return (
-    <div className="p-4 sm:p-6">
-      <div className="max-w-6xl mx-auto">
-        <PageHeader
-          title={t("admin.subtasks.title")}
-          subtitle={t("admin.subtasks.description")}
-          backTo="/admin"
-        />
+    <Dialog
+      open={editing !== null}
+      onOpenChange={(open) => {
+        if (!open) closeModal();
+      }}
+    >
+      <div className="p-4 sm:p-6">
+        <div className="max-w-6xl mx-auto">
+          <PageHeader
+            title={t("admin.subtasks.title")}
+            subtitle={t("admin.subtasks.description")}
+            backTo="/admin"
+          />
 
-        <div className="mb-4 flex justify-end">
-          <Button onClick={openNew}>{t("adminSubtasks.new")}</Button>
+          <div className="mb-4 flex justify-end">
+            <DialogTrigger render={<Button />} onClick={openNew}>
+              {t("adminSubtasks.new")}
+            </DialogTrigger>
+          </div>
+
+          {loadError && (
+            <div className="mb-4">
+              <Alert variant="destructive">
+                <AlertDescription>{loadError}</AlertDescription>
+              </Alert>
+            </div>
+          )}
+          {listError && (
+            <div className="mb-4">
+              <Alert variant="destructive">
+                <AlertDescription>{listError}</AlertDescription>
+              </Alert>
+            </div>
+          )}
+
+          {/* Subtask list */}
+          <div className="bg-white rounded-lg border shadow-xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-gray-50 text-gray-500">
+                  <tr>
+                    <th className="px-4 sm:px-6 py-3 font-medium">{t("adminSubtasks.col.name")}</th>
+                    <th className="px-3 sm:px-6 py-3 font-medium text-center whitespace-nowrap">
+                      {t("adminSubtasks.col.numQuestions")}
+                    </th>
+                    <th className="px-2 sm:px-6 py-3 font-medium text-center">S1</th>
+                    <th className="px-2 sm:px-6 py-3 font-medium text-center">S3</th>
+                    <th className="px-2 sm:px-6 py-3 font-medium text-center">S5</th>
+                    <th className="px-4 sm:px-6 py-3 font-medium">{t("adminUsers.col.actions")}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {loadingSubtasks && (
+                    <tr>
+                      <td colSpan={6} className="px-4 sm:px-6 py-8 text-center text-gray-500">
+                        {t("common.loadingDots")}
+                      </td>
+                    </tr>
+                  )}
+                  {!loadingSubtasks && subtasks.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="px-4 sm:px-6 py-8 text-center text-gray-500">
+                        {t("adminSubtasks.empty")}
+                      </td>
+                    </tr>
+                  )}
+                  {subtasks.map((st) => (
+                    <tr key={st.id} className="hover:bg-gray-50">
+                      <td className="px-4 sm:px-6 py-3 font-medium text-gray-900">{st.name}</td>
+                      <td className="px-3 sm:px-6 py-3 text-center">{st.questionIds.length}</td>
+                      <td className="px-2 sm:px-6 py-3 text-center">
+                        {normConfiguredBadge(st.norms, "S1")}
+                      </td>
+                      <td className="px-2 sm:px-6 py-3 text-center">
+                        {normConfiguredBadge(st.norms, "S3")}
+                      </td>
+                      <td className="px-2 sm:px-6 py-3 text-center">
+                        {normConfiguredBadge(st.norms, "S5")}
+                      </td>
+                      <td className="px-4 sm:px-6 py-3 whitespace-nowrap space-x-2">
+                        <DialogTrigger
+                          render={<Button variant="outline" size="sm" />}
+                          onClick={() => openEdit(st)}
+                        >
+                          {t("common.edit")}
+                        </DialogTrigger>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          disabled={deleting}
+                          onClick={() => handleDelete(st.id)}
+                        >
+                          {t("common.delete")}
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
 
-        {loadError && (
-          <div className="mb-4">
-            <Alert variant="destructive">
-              <AlertDescription>{loadError}</AlertDescription>
-            </Alert>
-          </div>
-        )}
-        {listError && (
-          <div className="mb-4">
-            <Alert variant="destructive">
-              <AlertDescription>{listError}</AlertDescription>
-            </Alert>
-          </div>
-        )}
-
-        {/* Subtask list */}
-        <div className="bg-white rounded-lg border shadow-xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 text-gray-500">
-                <tr>
-                  <th className="px-4 sm:px-6 py-3 font-medium">{t("adminSubtasks.col.name")}</th>
-                  <th className="px-3 sm:px-6 py-3 font-medium text-center whitespace-nowrap">
-                    {t("adminSubtasks.col.numQuestions")}
-                  </th>
-                  <th className="px-2 sm:px-6 py-3 font-medium text-center">S1</th>
-                  <th className="px-2 sm:px-6 py-3 font-medium text-center">S3</th>
-                  <th className="px-2 sm:px-6 py-3 font-medium text-center">S5</th>
-                  <th className="px-4 sm:px-6 py-3 font-medium">{t("adminUsers.col.actions")}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {loadingSubtasks && (
-                  <tr>
-                    <td colSpan={6} className="px-4 sm:px-6 py-8 text-center text-gray-500">
-                      {t("common.loadingDots")}
-                    </td>
-                  </tr>
-                )}
-                {!loadingSubtasks && subtasks.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="px-4 sm:px-6 py-8 text-center text-gray-500">
-                      {t("adminSubtasks.empty")}
-                    </td>
-                  </tr>
-                )}
-                {subtasks.map((st) => (
-                  <tr key={st.id} className="hover:bg-gray-50">
-                    <td className="px-4 sm:px-6 py-3 font-medium text-gray-900">{st.name}</td>
-                    <td className="px-3 sm:px-6 py-3 text-center">{st.questionIds.length}</td>
-                    <td className="px-2 sm:px-6 py-3 text-center">
-                      {normConfiguredBadge(st.norms, "S1")}
-                    </td>
-                    <td className="px-2 sm:px-6 py-3 text-center">
-                      {normConfiguredBadge(st.norms, "S3")}
-                    </td>
-                    <td className="px-2 sm:px-6 py-3 text-center">
-                      {normConfiguredBadge(st.norms, "S5")}
-                    </td>
-                    <td className="px-4 sm:px-6 py-3 whitespace-nowrap space-x-2">
-                      <Button variant="outline" size="sm" onClick={() => openEdit(st)}>
-                        {t("common.edit")}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        disabled={deleting}
-                        onClick={() => handleDelete(st.id)}
-                      >
-                        {t("common.delete")}
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      {/* Create/Edit Modal */}
-      {editing && (
-        <Dialog
-          open
-          onOpenChange={(open) => {
-            if (!open) closeModal();
-          }}
-        >
+        {/* Create/Edit Modal */}
+        {editing && (
           <DialogContent className="sm:max-w-3xl">
             <DialogHeader>
               <DialogTitle>
@@ -484,8 +490,8 @@ export default function AdminSubtasks() {
               </DialogFooter>
             </form>
           </DialogContent>
-        </Dialog>
-      )}
-    </div>
+        )}
+      </div>
+    </Dialog>
   );
 }

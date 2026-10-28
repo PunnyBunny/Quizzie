@@ -24,7 +24,6 @@ export default function ViewAssessments() {
   );
 
   const [assessments, setAssessments] = useState<AssessmentDto[]>([]);
-  const [scoreModalId, setScoreModalId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const archive = useAssessmentArchive((id) => {
     setAssessments((items) => items.filter((item) => item.id !== id));
@@ -168,13 +167,18 @@ export default function ViewAssessments() {
                       >
                         {t("viewAssessments.continue")}
                       </Button>
-                      <Button
-                        variant="secondary"
-                        className="w-full sm:w-auto whitespace-nowrap"
-                        onClick={() => setScoreModalId(assessment.id)}
-                      >
-                        {t("viewAssessments.viewScore")}
-                      </Button>
+                      <ScoreModal
+                        assessmentId={assessment.id}
+                        trigger={
+                          <Button
+                            variant="secondary"
+                            className="w-full sm:w-auto whitespace-nowrap"
+                          >
+                            {t("viewAssessments.viewScore")}
+                          </Button>
+                        }
+                        onGoToGrading={() => navigate(`/grade/${assessment.id}`)}
+                      />
                       <ArchiveButton
                         busy={archive.pendingId === assessment.id}
                         disabled={archive.pendingId !== null}
@@ -190,14 +194,6 @@ export default function ViewAssessments() {
           </div>
         )}
       </div>
-
-      {scoreModalId && (
-        <ScoreModal
-          assessmentId={scoreModalId}
-          onClose={() => setScoreModalId(null)}
-          onGoToGrading={() => navigate(`/grade/${scoreModalId}`)}
-        />
-      )}
     </div>
   );
 }
