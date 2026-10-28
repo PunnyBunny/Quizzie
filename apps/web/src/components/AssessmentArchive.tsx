@@ -1,4 +1,4 @@
-import { Alert } from "./Alert";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "../hooks/useTranslation";
 import type { ArchiveMessage } from "../hooks/useAssessmentArchive";
@@ -15,15 +15,21 @@ export function ArchiveFeedback({
   return (
     <div aria-live="polite" aria-atomic="true">
       {error && (
-        <Alert kind="error" className="mb-4">
-          {error}
+        <Alert variant="destructive" className="mb-4" role="presentation">
+          <AlertDescription>
+            <p>{error}</p>
+          </AlertDescription>
         </Alert>
       )}
       {message && (
-        <Alert kind="success" className="mb-4">
-          {beforeName}
-          <strong>{message.name}</strong>
-          {afterName}
+        <Alert variant="success" role="presentation" className="mb-4">
+          <AlertDescription>
+            <p>
+              {beforeName}
+              <strong>{message.name}</strong>
+              {afterName}
+            </p>
+          </AlertDescription>
         </Alert>
       )}
     </div>

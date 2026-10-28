@@ -10,7 +10,7 @@ import { useAssessmentArchive } from "../hooks/useAssessmentArchive";
 import { ArchiveButton, ArchiveFeedback } from "../components/AssessmentArchive";
 import { PageHeader } from "../components/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Alert } from "../components/Alert";
+import { Alert, AlertAction, AlertDescription } from "@/components/ui/alert";
 
 export default function ArchivedAssessments() {
   const { t, language } = useTranslation();
@@ -69,11 +69,13 @@ export default function ArchivedAssessments() {
           {t("common.loading")}
         </p>
       ) : error ? (
-        <Alert kind="error">
-          {error}{" "}
-          <Button variant="outline" onClick={() => setReload((value) => value + 1)}>
-            {t("common.retry")}
-          </Button>
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+          <AlertAction>
+            <Button variant="outline" size="sm" onClick={() => setReload((value) => value + 1)}>
+              {t("common.retry")}
+            </Button>
+          </AlertAction>
         </Alert>
       ) : assessments.length === 0 ? (
         <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">

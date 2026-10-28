@@ -3,7 +3,7 @@ import { useCallable } from "../lib/firebase-hooks";
 import { toUserMessage } from "../lib/errors";
 import { Modal } from "./Modal";
 import { Button } from "@/components/ui/button";
-import { Alert } from "./Alert";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useTranslation } from "../hooks/useTranslation";
 import {
   type QuizSection,
@@ -97,7 +97,11 @@ export default function ScoreModal({ assessmentId, onClose, onGoToGrading }: Sco
     <Modal onClose={onClose}>
       {loading && <p className="text-gray-500 text-center py-8">{t("scoreModal.loading")}</p>}
 
-      {error && <Alert kind="error">{error}</Alert>}
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
       {!loading && !error && assessment && sections && responsesBySection && (
         <>

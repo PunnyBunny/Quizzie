@@ -324,6 +324,10 @@ const en: Dict = {
   "adminUsers.errorRemove": "Could not remove user.",
   "adminUsers.errorLoad": "Could not load users.",
   "adminUsers.created": "User created successfully!",
+  "adminUsers.createdRefreshWarning":
+    "User created, but the user list could not be refreshed. Reload the page to refresh the list.",
+  "adminUsers.removedRefreshWarning":
+    "User {{email}} was removed, but the user list could not be refreshed. Reload the page to refresh the list.",
   "adminUsers.creating": "Creating...",
   "adminUsers.create": "Create User",
   "adminUsers.systemUsers": "System Users",
@@ -736,6 +740,10 @@ const zh: Dict = {
   "adminUsers.errorRemove": "無法移除使用者。",
   "adminUsers.errorLoad": "無法載入使用者。",
   "adminUsers.created": "成功建立使用者!",
+  "adminUsers.createdRefreshWarning":
+    "已建立使用者，但無法更新使用者列表。請重新載入頁面以更新列表。",
+  "adminUsers.removedRefreshWarning":
+    "已移除使用者 {{email}}，但無法更新使用者列表。請重新載入頁面以更新列表。",
   "adminUsers.creating": "建立中...",
   "adminUsers.create": "建立使用者",
   "adminUsers.systemUsers": "系統使用者",

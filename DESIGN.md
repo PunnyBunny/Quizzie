@@ -9,6 +9,7 @@ colors:
   text: "oklch(0.145 0 0)"
   border: "oklch(0.922 0 0)"
   success: "oklch(52.7% 0.154 150.069)"
+  warning: "oklch(47.3% 0.137 46.201)"
   danger: "oklch(0.577 0.245 27.325)"
 typography:
   sans:
@@ -51,11 +52,12 @@ theme, Geist body font, Raleway heading font, Lucide icons, default menu color,
 and subtle menu accent.
 
 The frontmatter mirrors the light semantic tokens in `src/index.css`, except
-success, which retains Tailwind green-700. The mapping is `primary` to
+success and warning, which use Tailwind's canonical green-700 and amber-800
+theme colors in the shared Alert recipe. The mapping is `primary` to
 `--primary`, `background` to `--background`, `surface` to `--card`, `text` to
 `--foreground`, `border` to `--border`, and `danger` to `--destructive`.
 `@theme inline` exposes these through semantic Tailwind utilities consumed by
-`src/components/ui/button.tsx`. The stylesheet also owns the dark token values;
+`src/components/ui/button.tsx` and `src/components/ui/alert.tsx`. The stylesheet also owns the dark token values;
 the application does not yet offer a complete dark-mode interface.
 
 The application `Button` module re-exports `src/components/ui/button.tsx`, using
@@ -71,6 +73,23 @@ Use orange `default` for the main action, `outline` for secondary actions,
 buttons expose `aria-pressed` and use the primary variant. Archive and Unarchive
 are reversible utility actions with the compact ghost variant; their saving
 labels retain stable button geometry.
+
+Inline feedback uses the shadcn Nova `Alert` in `src/components/ui/alert.tsx`,
+with `AlertDescription` for messages and `AlertTitle` for existing headings.
+Errors use `destructive`; completed actions use the green `success` variant;
+recoverable conditions use the amber `warning` variant. Success and warning
+descriptions inherit their status color. `default` is reserved for neutral information.
+Archive feedback keeps one polite live region and uses presentation roles on
+its nested alerts. Retry and recovery buttons use `AlertAction`: actions stack below
+the message on narrow screens and sit beside it on wider screens. The shared grid
+reserves space for action groups without overlapping text. Error and neutral alerts use the preset
+card background; success and warning use Tailwind green/amber-50 backgrounds,
+200 borders, and 700/800 text, with 950 backgrounds, 800 borders, and 200 text
+in dark mode. Status colors are owned by the shared Alert recipe and Tailwind's theme.
+Alerts persist until a relevant action replaces them or the user navigates away;
+they never disappear on a timer. Transcription failures that leave audio usable
+are warnings; capture failures remain errors. A successful user mutation followed
+by a failed list refresh produces a warning confirming the completed action.
 
 The primary hover background mixes 8% black into the preset primary color to
 retain readable text contrast with the orange palette.

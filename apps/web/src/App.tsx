@@ -20,7 +20,7 @@ import AdminUserManagement from "./pages/AdminUserManagement.tsx";
 import AdminSubtasks from "./pages/AdminSubtasks.tsx";
 import AdminQuestions from "./pages/AdminQuestions.tsx";
 import useAuth from "./hooks/useAuth.tsx";
-import { Alert } from "./components/Alert";
+import { Alert, AlertAction, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { toUserMessage } from "./lib/errors";
 import { useTranslation } from "./hooks/useTranslation";
@@ -50,10 +50,16 @@ const ProtectedRoute = ({ isAdminRoute }: ProtectedRouteProps) => {
   if (error) {
     return (
       <CenteredMessage>
-        <Alert kind="error">{toUserMessage(error, t("common.couldNotVerifySession"))}</Alert>
-        <Button variant="default" onClick={() => window.location.reload()} className="w-full">
-          {t("common.retry")}
-        </Button>
+        <Alert variant="destructive">
+          <AlertDescription>
+            {toUserMessage(error, t("common.couldNotVerifySession"))}
+          </AlertDescription>
+          <AlertAction>
+            <Button variant="default" size="sm" onClick={() => window.location.reload()}>
+              {t("common.retry")}
+            </Button>
+          </AlertAction>
+        </Alert>
       </CenteredMessage>
     );
   }
@@ -63,10 +69,14 @@ const ProtectedRoute = ({ isAdminRoute }: ProtectedRouteProps) => {
   if (isAdminRoute && !isAdmin) {
     return (
       <CenteredMessage>
-        <Alert kind="error">{t("common.noPermission")}</Alert>
-        <Button variant="outline" onClick={() => (window.location.href = "/")} className="w-full">
-          {t("common.goHome")}
-        </Button>
+        <Alert variant="destructive">
+          <AlertDescription>{t("common.noPermission")}</AlertDescription>
+          <AlertAction>
+            <Button variant="outline" size="sm" onClick={() => (window.location.href = "/")}>
+              {t("common.goHome")}
+            </Button>
+          </AlertAction>
+        </Alert>
       </CenteredMessage>
     );
   }

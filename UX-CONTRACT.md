@@ -12,12 +12,22 @@ in `types/zod/routes/assessments.ts` define accepted archive requests.
 | Capability       | Owner                                      | Contract                                                                                                        |
 | ---------------- | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
 | Archive mutation | useAssessmentArchive                       | Wait for server success, remove the record, announce success; retain on failure.                                |
-| Feedback         | AssessmentArchive + shared Alert           | Localized inline success/error in a polite live region.                                                         |
+| Feedback         | AssessmentArchive + shadcn Alert           | Localized inline success/error in one polite live region; nested alerts use presentation roles.                 |
 | Buttons          | shadcn Button + ButtonLink + ArchiveButton | Shared variant recipe; ghost archive actions, stable busy geometry, duplicate-submit protection, visible focus. |
 | Admin filtering  | AdminViewAssessments                       | Existing native selects; operating-system popup appearance is accepted.                                         |
 | Navigation       | App route guards + PageHeader              | User archive is owner-scoped; admin archive requires admin claims.                                              |
 
 ## Flow
+
+Inline alerts never expire on a timer. Success uses the shared green Alert variant,
+and recoverable conditions use amber warning. Retry and recovery controls belong
+to `AlertAction`, which stacks below the message on narrow screens and sits beside
+it on wider screens. Their existing reload, retry, reset, and navigation behavior
+is preserved. Recording notices carry severity
+from the provider: transcription failures preserve audio and appear as warnings;
+capture failures remain errors. User creation/removal and the subsequent list
+refresh are handled separately so a refresh failure produces a warning confirming
+the completed action. Confirmed removals leave the local list immediately.
 
 Archive from an active list; restore from its archive page. Both actions stay on
 the current page. Completed records return to completed lists; incomplete records

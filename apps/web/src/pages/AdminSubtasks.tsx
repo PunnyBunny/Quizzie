@@ -11,7 +11,7 @@ import type { GetQuestionsOutput } from "../../../functions/src/types/questions"
 import { PageHeader } from "../components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Modal } from "../components/Modal";
-import { Alert } from "../components/Alert";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toUserMessage } from "../lib/errors";
 import { useTranslation } from "../hooks/useTranslation";
 
@@ -234,12 +234,16 @@ export default function AdminSubtasks() {
 
         {loadError && (
           <div className="mb-4">
-            <Alert kind="error">{loadError}</Alert>
+            <Alert variant="destructive">
+              <AlertDescription>{loadError}</AlertDescription>
+            </Alert>
           </div>
         )}
         {listError && (
           <div className="mb-4">
-            <Alert kind="error">{listError}</Alert>
+            <Alert variant="destructive">
+              <AlertDescription>{listError}</AlertDescription>
+            </Alert>
           </div>
         )}
 
@@ -428,7 +432,11 @@ export default function AdminSubtasks() {
               </div>
             </div>
 
-            {error && <Alert kind="error">{error}</Alert>}
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
 
             <div className="flex justify-end gap-3">
               <Button type="button" variant="outline" onClick={closeModal}>

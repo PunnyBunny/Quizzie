@@ -15,7 +15,7 @@ import { storage } from "../lib/firebase.ts";
 import { ref as storageRef, uploadBytes } from "firebase/storage";
 import mime from "mime";
 import { toUserMessage } from "../lib/errors.ts";
-import { Alert } from "../components/Alert";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AssessmentHeader } from "../components/AssessmentHeader";
 import { Modal } from "../components/Modal";
 import { SectionInstructionBody } from "../components/SectionInstructionBody";
@@ -137,7 +137,7 @@ function AssessmentQuestionInner() {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
   // Recording session hooks
-  const { status, error } = useRecordingState();
+  const { status, error, errorSeverity } = useRecordingState();
   const { transcript, interimTranscript } = useTranscriptText();
   const { audioBlob, audioBlobUrl } = useAudioRecording();
   const { startRecording, stopRecording, resetAudio } = useRecordingControls();
@@ -395,7 +395,11 @@ function AssessmentQuestionInner() {
 
       <main className="w-full max-w-3xl flex flex-col p-4 sm:p-6">
         <form className="flex flex-col gap-6" onSubmit={onSubmit}>
-          {submitError && <Alert kind="error">{submitError}</Alert>}
+          {submitError && (
+            <Alert variant="destructive">
+              <AlertDescription>{submitError}</AlertDescription>
+            </Alert>
+          )}
           <section className="p-4 bg-white border border-gray-200 rounded-lg shadow-xs">
             {/* Image and audio, TODO: add heading to indicate this is question */}
             <section className="flex flex-col gap-4">
@@ -452,7 +456,9 @@ function AssessmentQuestionInner() {
                   {question.kind === "audio_mc" && (
                     <div className="space-y-3">
                       {choicesAudio.error && (
-                        <Alert kind="error">{t("question.choicesAudioError")}</Alert>
+                        <Alert variant="destructive">
+                          <AlertDescription>{t("question.choicesAudioError")}</AlertDescription>
+                        </Alert>
                       )}
                       {choicesAudio.loading && <p>{t("common.loading")}</p>}
                       {choicesAudio.url && (
@@ -520,7 +526,14 @@ function AssessmentQuestionInner() {
 
                 {status === "finalizing" && <p>{t("question.finalizing")}</p>}
                 {status === "starting" && <p>{t("question.starting")}</p>}
-                {error && <Alert kind="error">{error}</Alert>}
+                {error && (
+                  <Alert
+                    variant={errorSeverity === "warning" ? "warning" : "destructive"}
+                    role={errorSeverity === "warning" ? "status" : "alert"}
+                  >
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
 
                 {/* Live transcription display */}
                 <div className="mt-2">

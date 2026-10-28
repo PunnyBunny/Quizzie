@@ -5,7 +5,7 @@ import { audioStoragePath, imageStoragePath } from "../lib/asset-paths";
 import { invalidateStorageUrl, useStorageUrl } from "../hooks/useStorageUrl";
 import { toUserMessage } from "../lib/errors";
 import { INPUT_CLASSES } from "../lib/ui";
-import { Alert } from "./Alert";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useTranslation } from "../hooks/useTranslation";
 
 interface AssetUploaderProps {
@@ -91,7 +91,11 @@ export function AssetUploader({
         />
       </div>
       {uploading && <p className="text-xs text-gray-500">{t("asset.uploading")}</p>}
-      {error && <Alert kind="error">{error}</Alert>}
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
       {!uploading && previewUrl && (
         <div className="pt-1">
           {kind === "image" ? (

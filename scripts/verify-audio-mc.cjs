@@ -5,6 +5,24 @@ const path = require("node:path");
 const vm = require("node:vm");
 const ts = require("typescript");
 const root = path.resolve(__dirname, "..");
+function componentStubs(names) {
+  return Object.fromEntries(
+    names.map((name) => [
+      path.join(
+        root,
+        `apps/web/src/components/${name === "Alert" || name === "Button" ? `ui/${name.toLowerCase()}` : name}.tsx`,
+      ),
+      name === "Alert"
+        ? {
+            Alert: "Alert",
+            AlertAction: "AlertAction",
+            AlertDescription: "AlertDescription",
+            AlertTitle: "AlertTitle",
+          }
+        : { [name]: name },
+    ]),
+  );
+}
 const clone = (value) => {
   if (!value || typeof value !== "object" || typeof value.toDate === "function") return value;
   if (Array.isArray(value)) return value.map(clone);
@@ -29,8 +47,10 @@ function sourceLoader(overrides = {}, globals = {}) {
     }).outputText;
     const requireSource = (name) => {
       if (overrides[name]) return overrides[name];
-      if (!name.startsWith(".")) return require(name);
-      const base = path.resolve(path.dirname(filename), name);
+      if (!name.startsWith(".") && !name.startsWith("@/")) return require(name);
+      const base = name.startsWith("@/")
+        ? path.join(root, "apps/web/src", name.slice(2))
+        : path.resolve(path.dirname(filename), name);
       const found = [base, `${base}.ts`, `${base}.tsx`, `${base}/index.ts`].find(
         (candidate) => fs.existsSync(candidate) && fs.statSync(candidate).isFile(),
       );
@@ -376,8 +396,29 @@ async function recordingChecks() {
   assert.equal(value().status, "idle");
   assert.equal(value().transcript, "final words ");
   assert(value().audioBlob);
+  assert.equal(value().errorSeverity, null);
   await value().startRecording();
+  recognition.onerror({ error: "no-speech" });
+  assert.equal(value().status, "recording");
+  assert.equal(value().error, "recording.noSpeech");
+  assert.equal(value().errorSeverity, "warning");
+  recognition.onerror({ error: "network" });
+  assert.equal(value().status, "recording");
+  assert.equal(value().error, "recording.transcriptionFailed");
+  assert.equal(value().errorSeverity, "warning");
+  value().stopRecording();
+  recorder.ondataavailable({ data: new Blob(["audio despite transcription failure"]) });
+  recorder.onstop();
+  recognition.onend();
+  assert.equal(await value().audioBlob.text(), "audio despite transcription failure");
+  assert.equal(value().errorSeverity, "warning");
+  await value().startRecording();
+  assert.equal(value().errorSeverity, null);
   recorder.onerror();
+  assert.equal(value().errorSeverity, "error");
+  recognition.onerror({ error: "network" });
+  assert.equal(value().error, "recording.captureFailed");
+  assert.equal(value().errorSeverity, "error");
   assert.equal(value().status, "finalizing");
   recognition.onend();
   assert.equal(value().status, "finalizing");
@@ -418,10 +459,13 @@ async function recordingChecks() {
   timers.filter((timer) => !timer.cancelled).forEach((timer) => timer.fn());
   assert.equal(value().status, "idle");
   assert.equal(await value().audioBlob.text(), "timeout retained");
+  assert.equal(value().error, "recording.transcriptionTimeout");
+  assert.equal(value().errorSeverity, "warning");
   value().resetAudio();
   failStart = true;
   await value().startRecording();
   assert.equal(value().status, "error");
+  assert.equal(value().errorSeverity, "error");
   failStart = false;
   failRecognition = true;
   await value().startRecording();
@@ -433,6 +477,7 @@ async function recordingChecks() {
   assert.equal(value().audioBlob, null);
   assert.equal(value().transcript, "");
   assert.equal(value().status, "idle");
+  assert.equal(value().errorSeverity, null);
 }
 function nodes(tree) {
   if (Array.isArray(tree)) return tree.flatMap(nodes);
@@ -469,7 +514,7 @@ async function questionProviderChecks() {
       ],
     },
     [key("lib/errors.ts")]: { toUserMessage: (error) => error.message },
-    [key("components/Alert.tsx")]: { Alert: "alert" },
+    ...componentStubs(["Alert"]),
   })("apps/web/src/providers/QuestionProvider.tsx").QuestionProvider;
   const render = () => hooks.render(() => Provider({ children: null }));
   render();
@@ -574,12 +619,13 @@ async function uiChecks() {
           useStorageUrl: () => ({ url: "asset:test", loading: false, error: null }),
         },
         [key("hooks/useTranslation.ts")]: { useTranslation: () => ({ t: (key) => key }) },
-        ...Object.fromEntries(
-          ["Alert", "AssessmentHeader", "Button", "Modal", "SectionInstructionBody"].map((name) => [
-            key(`components/${name}.tsx`),
-            { [name]: name },
-          ]),
-        ),
+        ...componentStubs([
+          "Alert",
+          "AssessmentHeader",
+          "Button",
+          "Modal",
+          "SectionInstructionBody",
+        ]),
       },
       {
         window: { confirm: () => true },
@@ -793,12 +839,7 @@ async function uiChecks() {
     [key("lib/errors.ts")]: { toUserMessage: (error) => error.message },
     [key("hooks/useTranslation.ts")]: { useTranslation: () => ({ t: (key) => key }) },
     [key("components/ScoreModal.tsx")]: { default: "score" },
-    ...Object.fromEntries(
-      ["PageHeader", "Button", "Alert", "Tooltip"].map((name) => [
-        key(`components/${name}.tsx`),
-        { [name]: name },
-      ]),
-    ),
+    ...componentStubs(["PageHeader", "Button", "Alert", "Tooltip"]),
     [key("components/icons.tsx")]: { CheckIcon: "check", SpinnerIcon: "spinner", XIcon: "cross" },
   })("apps/web/src/pages/GradeAssessment.tsx").default;
   const renderGrade = () => hooks.render(() => grade());
@@ -921,12 +962,7 @@ async function adminQuestionsChecks(app) {
     },
     [key("lib/errors.ts")]: { toUserMessage: (error) => error.message },
     [key("hooks/useTranslation.ts")]: { useTranslation: () => ({ t: (key) => key }) },
-    ...Object.fromEntries(
-      ["PageHeader", "Button", "Modal", "Alert", "AssetUploader"].map((name) => [
-        key(`components/${name}.tsx`),
-        { [name]: name },
-      ]),
-    ),
+    ...componentStubs(["PageHeader", "Button", "Modal", "Alert", "AssetUploader"]),
   })("apps/web/src/pages/AdminQuestions.tsx").default;
   const render = () => nodes(hooks.render(() => AdminQuestions()));
   const button = (label) =>
@@ -955,7 +991,8 @@ async function adminQuestionsChecks(app) {
   assert(
     render().some(
       (node) =>
-        node.type === "Alert" && node.props.children.includes("adminQuestions.hybridInvalid"),
+        node.type === "AlertDescription" &&
+        node.props.children.includes("adminQuestions.hybridInvalid"),
     ),
   );
   const uploaders = render().filter((node) => node.type === "AssetUploader");

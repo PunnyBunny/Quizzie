@@ -6,7 +6,7 @@ import SimpleReactValidator from "simple-react-validator";
 import { useAuthState } from "../lib/firebase-hooks";
 import useForceUpdate from "use-force-update";
 import { toUserMessage } from "../lib/errors";
-import { Alert } from "../components/Alert";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useTranslation } from "../hooks/useTranslation";
 import { LanguageSwitcher } from "../i18n/LanguageSwitcher";
 
@@ -107,7 +107,11 @@ export default function Login() {
           </span>
         </div>
 
-        {error && <Alert kind="error">{error}</Alert>}
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
         <Button
           variant="default"

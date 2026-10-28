@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import ScoreModal from "../components/ScoreModal";
 import { PageHeader } from "../components/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Alert } from "../components/Alert";
+import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ClipboardIcon } from "../components/icons";
 import { useTranslation } from "../hooks/useTranslation";
 
@@ -73,12 +73,16 @@ export default function ViewAssessments() {
         <ArchiveFeedback error={archive.error} message={archive.message} />
 
         {error && (
-          <Alert kind="error" className="mb-4">
-            <p className="font-medium">{t("viewAssessments.errorTitle")}</p>
-            <p className="text-sm mt-1">{error}</p>
-            <Button variant="outline" onClick={() => window.location.reload()}>
-              {t("common.retry")}
-            </Button>
+          <Alert variant="destructive" className="mb-4">
+            <AlertTitle>{t("viewAssessments.errorTitle")}</AlertTitle>
+            <AlertDescription>
+              <p>{error}</p>
+            </AlertDescription>
+            <AlertAction>
+              <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+                {t("common.retry")}
+              </Button>
+            </AlertAction>
           </Alert>
         )}
 

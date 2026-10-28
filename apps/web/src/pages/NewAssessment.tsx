@@ -5,7 +5,7 @@ import useForceUpdate from "use-force-update";
 import { useBrowserSupport } from "../providers/RecordingSessionProvider.tsx";
 import { useCallable } from "../lib/firebase-hooks.ts";
 import { toUserMessage } from "../lib/errors.ts";
-import { Alert } from "../components/Alert.tsx";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useTranslation } from "../hooks/useTranslation";
 
 type Language = "cantonese" | "mandarin" | "english" | "other";
@@ -129,7 +129,9 @@ export default function NewAssessment() {
 
           {submitError && (
             <div className="mb-4">
-              <Alert kind="error">{submitError}</Alert>
+              <Alert variant="destructive">
+                <AlertDescription>{submitError}</AlertDescription>
+              </Alert>
             </div>
           )}
 

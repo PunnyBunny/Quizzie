@@ -14,7 +14,7 @@ import type {
 import { PageHeader } from "../components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Modal } from "../components/Modal";
-import { Alert } from "../components/Alert";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AssetUploader } from "../components/AssetUploader";
 import { useTranslation } from "../hooks/useTranslation";
 
@@ -784,7 +784,11 @@ export default function AdminQuestions() {
               )}
             </div>
 
-            {error && <Alert kind="error">{error}</Alert>}
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
 
             <div className="flex justify-end gap-3">
               <Button type="button" variant="outline" onClick={requestClose}>

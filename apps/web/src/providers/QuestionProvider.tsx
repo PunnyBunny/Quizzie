@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useCallable } from "../lib/firebase-hooks.ts";
 import { toUserMessage } from "../lib/errors.ts";
-import { Alert } from "../components/Alert";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export interface Question {
   kind: "audio" | "mc" | "audio_mc";
@@ -106,7 +106,9 @@ export function QuestionProvider({ children }: { children: React.ReactNode }) {
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Alert kind="error">{error}</Alert>
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       </div>
     );
   }

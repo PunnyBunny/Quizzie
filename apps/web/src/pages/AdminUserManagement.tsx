@@ -5,7 +5,7 @@ import { INPUT_CLASSES as BASE_INPUT_CLASSES } from "../lib/ui";
 import { PageHeader } from "../components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Modal } from "../components/Modal";
-import { Alert } from "../components/Alert";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AddUserIcon, SearchIcon } from "../components/icons";
 import { useTranslation } from "../hooks/useTranslation";
 
@@ -66,8 +66,10 @@ export default function AdminUserManagement() {
   const [formData, setFormData] = useState({ email: "" });
   const [createUserSuccess, setCreateUserSuccess] = useState(false);
   const [createUserErrorMsg, setCreateUserErrorMsg] = useState<string | null>(null);
+  const [createUserWarning, setCreateUserWarning] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const [actionWarning, setActionWarning] = useState<string | null>(null);
   const [loadUsersError, setLoadUsersError] = useState<string | null>(null);
   const [resetLinkPopup, setResetLinkPopup] = useState<{
     email: string;
@@ -92,6 +94,7 @@ export default function AdminUserManagement() {
     e.preventDefault();
     setCreateUserSuccess(false);
     setCreateUserErrorMsg(null);
+    setCreateUserWarning(null);
 
     try {
       const result = await createUser({ email: formData.email });
@@ -104,13 +107,19 @@ export default function AdminUserManagement() {
 
       setFormData({ email: "" });
       setCreateUserSuccess(true);
-      setTimeout(() => setCreateUserSuccess(false), 3000);
-
-      const response = await getUsers();
-      setUsers(response.data.users);
     } catch (error) {
       console.error("Failed to create user:", error);
       setCreateUserErrorMsg(toUserMessage(error, t("adminUsers.errorCreate")));
+      return;
+    }
+
+    try {
+      const response = await getUsers();
+      setUsers(response.data.users);
+      setLoadUsersError(null);
+    } catch {
+      setCreateUserSuccess(false);
+      setCreateUserWarning(t("adminUsers.createdRefreshWarning"));
     }
   };
 
@@ -130,6 +139,7 @@ export default function AdminUserManagement() {
   const handleResetPassword = async (email: string) => {
     setActionError(null);
     setActionSuccess(null);
+    setActionWarning(null);
     try {
       const result = await resetPassword({ email });
       setResetLinkPopup({
@@ -150,16 +160,24 @@ export default function AdminUserManagement() {
 
     setActionError(null);
     setActionSuccess(null);
+    setActionWarning(null);
     try {
       const result = await removeUser({ email });
+      setUsers((items) => items.filter((user) => user.email !== result.data.email));
       setActionSuccess(t("adminUsers.removed", { email: result.data.email }));
-      setTimeout(() => setActionSuccess(null), 4000);
-
-      const response = await getUsers();
-      setUsers(response.data.users);
     } catch (error) {
       console.error("Failed to remove user:", error);
       setActionError(toUserMessage(error, t("adminUsers.errorRemove")));
+      return;
+    }
+
+    try {
+      const response = await getUsers();
+      setUsers(response.data.users);
+      setLoadUsersError(null);
+    } catch {
+      setActionSuccess(null);
+      setActionWarning(t("adminUsers.removedRefreshWarning", { email }));
     }
   };
 
@@ -237,9 +255,23 @@ export default function AdminUserManagement() {
                   />
                 </div>
 
-                {createUserErrorMsg && <Alert kind="error">{createUserErrorMsg}</Alert>}
+                {createUserErrorMsg && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{createUserErrorMsg}</AlertDescription>
+                  </Alert>
+                )}
 
-                {createUserSuccess && <Alert kind="success">{t("adminUsers.created")}</Alert>}
+                {createUserSuccess && (
+                  <Alert variant="success" role="status">
+                    <AlertDescription>{t("adminUsers.created")}</AlertDescription>
+                  </Alert>
+                )}
+
+                {createUserWarning && (
+                  <Alert variant="warning" role="status">
+                    <AlertDescription>{createUserWarning}</AlertDescription>
+                  </Alert>
+                )}
 
                 <Button
                   type="submit"
@@ -257,8 +289,21 @@ export default function AdminUserManagement() {
 
           {/* User List */}
           <div className="lg:col-span-2 space-y-3">
-            {actionError && <Alert kind="error">{actionError}</Alert>}
-            {actionSuccess && <Alert kind="success">{actionSuccess}</Alert>}
+            {actionError && (
+              <Alert variant="destructive">
+                <AlertDescription>{actionError}</AlertDescription>
+              </Alert>
+            )}
+            {actionSuccess && (
+              <Alert variant="success" role="status">
+                <AlertDescription>{actionSuccess}</AlertDescription>
+              </Alert>
+            )}
+            {actionWarning && (
+              <Alert variant="warning" role="status">
+                <AlertDescription>{actionWarning}</AlertDescription>
+              </Alert>
+            )}
             <div className="bg-white rounded-lg border shadow-xs overflow-hidden">
               <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 bg-gray-50 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
                 <h3 className="font-semibold text-gray-900">{t("adminUsers.systemUsers")}</h3>

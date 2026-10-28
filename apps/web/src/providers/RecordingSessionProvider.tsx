@@ -10,6 +10,10 @@ import React, {
 import { useTranslation } from "../hooks/useTranslation";
 
 type RecordingStatus = "idle" | "starting" | "recording" | "finalizing" | "error";
+interface RecordingIssue {
+  key: string;
+  severity: "error" | "warning";
+}
 interface RecordingSessionContextType {
   startRecording: () => Promise<void>;
   stopRecording: () => void;
@@ -19,6 +23,7 @@ interface RecordingSessionContextType {
   interimTranscript: string;
   status: RecordingStatus;
   error: string;
+  errorSeverity: RecordingIssue["severity"] | null;
   browserSupport: boolean;
   audioBlobUrl: string;
 }
@@ -61,7 +66,7 @@ export function RecordingSessionProvider({ children }: { children: React.ReactNo
   const { t } = useTranslation();
   const [transcript, setTranscript] = useState("");
   const [interimTranscript, setInterimTranscript] = useState("");
-  const [errorKey, setErrorKey] = useState("");
+  const [issue, setIssue] = useState<RecordingIssue | null>(null);
   const [status, setStatus] = useState<RecordingStatus>("idle");
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioBlobUrl, setAudioBlobUrl] = useState("");
@@ -95,7 +100,7 @@ export function RecordingSessionProvider({ children }: { children: React.ReactNo
     setAudioBlob(null);
     setTranscript("");
     setInterimTranscript("");
-    setErrorKey("");
+    setIssue(null);
     setStatus("idle");
   }, []);
   useEffect(() => resetAudio, [resetAudio]);
@@ -135,7 +140,11 @@ export function RecordingSessionProvider({ children }: { children: React.ReactNo
           } catch {
             /* Already ended. */
           }
-          setErrorKey("recording.transcriptionTimeout");
+          setIssue((current) =>
+            current?.severity === "error"
+              ? current
+              : { key: "recording.transcriptionTimeout", severity: "warning" },
+          );
           settle(session);
         }, 4000);
       }
@@ -155,7 +164,7 @@ export function RecordingSessionProvider({ children }: { children: React.ReactNo
     if (previous && (!previous.recorderDone || !previous.recognitionDone)) return;
     resetAudio();
     if (!browserSupport) {
-      setErrorKey("recording.unsupported");
+      setIssue({ key: "recording.unsupported", severity: "error" });
       setStatus("error");
       return;
     }
@@ -208,7 +217,7 @@ export function RecordingSessionProvider({ children }: { children: React.ReactNo
       };
       recorder.onerror = () => {
         if (sessionRef.current !== session) return;
-        setErrorKey("recording.captureFailed");
+        setIssue({ key: "recording.captureFailed", severity: "error" });
         stopSession(session);
       };
       session.recorderDone = false;
@@ -236,8 +245,16 @@ export function RecordingSessionProvider({ children }: { children: React.ReactNo
       recognition.onerror = (event) => {
         if (sessionRef.current !== session) return;
         if (event.error !== "aborted")
-          setErrorKey(
-            event.error === "no-speech" ? "recording.noSpeech" : "recording.transcriptionFailed",
+          setIssue((current) =>
+            current?.severity === "error"
+              ? current
+              : {
+                  key:
+                    event.error === "no-speech"
+                      ? "recording.noSpeech"
+                      : "recording.transcriptionFailed",
+                  severity: "warning",
+                },
           );
       };
       recognition.onend = () => {
@@ -251,7 +268,7 @@ export function RecordingSessionProvider({ children }: { children: React.ReactNo
       setStatus("recording");
     } catch {
       if (sessionRef.current !== session) return; // A previous microphone rejection cannot cancel a new question.
-      setErrorKey("recording.captureFailed");
+      setIssue({ key: "recording.captureFailed", severity: "error" });
       if (recorderStarted && session.recorder && !session.recorderDone) {
         session.recognitionDone = true;
         try {
@@ -277,7 +294,8 @@ export function RecordingSessionProvider({ children }: { children: React.ReactNo
         transcript,
         interimTranscript,
         status,
-        error: errorKey ? t(errorKey) : "",
+        error: issue ? t(issue.key) : "",
+        errorSeverity: issue?.severity ?? null,
         browserSupport,
         audioBlobUrl,
       }}
@@ -294,8 +312,8 @@ export function useRecordingSession() {
   return context;
 }
 export function useRecordingState() {
-  const { status, error } = useRecordingSession();
-  return { status, error };
+  const { status, error, errorSeverity } = useRecordingSession();
+  return { status, error, errorSeverity };
 }
 export function useTranscriptText() {
   const { transcript, interimTranscript } = useRecordingSession();

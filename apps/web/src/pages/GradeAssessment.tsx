@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import ScoreModal from "../components/ScoreModal";
 import { PageHeader } from "../components/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Alert } from "../components/Alert";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tooltip } from "../components/Tooltip";
 import { CheckIcon, SpinnerIcon, XIcon } from "../components/icons";
 import { INPUT_CLASSES } from "../lib/ui";
@@ -155,7 +155,9 @@ export default function GradeAssessment() {
   if (loadError) {
     return (
       <div className="p-4 sm:p-6">
-        <Alert kind="error">{loadError}</Alert>
+        <Alert variant="destructive">
+          <AlertDescription>{loadError}</AlertDescription>
+        </Alert>
       </div>
     );
   }
@@ -337,8 +339,8 @@ export default function GradeAssessment() {
         />
 
         {gradeError && (
-          <Alert kind="error" className="mb-4">
-            {gradeError}
+          <Alert variant="destructive" className="mb-4">
+            <AlertDescription>{gradeError}</AlertDescription>
           </Alert>
         )}
 
