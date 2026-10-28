@@ -130,8 +130,6 @@ function buildInput(
       !form.correctAnswersEnabled ||
       form.rows.some(
         (row) =>
-          !row.audio.trim() ||
-          !row.choicesAudio.trim() ||
           row.choices.length < 2 ||
           row.choices.some((choice) => !choice.key.trim() || !choice.value.trim()) ||
           !row.choices.some((choice) => choice.key.trim() === row.correctAnswer),
