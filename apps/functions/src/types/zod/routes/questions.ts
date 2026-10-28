@@ -28,8 +28,6 @@ export const SaveQuestionSectionSchema: z.ZodType<SaveQuestionSectionInput> = z
       const choices = section.choices?.[i];
       const correct = section.correctAnswers?.[i];
       if (
-        !section.audios[i]?.trim() ||
-        !section.choicesAudios?.[i]?.trim() ||
         !choices ||
         Object.keys(choices).length < 2 ||
         Object.keys(choices).some((key) => !key.trim()) ||
