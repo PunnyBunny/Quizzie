@@ -9,7 +9,7 @@ import {
   ShieldCheckIcon,
 } from "../components/icons";
 import { useTranslation } from "../hooks/useTranslation";
-import { buttonVariants } from "@/components/ui/button-variants.ts";
+import { buttonVariants } from "@/components/ui/button-variants";
 
 const navigationClasses =
   "cursor-pointer rounded-xl transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring motion-reduce:transition-none";
