@@ -342,6 +342,10 @@ function AssessmentQuestionInner() {
 
   const title = section?.title ?? t("instruction.section");
   const questionText = question.question ?? "";
+  const hasQuestionText = questionText.trim().length > 0;
+  const hasQuestionMedia =
+    (question.image != null && Boolean(questionImage.url)) ||
+    (question.audio != null && Boolean(questionAudio.url));
 
   return (
     <div
@@ -415,32 +419,36 @@ function AssessmentQuestionInner() {
               <AlertDescription>{submitError}</AlertDescription>
             </Alert>
           )}
-          <section className="p-4 bg-white border border-gray-200 rounded-lg shadow-xs">
-            {/* Image and audio, TODO: add heading to indicate this is question */}
-            <section className="flex flex-col gap-4">
-              {question.image != null && questionImage.url && (
-                <img
-                  src={questionImage.url}
-                  alt={questionText ? questionText : t("question.questionImageAlt")}
-                  className="w-full max-h-72 object-contain"
-                />
+          {(hasQuestionText || hasQuestionMedia) && (
+            <section className="p-4 bg-white border border-gray-200 rounded-lg shadow-xs">
+              {/* Image and audio, TODO: add heading to indicate this is question */}
+              {hasQuestionMedia && (
+                <section className="flex flex-col gap-4">
+                  {question.image != null && questionImage.url && (
+                    <img
+                      src={questionImage.url}
+                      alt={questionText ? questionText : t("question.questionImageAlt")}
+                      className="w-full max-h-72 object-contain"
+                    />
+                  )}
+                  {question.audio != null && questionAudio.url && (
+                    <audio controls src={questionAudio.url} className="w-full">
+                      {t("question.audioFallback")}
+                    </audio>
+                  )}
+                </section>
               )}
-              {question.audio != null && questionAudio.url && (
-                <audio controls src={questionAudio.url} className="w-full">
-                  {t("question.audioFallback")}
-                </audio>
+
+              {/* Question text */}
+              {hasQuestionText && (
+                <section className="self-center w-full">
+                  <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold text-gray-800 whitespace-pre-wrap wrap-break-word">
+                    {questionText}
+                  </h1>
+                </section>
               )}
             </section>
-
-            {/* Question text */}
-            {questionText && (
-              <section className="self-center w-full">
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold text-gray-800 whitespace-pre-wrap wrap-break-word">
-                  {questionText}
-                </h1>
-              </section>
-            )}
-          </section>
+          )}
 
           {/* Choices */}
           {(question.kind === "mc" || question.kind === "audio_mc") && (
