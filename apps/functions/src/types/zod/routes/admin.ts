@@ -20,3 +20,6 @@ export const AdminGetAssessmentsSchema = z.object({
   archived: z.boolean().optional(),
 });
 export type AdminGetAssessmentsInput = z.infer<typeof AdminGetAssessmentsSchema>;
+
+export const AdminExportAssessmentsSchema = z.strictObject({});
+export type AdminExportAssessmentsInput = z.infer<typeof AdminExportAssessmentsSchema>;

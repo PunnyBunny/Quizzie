@@ -3,12 +3,15 @@ import { validate } from "../middleware/validation";
 import { admin } from "../firebase";
 import {
   type AssessmentDto,
+  type AssessmentDoc,
   assessments as assessmentsDb,
   toAssessmentDto,
 } from "../types/models/assessments";
 import {
   type AdminGetAssessmentsInput,
   AdminGetAssessmentsSchema,
+  type AdminExportAssessmentsInput,
+  AdminExportAssessmentsSchema,
   type AdminCreateUserInput,
   AdminCreateUserSchema,
   type AdminRemoveUserInput,
@@ -19,6 +22,8 @@ import {
 import {
   type AdminCreateUserOutput,
   type AdminGetAssessmentsOutput,
+  type AdminExportAssessmentsOutput,
+  type ExportAssessmentDto,
   type AdminGetUsersOutput,
   type AdminRemoveUserOutput,
   type AdminResetPasswordOutput,
@@ -26,11 +31,61 @@ import {
 } from "../types/admin";
 import { type FirebaseFunctionRequest, type FirebaseFunctionResponse } from "../utils/express";
 import { adminHandler } from "../middleware/admin";
+import { getQuestionSections } from "../types/models/questions";
+import { studentResponses, toStudentResponseDto } from "../types/models/student-responses";
+import { subtasks, toSubtaskDto } from "../types/models/subtasks";
 
 export const router = express.Router();
 
 // Scope this guard to admin paths so it cannot block later public routers.
 router.use("/admin", adminHandler);
+
+function optionalTimestamp(value: AssessmentDoc["updatedAt"]): string | null {
+  return value && "toDate" in value ? value.toDate().toISOString() : null;
+}
+
+// Export the complete dataset independently of list filters, archive state, or pagination.
+router.post(
+  "/admin/export-assessments",
+  validate(AdminExportAssessmentsSchema),
+  async (
+    _req: FirebaseFunctionRequest<AdminExportAssessmentsInput>,
+    res: FirebaseFunctionResponse<AdminExportAssessmentsOutput>,
+  ) => {
+    const [assessmentSnapshot, responseSnapshot, sections, subtaskSnapshot] = await Promise.all([
+      assessmentsDb.collection().get(),
+      studentResponses.collection().get(),
+      getQuestionSections(),
+      subtasks.collection().get(),
+    ]);
+    const assessments: ExportAssessmentDto[] = [];
+    for (const doc of assessmentSnapshot.docs) {
+      const dto = toAssessmentDto(doc);
+      if (!dto) continue;
+      const data = doc.data();
+      assessments.push({
+        ...dto,
+        updatedAtIsoTimestamp: optionalTimestamp(data.updatedAt),
+        finishedAtIsoTimestamp: optionalTimestamp(data.finishedAt),
+      });
+    }
+    const assessmentIds = new Set(assessments.map((assessment) => assessment.id));
+    const responses = responseSnapshot.docs
+      .map((doc) => doc.data())
+      .filter((response) => assessmentIds.has(response["assessment-id"]))
+      .map(toStudentResponseDto);
+
+    res.status(200).json({
+      data: {
+        exportedAtIsoTimestamp: new Date().toISOString(),
+        assessments,
+        responses,
+        sections,
+        subtasks: subtaskSnapshot.docs.map(toSubtaskDto),
+      },
+    });
+  },
+);
 
 // POST /admin/get-assessments
 router.post(

@@ -281,6 +281,10 @@ const en: Dict = {
   // Admin View Assessments
   "adminView.subtitle": "View and grade all assessments across the platform",
   "adminView.errorLoad": "Could not load assessments.",
+  "adminView.exportXlsx": "Export all data (XLSX)",
+  "adminView.exporting": "Exporting…",
+  "adminView.exportError": "Could not export assessment data.",
+  "adminView.exportSuccess": "Excel workbook ready. Assessments: {{count}}.",
   "adminView.stat.total": "Total Assessments",
   "adminView.stat.schools": "Schools",
   "adminView.stat.creators": "Creators",
@@ -697,6 +701,10 @@ const zh: Dict = {
   // Admin View Assessments
   "adminView.subtitle": "檢視並為平台上所有評估評分",
   "adminView.errorLoad": "無法載入評估。",
+  "adminView.exportXlsx": "匯出所有資料（XLSX）",
+  "adminView.exporting": "匯出中…",
+  "adminView.exportError": "無法匯出評估資料。",
+  "adminView.exportSuccess": "Excel 活頁簿已準備好。評估數目：{{count}}。",
   "adminView.stat.total": "評估總數",
   "adminView.stat.schools": "學校",
   "adminView.stat.creators": "建立者",

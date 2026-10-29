@@ -1,7 +1,23 @@
 import type { AssessmentDto } from "./models/assessments-dto";
+import type { QuestionSectionDto } from "./models/questions-dto";
+import type { StudentResponseDto } from "./models/student-responses-dto";
+import type { SubtaskDto } from "./models/subtasks-dto";
 
 export interface AdminGetAssessmentsOutput {
   assessments: AssessmentDto[];
+}
+
+export interface ExportAssessmentDto extends AssessmentDto {
+  updatedAtIsoTimestamp: string | null;
+  finishedAtIsoTimestamp: string | null;
+}
+
+export interface AdminExportAssessmentsOutput {
+  exportedAtIsoTimestamp: string;
+  assessments: ExportAssessmentDto[];
+  responses: StudentResponseDto[];
+  sections: QuestionSectionDto[];
+  subtasks: SubtaskDto[];
 }
 
 export interface UserRecord {

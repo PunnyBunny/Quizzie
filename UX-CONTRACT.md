@@ -9,14 +9,15 @@ in `types/zod/routes/assessments.ts` define accepted archive requests.
 
 ## Canonical ownership
 
-| Capability       | Owner                                      | Contract                                                                                                          |
-| ---------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
-| Archive mutation | useAssessmentArchive                       | Wait for server success, remove the record, announce success; retain on failure.                                  |
-| Feedback         | AssessmentArchive + shadcn Alert           | Localized inline success/error in one polite live region; nested alerts use presentation roles.                   |
-| Dialogs          | shadcn Dialog                              | Controlled dismissal; shared scrolling body with visible title/actions, localized close labels, and focus return. |
-| Buttons          | shadcn Button + ButtonLink + ArchiveButton | Shared variant recipe; ghost archive actions, stable busy geometry, duplicate-submit protection, visible focus.   |
-| Admin filtering  | AdminViewAssessments                       | Existing native selects; operating-system popup appearance is accepted.                                           |
-| Navigation       | App route guards + PageHeader              | User archive is owner-scoped; admin archive requires admin claims.                                                |
+| Capability       | Owner                                       | Contract                                                                                                          |
+| ---------------- | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Archive mutation | useAssessmentArchive                        | Wait for server success, remove the record, announce success; retain on failure.                                  |
+| Feedback         | AssessmentArchive + shadcn Alert            | Localized inline success/error in one polite live region; nested alerts use presentation roles.                   |
+| Dialogs          | shadcn Dialog                               | Controlled dismissal; shared scrolling body with visible title/actions, localized close labels, and focus return. |
+| Buttons          | shadcn Button + ButtonLink + ArchiveButton  | Shared variant recipe; ghost archive actions, stable busy geometry, duplicate-submit protection, visible focus.   |
+| Admin filtering  | AdminViewAssessments                        | Existing native selects; operating-system popup appearance is accepted.                                           |
+| Navigation       | App route guards + PageHeader               | User archive is owner-scoped; admin archive requires admin claims.                                                |
+| Excel export     | AdminViewAssessments + assessment-export.ts | Admin-only complete dataset; shared score helpers, guarded retries, and a localized download action.              |
 
 ## Flow
 
@@ -54,6 +55,22 @@ The current API returns complete lists. Archive lists and admin tables use Load 
 of 20; admin tables preserve existing filters and sorting. Server pagination and
 live cross-tab subscriptions are outside this feature. Reloading a list retrieves
 current persisted status.
+
+## Assessment Excel export
+
+The admin assessment pages expose a shared **Export all data (XLSX)** action.
+It requests the complete dataset through the admin-guarded export endpoint,
+including active, archived, finished, and unfinished records regardless of list
+filters or visible row count. The workbook has a Demographics sheet, one sheet per section, a Subtasks sheet,
+and a Questions guide, linked by assessment ID. Section tabs use stored section
+IDs and titles. Each section follows its kind's schema: MC answers and audio transcripts
+use `q1`, `q2`, etc.; audio MC
+uses `q1_transcript`, `q1_choice`, and `q1_help`. Only Name is frozen, and Storage
+links are omitted. Scores remain in the summary sheets. It uses the
+current score helpers; `docs/assessment-export.md` records the column contract.
+The button retains its width while busy and prevents repeated requests. Failures
+remain inline with an export-specific Retry action; success reports the exported
+assessment count. Both messages persist until another export or navigation.
 
 ## Home navigation
 

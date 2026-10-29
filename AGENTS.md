@@ -45,8 +45,8 @@ npm run preview --workspace apps/web
 The root package has no development/build/test scripts. The web dev server defaults
 to port 5173, listens on `0.0.0.0`, and accepts a `PORT` override. Both builds check
 TypeScript; the web build also bundles with Vite. There is no workspace test script.
-Run `node scripts/verify-audio-mc.cjs` for local hybrid-question regression checks
-using fake data and media APIs. For code changes, run the relevant build and lint,
+Run `node scripts/verify-audio-mc.cjs` for local hybrid-question and assessment-export
+regression checks using fake data and media APIs. For code changes, run the relevant build and lint,
 and manually exercise the affected UI/API flow when feasible. Report any existing
 failures separately from failures introduced by the change. Documentation-only
 changes do not require application builds.
@@ -95,10 +95,14 @@ Firestore or Storage.
 - Update request schemas, API types/DTOs, and frontend consumers together when
   changing contracts. Prefer type-only imports of backend types in browser code;
   avoid importing Firebase Admin or server runtime modules into the web bundle.
+- The admin-only `api/admin/export-assessments` endpoint returns all assessment
+  metadata, responses, current questions, and subtasks, including archived records.
+  The browser's `src/lib/assessment-export.ts` builds the section-based XLSX workbook with the
+  existing scoring helpers; `docs/assessment-export.md` documents its columns.
 
 ## UI and code conventions
 
-- Follow nearby React components/hooks and shared `Button`, `Alert`, `Modal`,
+- Follow nearby React components/hooks and shared `Button`, `Alert`, `Dialog`,
   and other UI components. Styling uses Tailwind plus `src/index.css`.
   Tailwind uses `@tailwindcss/vite` and the CSS import in `src/index.css`;
   there is no project PostCSS configuration or Tailwind JavaScript configuration.

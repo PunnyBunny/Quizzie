@@ -1,6 +1,6 @@
 import { ArchiveButton, ArchiveFeedback } from "../components/AssessmentArchive";
 import { useAssessmentArchive } from "../hooks/useAssessmentArchive";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCallable } from "../lib/firebase-hooks.ts";
 import { toUserMessage } from "../lib/errors.ts";
@@ -14,10 +14,17 @@ import {
   ClipboardCheckIcon,
 } from "../components/icons";
 import { useTranslation } from "../hooks/useTranslation";
+import { downloadAssessmentWorkbook } from "../lib/assessment-export";
 
 import type { AssessmentDto } from "../../../functions/src/types/models/assessments-dto";
-import type { AdminGetAssessmentsOutput } from "../../../functions/src/types/admin";
-import type { AdminGetAssessmentsInput } from "../../../functions/src/types/zod/routes/admin";
+import type {
+  AdminExportAssessmentsOutput,
+  AdminGetAssessmentsOutput,
+} from "../../../functions/src/types/admin";
+import type {
+  AdminExportAssessmentsInput,
+  AdminGetAssessmentsInput,
+} from "../../../functions/src/types/zod/routes/admin";
 
 const SELECT_CLASSES =
   "w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-blue-500 focus:ring-blue-500 shadow-xs";
@@ -36,6 +43,33 @@ export default function AdminViewAssessments({ archived = false }: { archived?: 
     AdminGetAssessmentsInput,
     AdminGetAssessmentsOutput
   >("api/admin/get-assessments");
+
+  const [exportAssessments] = useCallable<
+    AdminExportAssessmentsInput,
+    AdminExportAssessmentsOutput
+  >("api/admin/export-assessments");
+  const [exporting, setExporting] = useState(false);
+  const exportInFlight = useRef(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [exportedCount, setExportedCount] = useState<number | null>(null);
+
+  const handleExport = async () => {
+    if (exportInFlight.current) return;
+    exportInFlight.current = true;
+    setExporting(true);
+    setExportError(null);
+    setExportedCount(null);
+    try {
+      const { data } = await exportAssessments({});
+      await downloadAssessmentWorkbook(data);
+      setExportedCount(data.assessments.length);
+    } catch (err) {
+      setExportError(toUserMessage(err, t("adminView.exportError")));
+    } finally {
+      exportInFlight.current = false;
+      setExporting(false);
+    }
+  };
 
   const [assessments, setAssessments] = useState<AssessmentDto[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -141,18 +175,60 @@ export default function AdminViewAssessments({ archived = false }: { archived?: 
           subtitle={t(archived ? "archive.subtitle" : "adminView.subtitle")}
           backTo="/admin"
           actions={
-            <Button
-              variant="outline"
-              onClick={() =>
-                navigate(archived ? "/admin/assessments" : "/admin/archived-assessments")
-              }
-            >
-              {t(archived ? "archive.active" : "archive.title")}
-            </Button>
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                className="relative"
+                disabled={exporting}
+                aria-busy={exporting}
+                onClick={() => void handleExport()}
+              >
+                <span className={exporting ? "invisible" : ""}>{t("adminView.exportXlsx")}</span>
+                {exporting && (
+                  <span className="absolute inset-0 flex items-center justify-center">
+                    {t("adminView.exporting")}
+                  </span>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() =>
+                  navigate(archived ? "/admin/assessments" : "/admin/archived-assessments")
+                }
+              >
+                {t(archived ? "archive.active" : "archive.title")}
+              </Button>
+            </>
           }
         />
 
         <ArchiveFeedback error={archive.error} message={archive.message} />
+
+        <div aria-live="polite" aria-atomic="true">
+          {exportError && (
+            <Alert variant="destructive" role="presentation" className="mb-4">
+              <AlertDescription>{exportError}</AlertDescription>
+              <AlertAction>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={exporting}
+                  onClick={() => void handleExport()}
+                >
+                  {t("common.retry")}
+                </Button>
+              </AlertAction>
+            </Alert>
+          )}
+          {exportedCount !== null && (
+            <Alert variant="success" role="presentation" className="mb-4">
+              <AlertDescription>
+                {t("adminView.exportSuccess", { count: exportedCount })}
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
           <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">

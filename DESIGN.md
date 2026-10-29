@@ -62,11 +62,7 @@ theme colors in the shared Alert recipe. The mapping is `primary` to
 the application does not yet offer a complete dark-mode interface.
 
 The application `Button` module re-exports `src/components/ui/button.tsx`, using
-the shadcn Base UI primitive. `ButtonLink` renders a native router link with the
-same variant recipe from `src/components/ui/button-variants.ts`. That recipe
-owns button colors, geometry, hover, keyboard focus, disabled states, and reduced
-motion. Every application-authored button uses this owner; native browser/media
-controls and the audio-player library retain their own implementations.
+the shadcn Base UI primitive.
 
 Use orange `default` for the main action, `outline` for secondary actions,
 `secondary` for selected section controls, `ghost` for utilities, and

@@ -1162,13 +1162,13 @@ async function archiveChecks() {
     "PASS: archive/restore, legacy defaults, ownership/admin access, filtering, validation, repeated requests, and retained evidence.",
   );
 }
-async function mountedRouterChecks(app) {
+function mountedRouterCall(app) {
   // Exercise real Express mounting (including the admin guard) without opening a socket.
   const router = sourceLoader({
     [path.join(root, "apps/functions/src/firebase.ts")]:
       app.load.overrides[path.join(root, "apps/functions/src/firebase.ts")],
   })("apps/functions/src/routes/index.ts").router;
-  const call = (url, data = {}, claims = {}) =>
+  return (url, data = {}, claims = {}) =>
     new Promise((resolve, reject) => {
       const req = { method: "POST", url, headers: {}, body: { data } };
       let statusCode = 200;
@@ -1188,6 +1188,9 @@ async function mountedRouterChecks(app) {
       };
       router.handle(req, res, (error) => reject(error ?? new Error("Route not handled")));
     });
+}
+async function mountedRouterChecks(app) {
+  const call = mountedRouterCall(app);
   const active = await call("/admin/get-assessments", {}, { isAdmin: true });
   assert(active.assessments.every((item) => item.archived === false));
   const archived = await call("/admin/get-assessments", { archived: true }, { isAdmin: true });
@@ -1201,9 +1204,270 @@ async function mountedRouterChecks(app) {
   await call("/get-questions");
   await call("/get-subtasks");
   await assert.rejects(call("/admin/get-assessments"), (error) => error.statusCode === 403);
+  await assert.rejects(call("/admin/export-assessments"), (error) => error.statusCode === 403);
   await assert.rejects(
     call("/admin/save-question-section", {}),
     (error) => error.statusCode === 403,
+  );
+}
+async function assessmentExportChecks() {
+  const app = backend();
+  const seed = {
+    name: '陳, "一"\n學生',
+    birthDate: "2010-03",
+    gender: "female",
+    grade: "S2",
+    school: "學校\\path\\n",
+    motherTongue: { language: "cantonese" },
+    otherLanguages: [
+      { language: "english" },
+      { language: "other", otherSpecify: "日本語, 韓語\r\nその他" },
+    ],
+    creatorEmail: "owner@example.test",
+    createdAt: app.timestamp,
+    currentSection: 2,
+    currentQuestion: 1,
+    finished: false,
+  };
+  app.documents.set("assessments/a", { ...seed, updatedAt: app.timestamp });
+  app.documents.set("assessments/b", {
+    ...seed,
+    name: '=HYPERLINK("test")',
+    grade: "S3",
+    finished: true,
+    archived: true,
+    finishedAt: app.timestamp,
+    otherLanguages: [],
+  });
+  app.documents.set("assessments/c", { ...seed, otherLanguages: [] });
+  const section = {
+    title: "題目",
+    goal: "",
+    questions: ["Q1\rcontinued", "Q2", "Q3"],
+    audios: [],
+    instructions: { audio: "", text: "" },
+  };
+  app.documents.set("questions/11", {
+    ...section,
+    kind: "mc",
+    length: 3,
+    correctAnswers: ["A", "B", "A"],
+  });
+  app.documents.set("questions/3", { ...section, kind: "audio", length: 2 });
+  app.documents.set("questions/7", {
+    ...section,
+    kind: "audio_mc",
+    length: 2,
+    correctAnswers: ["A", "B"],
+  });
+  const base = { "assessment-id": "a", createdAt: app.timestamp };
+  app.documents.set("studentResponses/a-0", {
+    ...base,
+    section: 0,
+    type: "mc",
+    studentResponses: { 0: "A", 1: null },
+  });
+  app.documents.set("studentResponses/a-1", {
+    ...base,
+    section: 1,
+    type: "audio",
+    files: { 0: "gs://bucket/recording.webm" },
+    transcripts: { 0: '第一行, "答案"\n第二行' },
+    grades: { 0: 0 },
+  });
+  app.documents.set("studentResponses/a-2", {
+    ...base,
+    section: 2,
+    type: "audio_mc",
+    files: { 0: null, 1: null },
+    transcripts: { 0: "spoken", 1: null },
+    grades: { 0: 3 },
+    attempts: {
+      0: { assistanceOffered: false, selectedOption: null, skipped: false },
+      1: { assistanceOffered: true, selectedOption: "B", skipped: false },
+    },
+  });
+  app.documents.set("studentResponses/a-9", {
+    ...base,
+    section: 9,
+    type: "audio",
+    files: { 0: null },
+    transcripts: { 0: "Historic answer" },
+    grades: { 0: 4 },
+  });
+  app.documents.set("studentResponses/orphan", {
+    ...base,
+    "assessment-id": "missing",
+    section: 0,
+    type: "mc",
+    studentResponses: { 0: "A" },
+  });
+  const subtask = {
+    name: "Summary",
+    questionIds: [
+      { sectionIndex: 0, questionIndex: 0 },
+      { sectionIndex: 1, questionIndex: 0 },
+      { sectionIndex: 2, questionIndex: 0 },
+    ],
+    norms: { S1: { min: 0, max: 11, n: 40, mean: 5, stdDev: 2 }, S3: null, S5: null },
+    createdAt: app.timestamp,
+    updatedAt: app.timestamp,
+  };
+  app.documents.set("subtasks/summary", subtask);
+  app.documents.set("subtasks/summary_score", {
+    ...subtask,
+    norms: { ...subtask.norms, S1: { ...subtask.norms.S1, stdDev: 0 } },
+  });
+  const before = JSON.stringify([...app.documents]);
+  const call = mountedRouterCall(app);
+  await assert.rejects(call("/admin/export-assessments"), (error) => error.statusCode === 403);
+  await assert.rejects(
+    call("/admin/export-assessments", { archived: true }, { isAdmin: true }),
+    (error) => error.statusCode === 400,
+  );
+  const data = await call("/admin/export-assessments", {}, { isAdmin: true });
+  assert.equal(data.assessments.length, 3);
+  assert.equal(data.assessments.find((item) => item.id === "a").archived, false);
+  assert.equal(data.assessments.find((item) => item.id === "b").archived, true);
+  assert.equal(
+    data.assessments.find((item) => item.id === "a").updatedAtIsoTimestamp,
+    new Date(0).toISOString(),
+  );
+  assert.equal(data.assessments.find((item) => item.id === "c").finishedAtIsoTimestamp, null);
+  assert.equal(data.responses.length, 4);
+  assert.equal(
+    data.responses.find((item) => item.section === 1).files[0],
+    "gs://bucket/recording.webm",
+  );
+  assert.equal(JSON.stringify([...app.documents]), before, "Export does not write data");
+  // The workbook writer checks plain-object prototypes; bridge the VM's objects to Node.
+  const nativeValue = (value) =>
+    Array.isArray(value)
+      ? Array.from(value, nativeValue)
+      : value && typeof value === "object"
+        ? Object.fromEntries(Object.entries(value).map(([key, item]) => [key, nativeValue(item)]))
+        : value;
+  const writer = require("write-excel-file/universal").default;
+  const { buildAssessmentWorkbook, createWorkbookBlob } = sourceLoader(
+    {
+      "write-excel-file/universal": {
+        __esModule: true,
+        default: (sheets) => writer(nativeValue(sheets)),
+      },
+    },
+    { String, Number },
+  )("apps/web/src/lib/assessment-export.ts");
+  const sheets = buildAssessmentWorkbook(data);
+  assert.equal(sheets.length, 7);
+  assert.equal(new Set(sheets.map((sheet) => sheet.name)).size, sheets.length);
+  for (const sheet of sheets) {
+    assert.equal(new Set(sheet.headers).size, sheet.headers.length);
+    assert(
+      sheet.headers.every((header) => header.length <= 16),
+      "Short column names",
+    );
+    assert(sheet.rows.every((row) => row.length === sheet.headers.length));
+    assert(!sheet.headers.some((header) => /audio|uri|url/i.test(header)), "No recording links");
+  }
+  const getSheet = (name) => {
+    const sheet = sheets.find((sheet) => sheet.name === name);
+    assert(sheet, name);
+    return sheet;
+  };
+  const cell = (sheet, row, key) => {
+    assert(sheet.headers.includes(key), key);
+    return row[sheet.headers.indexOf(key)];
+  };
+  const demographics = getSheet("Demographics");
+  const [a, b, c] = demographics.rows;
+  assert.equal(cell(demographics, a, "name"), seed.name);
+  assert.equal(cell(demographics, a, "school"), seed.school);
+  assert.equal(cell(demographics, a, "birth_date"), "2010-03");
+  assert.equal(cell(demographics, a, "lang2_other"), "日本語, 韓語\r\nその他");
+  assert.equal(cell(demographics, b, "name"), '=HYPERLINK("test")');
+  assert.equal(cell(demographics, b, "archived"), 1);
+  assert.equal(cell(demographics, a, "score"), 4);
+  assert.equal(cell(demographics, a, "max_score"), 23);
+  assert.equal(cell(demographics, a, "scored"), 3);
+  assert.equal(cell(demographics, a, "ungraded"), 2);
+  assert.equal(cell(demographics, c, "scored"), 0);
+  const mc = getSheet("11 - 題目"),
+    audio = getSheet("3 - 題目"),
+    hybrid = getSheet("7 - 題目"),
+    history = getSheet("Historical 9");
+  assert.deepEqual(
+    Array.from(data.sections, (section) => section.id),
+    ["11", "3", "7"],
+  );
+  assert.deepEqual(
+    Array.from(sheets.slice(1, 4), (sheet) => sheet.name),
+    ["11 - 題目", "3 - 題目", "7 - 題目"],
+  );
+  assert.equal(mc.rows.length, 3);
+  assert.deepEqual(Array.from(mc.headers), ["name", "id", "q1", "q2", "q3"]);
+  assert.deepEqual(Array.from(audio.headers), ["name", "id", "q1", "q2"]);
+  assert.deepEqual(Array.from(hybrid.headers), [
+    "name",
+    "id",
+    "q1_transcript",
+    "q1_choice",
+    "q1_help",
+    "q2_transcript",
+    "q2_choice",
+    "q2_help",
+  ]);
+  assert.deepEqual(Array.from(history.headers), ["name", "id", "q1"]);
+  assert.equal(cell(mc, mc.rows[0], "q1"), "A");
+  assert.equal(cell(mc, mc.rows[0], "q2"), null);
+  assert.equal(cell(mc, mc.rows[0], "q3"), undefined);
+  assert.equal(cell(audio, audio.rows[0], "q1"), '第一行, "答案"\n第二行');
+  assert.equal(cell(audio, audio.rows[0], "q2"), undefined);
+  assert.equal(cell(hybrid, hybrid.rows[0], "q1_transcript"), "spoken");
+  assert.equal(cell(hybrid, hybrid.rows[0], "q1_choice"), null);
+  assert.equal(cell(hybrid, hybrid.rows[0], "q1_help"), 0);
+  assert.equal(cell(hybrid, hybrid.rows[0], "q2_choice"), "B");
+  assert.equal(cell(hybrid, hybrid.rows[0], "q2_help"), 1);
+  assert.equal(cell(hybrid, hybrid.rows[2], "q1_help"), null);
+  assert.equal(cell(history, history.rows[0], "q1"), "Historic answer");
+  const subtasks = getSheet("Subtasks");
+  assert.equal(subtasks.rows.length, 6);
+  assert.equal(cell(subtasks, subtasks.rows[0], "score"), 4);
+  assert.equal(cell(subtasks, subtasks.rows[0], "z"), -0.5);
+  assert.equal(cell(subtasks, subtasks.rows[1], "z"), null);
+  assert.equal(cell(subtasks, subtasks.rows[2], "z"), null);
+  const guide = getSheet("Questions");
+  assert.equal(cell(guide, guide.rows[0], "text"), "Q1\rcontinued");
+  const unusual = buildAssessmentWorkbook({
+    ...data,
+    sections: data.sections.map((section, index) => ({
+      ...section,
+      id: index === 0 ? "Demographics" : "同名 / [測試]:*?\\'".repeat(8) + index,
+      title: index === 0 ? "" : section.title,
+    })),
+  });
+  assert.equal(unusual[1].name, "Demographics (2)");
+  assert.equal(new Set(unusual.map((sheet) => sheet.name.toLowerCase())).size, unusual.length);
+  assert(unusual.every((sheet) => sheet.name.length <= 31 && !/[\\/?*[\]:']/.test(sheet.name)));
+  const empty = buildAssessmentWorkbook({ ...data, assessments: [], responses: [] });
+  assert(
+    empty.filter((sheet) => sheet.name !== "Questions").every((sheet) => sheet.rows.length === 0),
+  );
+  const blob = await createWorkbookBlob(sheets);
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  assert.equal(bytes[0], 0x50);
+  assert.equal(bytes[1], 0x4b);
+  const { unzipSync, strFromU8 } = require("fflate");
+  const archive = unzipSync(bytes);
+  assert(archive["xl/workbook.xml"]);
+  for (const [name, content] of Object.entries(archive))
+    if (name.endsWith(".xml")) {
+      const text = strFromU8(content);
+      assert(!text.includes("gs://"), "No Storage links in the actual workbook");
+      assert(!/<f(?:\s|>)/.test(text), "User-entered strings are not formulas");
+    }
+  fs.writeFileSync("/tmp/vaca-assessment-workbook-test.xlsx", bytes);
+  console.log(
+    "PASS: admin-only complete XLSX export, section sheets/short headers, native Unicode/text/numbers, missing versus zero scores, hybrid/historical evidence, norms, safe sheet names, empty data, and no Storage links/formulas.",
   );
 }
 async function main() {
@@ -1550,6 +1814,7 @@ async function main() {
   await questionProviderChecks();
   await uiChecks();
   await adminQuestionsChecks(app);
+  await assessmentExportChecks();
   console.log(
     "PASS: admin creation/editing, current configuration, MC/audio scoring, all evidence forms, manual grading, access/validation, atomic retries, recording finalization/errors/navigation.",
   );
