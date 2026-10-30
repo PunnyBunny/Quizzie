@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 
-export type FirebaseFunctionRequest<T> = Request<{}, {}, { data: T }>;
-export type FirebaseFunctionResponse<T> = Response<
-  { data: T },
+export type FirebaseFunctionRequest<Input> = Request<{}, {}, { data: Input }>;
+export type FirebaseFunctionResponse<Output> = Response<
+  { data: Output },
   { callerEmail: string; callerClaims?: Record<string, unknown> }
 >;

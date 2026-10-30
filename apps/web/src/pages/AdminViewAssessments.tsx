@@ -16,15 +16,13 @@ import {
 import { useTranslation } from "../hooks/useTranslation";
 import { downloadAssessmentWorkbook } from "../lib/assessment-export";
 
-import type { AssessmentDto } from "../../../functions/src/types/models/assessments-dto";
-import type {
-  AdminExportAssessmentsOutput,
-  AdminGetAssessmentsOutput,
-} from "../../../functions/src/types/admin";
 import type {
   AdminExportAssessmentsInput,
+  AdminExportAssessmentsOutput,
   AdminGetAssessmentsInput,
-} from "../../../functions/src/types/zod/routes/admin";
+  AdminGetAssessmentsOutput,
+  AssessmentDto,
+} from "@vaca/contracts";
 
 const SELECT_CLASSES =
   "w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-blue-500 focus:ring-blue-500 shadow-xs";

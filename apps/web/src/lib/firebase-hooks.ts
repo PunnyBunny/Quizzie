@@ -3,8 +3,8 @@ import { httpsCallable, type HttpsCallableResult } from "firebase/functions";
 import { onAuthStateChanged, type Auth, type User } from "firebase/auth";
 import { functions } from "./firebase";
 
-export type CallableHook<Req, Res> = readonly [
-  (data?: Req) => Promise<HttpsCallableResult<Res>>,
+export type CallableHook<Input, Output> = readonly [
+  (data?: Input) => Promise<HttpsCallableResult<Output>>,
   boolean,
 ];
 
@@ -12,15 +12,17 @@ export type CallableHook<Req, Res> = readonly [
  * Wraps a Firebase callable function. The returned `call` throws on error,
  * so callers can use plain try/catch and surface messages via `toUserMessage`.
  */
-export function useCallable<Req = void, Res = void>(name: string): CallableHook<Req, Res> {
-  const fn = useMemo(() => httpsCallable<Req, Res>(functions, name), [name]);
+export function useCallable<Input = void, Output = void>(
+  name: string,
+): CallableHook<Input, Output> {
+  const fn = useMemo(() => httpsCallable<Input, Output>(functions, name), [name]);
   const [loading, setLoading] = useState(false);
 
   const call = useCallback(
-    async (data?: Req): Promise<HttpsCallableResult<Res>> => {
+    async (data?: Input): Promise<HttpsCallableResult<Output>> => {
       setLoading(true);
       try {
-        return await fn(data as Req);
+        return await fn(data as Input);
       } finally {
         setLoading(false);
       }

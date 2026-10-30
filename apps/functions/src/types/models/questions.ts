@@ -1,8 +1,6 @@
 import { BaseCollection } from "./base";
 import { ApiError } from "../../middleware/error";
-import type { QuestionSectionDto } from "./questions-dto";
-
-export type { SectionInstruction, QuestionSectionDto } from "./questions-dto";
+import type { QuestionSectionDto } from "@vaca/contracts";
 
 /**
  * Question section document stored in Firestore.

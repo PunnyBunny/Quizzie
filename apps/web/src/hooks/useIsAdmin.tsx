@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { type User } from "firebase/auth";
+import type { User } from "firebase/auth";
 
 export default function useIsAdmin(user: User | null | undefined) {
   // if user is null, then they are not logged in, so they are not an admin

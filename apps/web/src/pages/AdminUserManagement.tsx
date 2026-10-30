@@ -1,4 +1,14 @@
 import React, { useEffect, useState } from "react";
+import type {
+  AdminCreateUserInput,
+  AdminCreateUserOutput,
+  AdminGetUsersOutput,
+  AdminRemoveUserInput,
+  AdminRemoveUserOutput,
+  AdminResetPasswordInput,
+  AdminResetPasswordOutput,
+  UserDto,
+} from "@vaca/contracts";
 import { useCallable } from "../lib/firebase-hooks.ts";
 import { toUserMessage } from "../lib/errors";
 import { INPUT_CLASSES as BASE_INPUT_CLASSES } from "../lib/ui";
@@ -18,47 +28,11 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AddUserIcon, SearchIcon } from "../components/icons";
 import { useTranslation } from "../hooks/useTranslation";
 
-interface User {
-  email?: string;
-  isAdmin: boolean;
-}
-
-interface AdminGetUsersResponse {
-  users: User[];
-}
-
-interface AdminCreateUserInput {
-  email: string;
-}
-
-interface AdminCreateUserOutput {
-  uid: string;
-  email: string;
-  resetLink: string;
-}
-
-interface AdminResetPasswordInput {
-  email: string;
-}
-
-interface AdminResetPasswordOutput {
-  email: string;
-  resetLink: string;
-}
-
-interface AdminRemoveUserInput {
-  email: string;
-}
-
-interface AdminRemoveUserOutput {
-  email: string;
-}
-
 const INPUT_CLASSES = `${BASE_INPUT_CLASSES} shadow-xs`;
 
 export default function AdminUserManagement() {
   const { t } = useTranslation();
-  const [getUsers, gettingUsers] = useCallable<{}, AdminGetUsersResponse>("api/admin/get-users");
+  const [getUsers, gettingUsers] = useCallable<{}, AdminGetUsersOutput>("api/admin/get-users");
   const [createUser, creatingUser] = useCallable<AdminCreateUserInput, AdminCreateUserOutput>(
     "api/admin/create-user",
   );
@@ -70,7 +44,7 @@ export default function AdminUserManagement() {
     "api/admin/remove-user",
   );
 
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<UserDto[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [formData, setFormData] = useState({ email: "" });
   const [createUserSuccess, setCreateUserSuccess] = useState(false);

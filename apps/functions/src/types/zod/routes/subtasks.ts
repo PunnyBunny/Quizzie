@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { SaveSubtaskInput, DeleteSubtaskInput } from "../../subtasks-inputs";
+import type { AdminDeleteSubtaskInput, AdminSaveSubtaskInput, NormStatsDto } from "@vaca/contracts";
 
 const NormStatsSchema = z
   .object({
@@ -9,9 +9,9 @@ const NormStatsSchema = z
     stdDev: z.number(),
     mean: z.number(),
   })
-  .nullable();
+  .nullable() satisfies z.ZodType<NormStatsDto | null>;
 
-export const SaveSubtaskSchema: z.ZodType<SaveSubtaskInput> = z.object({
+export const AdminSaveSubtaskSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(1),
   questionIds: z.array(
@@ -25,10 +25,8 @@ export const SaveSubtaskSchema: z.ZodType<SaveSubtaskInput> = z.object({
     S3: NormStatsSchema,
     S5: NormStatsSchema,
   }),
-});
+}) satisfies z.ZodType<AdminSaveSubtaskInput>;
 
-export const DeleteSubtaskSchema: z.ZodType<DeleteSubtaskInput> = z.object({
+export const AdminDeleteSubtaskSchema = z.object({
   id: z.string(),
-});
-
-export type { SaveSubtaskInput, DeleteSubtaskInput };
+}) satisfies z.ZodType<AdminDeleteSubtaskInput>;

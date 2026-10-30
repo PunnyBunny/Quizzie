@@ -1,4 +1,11 @@
 import { Button } from "@/components/ui/button";
+import type {
+  FinishAssessmentInput,
+  OkOutput,
+  SubmitAudioAnswerInput,
+  SubmitAudioMcAnswerInput,
+  SubmitMcAnswerInput,
+} from "@vaca/contracts";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuestion, useSection } from "../providers/QuestionProvider.tsx";
 import React, { useLayoutEffect, useRef, useState } from "react";
@@ -66,25 +73,6 @@ function StopIcon() {
       />
     </svg>
   );
-}
-
-interface SubmitMcAnswerRequest {
-  assessmentId: string;
-  section: number;
-  question: number;
-  answer: string | null;
-}
-
-interface SubmitAudioAnswerRequest {
-  assessmentId: string;
-  section: number;
-  question: number;
-  transcript: string | null;
-  gsUri: string | null;
-}
-
-interface FinishAssessmentRequest {
-  assessmentId: string;
 }
 
 // TODO: document this
@@ -173,18 +161,19 @@ function AssessmentQuestionInner() {
 
   const navigate = useNavigate();
 
-  const [submitMcAnswerFunc] = useCallable<SubmitMcAnswerRequest>("api/submit-mc-answer");
+  const [submitMcAnswer] = useCallable<SubmitMcAnswerInput, OkOutput>("api/submit-mc-answer");
 
-  const [submitAudioAnswerFunc] = useCallable<SubmitAudioAnswerRequest>("api/submit-audio-answer");
+  const [submitAudioAnswer] = useCallable<SubmitAudioAnswerInput, OkOutput>(
+    "api/submit-audio-answer",
+  );
 
-  const [finishAssessmentFunc] = useCallable<FinishAssessmentRequest>("api/finish-assessment");
+  const [finishAssessment] = useCallable<FinishAssessmentInput, OkOutput>("api/finish-assessment");
 
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // TODO: fix this type
-  const [submitHybrid] = useCallable<
-    import("../../../functions/src/types/zod/routes/submissions").HybridStudentResponseInput
-  >("api/submit-audio-mc-answer");
+  const [submitAudioMcAnswer] = useCallable<SubmitAudioMcAnswerInput, OkOutput>(
+    "api/submit-audio-mc-answer",
+  );
   const [saving, setSaving] = useState(false);
   const mounted = useRef(true); // Prevents further navigation if we left the page
   const uploaded = useRef<{ blob: Blob; uri: string } | null>(null);
@@ -234,7 +223,7 @@ function AssessmentQuestionInner() {
     try {
       if (question.kind === "audio_mc") {
         const gsUri = await uploadRecordingIfNotAlready();
-        await submitHybrid({
+        await submitAudioMcAnswer({
           assessmentId: id,
           section: sectionIndex,
           question: questionIndex,
@@ -245,14 +234,14 @@ function AssessmentQuestionInner() {
           skipped: true,
         });
       } else if (question.kind === "mc") {
-        await submitMcAnswerFunc({
+        await submitMcAnswer({
           assessmentId: id,
           section: sectionIndex,
           question: questionIndex,
           answer: null,
         });
       } else if (question.kind === "audio") {
-        await submitAudioAnswerFunc({
+        await submitAudioAnswer({
           assessmentId: id,
           section: sectionIndex,
           question: questionIndex,
@@ -262,7 +251,7 @@ function AssessmentQuestionInner() {
       }
 
       if (isLastQuestionInAssessment) {
-        await finishAssessmentFunc({ assessmentId: id });
+        await finishAssessment({ assessmentId: id });
       }
 
       if (mounted.current) navigateToNext();
@@ -298,7 +287,7 @@ function AssessmentQuestionInner() {
     try {
       if (question.kind === "audio_mc") {
         const gsUri = await uploadRecordingIfNotAlready();
-        await submitHybrid({
+        await submitAudioMcAnswer({
           assessmentId: id,
           section: sectionIndex,
           question: questionIndex,
@@ -310,7 +299,7 @@ function AssessmentQuestionInner() {
           skipped: false,
         });
       } else if (question.kind === "mc") {
-        await submitMcAnswerFunc({
+        await submitMcAnswer({
           assessmentId: id,
           section: sectionIndex,
           question: questionIndex,
@@ -318,7 +307,7 @@ function AssessmentQuestionInner() {
         });
       } else if (question.kind === "audio" && audioBlob != null) {
         const gsUri = await uploadRecordingIfNotAlready();
-        await submitAudioAnswerFunc({
+        await submitAudioAnswer({
           assessmentId: id,
           section: sectionIndex,
           question: questionIndex,
@@ -328,7 +317,7 @@ function AssessmentQuestionInner() {
       }
 
       if (isLastQuestionInAssessment) {
-        await finishAssessmentFunc({ assessmentId: id });
+        await finishAssessment({ assessmentId: id });
       }
 
       if (mounted.current) navigateToNext();

@@ -3,9 +3,11 @@
   "private": true,
   "workspaces": [
     "apps/functions",
-    "apps/web"
+    "apps/web",
+    "packages/contracts"
   ],
   "devDependencies": {
+    "@vaca/contracts": "*",
     "shadcn": "^4.22.1"
   }
 }

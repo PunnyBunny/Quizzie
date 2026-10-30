@@ -3,14 +3,12 @@ import { useCallable } from "../lib/firebase-hooks";
 import { toUserMessage } from "../lib/errors";
 import { INPUT_CLASSES } from "../lib/ui";
 import type {
+  AdminSaveQuestionSectionInput,
+  AdminSaveQuestionSectionOutput,
   GetQuestionsOutput,
-  SaveQuestionSectionOutput,
-} from "../../../functions/src/types/questions";
-import type { SaveQuestionSectionInput } from "../../../functions/src/types/questions-inputs";
-import type {
   QuestionSectionDto,
-  SectionInstruction,
-} from "../../../functions/src/types/models/questions-dto";
+  SectionInstructionDto,
+} from "@vaca/contracts";
 import { PageHeader } from "../components/PageHeader";
 import { Button } from "@/components/ui/button";
 import {
@@ -126,7 +124,7 @@ function buildInput(
   form: FormState,
   t: (key: string, vars?: Record<string, string | number>) => string,
 ): {
-  input?: SaveQuestionSectionInput;
+  input?: AdminSaveQuestionSectionInput;
   error?: string;
 } {
   const id = form.id.trim();
@@ -146,7 +144,7 @@ function buildInput(
     )
       return { error: t("adminQuestions.hybridInvalid") };
   }
-  const instructions: SectionInstruction = {
+  const instructions: SectionInstructionDto = {
     text: form.instructionText,
     audio: form.instructionAudio,
   };
@@ -179,7 +177,7 @@ function buildInput(
     ? form.rows.map((r) => (r.image === "" ? null : r.image))
     : undefined;
 
-  const input: SaveQuestionSectionInput = {
+  const input: AdminSaveQuestionSectionInput = {
     id,
     title: form.title,
     kind: form.kind,
@@ -202,9 +200,10 @@ export default function AdminQuestions() {
   const [getQuestions, loadingSections] = useCallable<void, GetQuestionsOutput>(
     "api/get-questions",
   );
-  const [saveSection, saving] = useCallable<SaveQuestionSectionInput, SaveQuestionSectionOutput>(
-    "api/admin/save-question-section",
-  );
+  const [saveSection, saving] = useCallable<
+    AdminSaveQuestionSectionInput,
+    AdminSaveQuestionSectionOutput
+  >("api/admin/save-question-section");
 
   const [sections, setSections] = useState<QuestionSectionDto[]>([]);
   const [editing, setEditing] = useState<{ isNew: boolean } | null>(null);

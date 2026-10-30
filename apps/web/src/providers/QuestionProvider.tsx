@@ -1,4 +1,9 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
+import type {
+  GetQuestionsOutput,
+  QuestionSectionDto,
+  SectionInstructionDto,
+} from "@vaca/contracts";
 import { useCallable } from "../lib/firebase-hooks.ts";
 import { toUserMessage } from "../lib/errors.ts";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -14,36 +19,14 @@ export interface Question {
   audio: string;
 }
 
-export interface SectionInstruction {
-  audio: string;
-  text: string;
-}
-
 export interface Section {
   title: string;
   goal: string;
   questions: Question[];
-  instruction: SectionInstruction;
+  instruction: SectionInstructionDto;
 }
 
-interface ApiSection {
-  title: string;
-  kind: string;
-  length: number;
-  goal: string;
-  questions: string[] | null;
-  audios: string[];
-  choices?: Record<string, string>[];
-  choicesAudios?: string[];
-  images?: (string | null)[];
-  instructions: SectionInstruction;
-}
-
-interface GetQuestionsResponse {
-  sections: ApiSection[];
-}
-
-function transformSections(apiSections: ApiSection[]): Section[] {
+function transformSections(apiSections: QuestionSectionDto[]): Section[] {
   return apiSections.map(
     ({
       title,
@@ -83,7 +66,7 @@ const QuestionContext = createContext<Section[] | undefined>(undefined);
 export function QuestionProvider({ children }: { children: React.ReactNode }) {
   const [sections, setSections] = useState<Section[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [getQuestions, loading] = useCallable<void, GetQuestionsResponse>("api/get-questions");
+  const [getQuestions, loading] = useCallable<void, GetQuestionsOutput>("api/get-questions");
 
   useEffect(() => {
     let cancelled = false;

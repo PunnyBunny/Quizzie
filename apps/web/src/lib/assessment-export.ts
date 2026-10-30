@@ -1,5 +1,4 @@
-import type { AdminExportAssessmentsOutput } from "../../../functions/src/types/admin";
-import type { StudentResponseDto } from "../../../functions/src/types/models/student-responses-dto";
+import type { AdminExportAssessmentsOutput, StudentResponseDto } from "@vaca/contracts";
 import {
   computeSubtaskScore,
   computeZScore,

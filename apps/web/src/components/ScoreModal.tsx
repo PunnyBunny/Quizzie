@@ -1,4 +1,13 @@
 import { type ReactElement, useEffect, useState } from "react";
+import type {
+  AssessmentDto,
+  GetAssessmentStudentResponsesInput,
+  GetAssessmentStudentResponsesOutput,
+  GetSubtasksOutput,
+  QuestionSectionDto,
+  StudentResponseDto,
+  SubtaskDto,
+} from "@vaca/contracts";
 import { useCallable } from "../lib/firebase-hooks";
 import { toUserMessage } from "../lib/errors";
 import {
@@ -14,31 +23,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useTranslation } from "../hooks/useTranslation";
-import {
-  type QuizSection,
-  type StudentResponse,
-  type SubtaskDef,
-  getNormGrade,
-  computeSubtaskScore,
-  computeZScore,
-} from "../lib/scoring";
-
-interface Assessment {
-  id: string;
-  name: string;
-  grade: string;
-  school: string;
-}
-
-interface GetAssessmentStudentResponsesResponse {
-  assessment: Assessment;
-  sections: QuizSection[];
-  studentResponsesBySection: Record<string, StudentResponse>;
-}
-
-interface GetSubtasksResponse {
-  subtasks: SubtaskDef[];
-}
+import { getNormGrade, computeSubtaskScore, computeZScore } from "../lib/scoring";
 
 interface ScoreModalProps {
   assessmentId: string;
@@ -60,21 +45,21 @@ export default function ScoreModal({ trigger, ...props }: ScoreModalProps) {
 function ScoreModalContent({ assessmentId, onGoToGrading }: Omit<ScoreModalProps, "trigger">) {
   const { t } = useTranslation();
   const [getResponses] = useCallable<
-    { assessmentId: string },
-    GetAssessmentStudentResponsesResponse
+    GetAssessmentStudentResponsesInput,
+    GetAssessmentStudentResponsesOutput
   >("api/get-assessment-student-responses");
 
-  const [getSubtasks] = useCallable<{}, GetSubtasksResponse>("api/get-subtasks");
+  const [getSubtasks] = useCallable<{}, GetSubtasksOutput>("api/get-subtasks");
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [assessment, setAssessment] = useState<Assessment | null>(null);
+  const [assessment, setAssessment] = useState<AssessmentDto | null>(null);
   const [responsesBySection, setResponsesBySection] = useState<Record<
     string,
-    StudentResponse
+    StudentResponseDto
   > | null>(null);
-  const [sections, setSections] = useState<QuizSection[] | null>(null);
-  const [subtaskDefs, setSubtaskDefs] = useState<SubtaskDef[]>([]);
+  const [sections, setSections] = useState<QuestionSectionDto[] | null>(null);
+  const [subtaskDefs, setSubtaskDefs] = useState<SubtaskDto[]>([]);
 
   useEffect(() => {
     const fetchAll = async () => {

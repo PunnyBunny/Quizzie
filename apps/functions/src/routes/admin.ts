@@ -1,35 +1,35 @@
 import express from "express";
+import type {
+  AdminCreateUserInput,
+  AdminCreateUserOutput,
+  AdminExportAssessmentsInput,
+  AdminExportAssessmentsOutput,
+  AdminGetAssessmentsInput,
+  AdminGetAssessmentsOutput,
+  AdminGetUsersOutput,
+  AdminRemoveUserInput,
+  AdminRemoveUserOutput,
+  AdminResetPasswordInput,
+  AdminResetPasswordOutput,
+  AssessmentDto,
+  ExportedAssessmentDto,
+  UserDto,
+} from "@vaca/contracts";
 import { validate } from "../middleware/validation";
 import { admin } from "../firebase";
 import {
-  type AssessmentDto,
   type AssessmentDoc,
   assessments as assessmentsDb,
   toAssessmentDto,
 } from "../types/models/assessments";
 import {
-  type AdminGetAssessmentsInput,
   AdminGetAssessmentsSchema,
-  type AdminExportAssessmentsInput,
   AdminExportAssessmentsSchema,
-  type AdminCreateUserInput,
   AdminCreateUserSchema,
-  type AdminRemoveUserInput,
   AdminRemoveUserSchema,
-  type AdminResetPasswordInput,
   AdminResetPasswordSchema,
 } from "../types/zod/routes/admin";
-import {
-  type AdminCreateUserOutput,
-  type AdminGetAssessmentsOutput,
-  type AdminExportAssessmentsOutput,
-  type ExportAssessmentDto,
-  type AdminGetUsersOutput,
-  type AdminRemoveUserOutput,
-  type AdminResetPasswordOutput,
-  type UserRecord,
-} from "../types/admin";
-import { type FirebaseFunctionRequest, type FirebaseFunctionResponse } from "../utils/express";
+import type { FirebaseFunctionRequest, FirebaseFunctionResponse } from "../utils/express";
 import { adminHandler } from "../middleware/admin";
 import { getQuestionSections } from "../types/models/questions";
 import { studentResponses, toStudentResponseDto } from "../types/models/student-responses";
@@ -58,7 +58,7 @@ router.post(
       getQuestionSections(),
       subtasks.collection().get(),
     ]);
-    const assessments: ExportAssessmentDto[] = [];
+    const assessments: ExportedAssessmentDto[] = [];
     for (const doc of assessmentSnapshot.docs) {
       const dto = toAssessmentDto(doc);
       if (!dto) continue;
@@ -116,7 +116,7 @@ router.post(
   async (_req: FirebaseFunctionRequest<{}>, res: FirebaseFunctionResponse<AdminGetUsersOutput>) => {
     const listUsersResult = await admin.auth().listUsers();
 
-    const users: UserRecord[] = listUsersResult.users.map((userRecord) => ({
+    const users: UserDto[] = listUsersResult.users.map((userRecord) => ({
       email: userRecord.email,
       isAdmin: (userRecord.customClaims?.isAdmin as boolean) ?? false,
     }));

@@ -1751,7 +1751,7 @@ async function main() {
   );
   const schema = app.load(
     "apps/functions/src/types/zod/routes/questions.ts",
-  ).SaveQuestionSectionSchema;
+  ).AdminSaveQuestionSectionSchema;
   for (const invalid of [
     { ...hybrid, id: "" },
     { ...hybrid, correctAnswers: ["missing", "D"] },

@@ -1,13 +1,17 @@
 import React, { useEffect, useState } from "react";
 import { useCallable } from "../lib/firebase-hooks";
 import { INPUT_CLASSES } from "../lib/ui";
-import type { NormStats, SubtaskDef, QuizSection } from "../lib/scoring";
-import type { GetSubtasksOutput, SaveSubtaskOutput } from "../../../functions/src/types/subtasks";
 import type {
-  SaveSubtaskInput,
-  DeleteSubtaskInput,
-} from "../../../functions/src/types/subtasks-inputs";
-import type { GetQuestionsOutput } from "../../../functions/src/types/questions";
+  AdminDeleteSubtaskInput,
+  AdminDeleteSubtaskOutput,
+  AdminSaveSubtaskInput,
+  AdminSaveSubtaskOutput,
+  GetQuestionsOutput,
+  GetSubtasksOutput,
+  NormStatsDto,
+  QuestionSectionDto,
+  SubtaskDto,
+} from "@vaca/contracts";
 import { PageHeader } from "../components/PageHeader";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,9 +30,9 @@ import { useTranslation } from "../hooks/useTranslation";
 
 type NormGrade = "S1" | "S3" | "S5";
 const NORM_GRADES: NormGrade[] = ["S1", "S3", "S5"];
-const NORM_FIELDS: (keyof NormStats)[] = ["min", "max", "n", "stdDev", "mean"];
+const NORM_FIELDS: (keyof NormStatsDto)[] = ["min", "max", "n", "stdDev", "mean"];
 
-const EMPTY_NORMS: { S1: NormStats | null; S3: NormStats | null; S5: NormStats | null } = {
+const EMPTY_NORMS: { S1: NormStatsDto | null; S3: NormStatsDto | null; S5: NormStatsDto | null } = {
   S1: null,
   S3: null,
   S5: null,
@@ -38,26 +42,30 @@ export default function AdminSubtasks() {
   const { t } = useTranslation();
 
   const [getSubtasks, loadingSubtasks] = useCallable<{}, GetSubtasksOutput>("api/get-subtasks");
-  const [saveSubtask, saving] = useCallable<SaveSubtaskInput, SaveSubtaskOutput>(
+  const [saveSubtask, saving] = useCallable<AdminSaveSubtaskInput, AdminSaveSubtaskOutput>(
     "api/admin/save-subtask",
   );
-  const [deleteSubtask, deleting] = useCallable<DeleteSubtaskInput>("api/admin/delete-subtask");
+  const [deleteSubtask, deleting] = useCallable<AdminDeleteSubtaskInput, AdminDeleteSubtaskOutput>(
+    "api/admin/delete-subtask",
+  );
   const [getQuestions] = useCallable<void, GetQuestionsOutput>("api/get-questions");
 
-  const [subtasks, setSubtasks] = useState<SubtaskDef[]>([]);
-  const [sections, setSections] = useState<QuizSection[]>([]);
+  const [subtasks, setSubtasks] = useState<SubtaskDto[]>([]);
+  const [sections, setSections] = useState<QuestionSectionDto[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [listError, setListError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   // Edit modal state
-  const [editing, setEditing] = useState<SubtaskDef | null>(null); // null = closed, empty id = new
+  const [editing, setEditing] = useState<SubtaskDto | null>(null); // null = closed, empty id = new
   const [formName, setFormName] = useState("");
   const [formQuestionIds, setFormQuestionIds] = useState<
     { sectionIndex: number; questionIndex: number }[]
   >([]);
   // Draft norm input strings (so partial typing like "3." isn't lost)
-  const [normDrafts, setNormDrafts] = useState<Record<NormGrade, Record<keyof NormStats, string>>>({
+  const [normDrafts, setNormDrafts] = useState<
+    Record<NormGrade, Record<keyof NormStatsDto, string>>
+  >({
     S1: { min: "", max: "", n: "", stdDev: "", mean: "" },
     S3: { min: "", max: "", n: "", stdDev: "", mean: "" },
     S5: { min: "", max: "", n: "", stdDev: "", mean: "" },
@@ -92,11 +100,11 @@ export default function AdminSubtasks() {
     setError(null);
   };
 
-  const openEdit = (subtask: SubtaskDef) => {
+  const openEdit = (subtask: SubtaskDto) => {
     setEditing(subtask);
     setFormName(subtask.name);
     setFormQuestionIds([...subtask.questionIds]);
-    const drafts = {} as Record<NormGrade, Record<keyof NormStats, string>>;
+    const drafts = {} as Record<NormGrade, Record<keyof NormStatsDto, string>>;
     for (const g of NORM_GRADES) {
       const row = subtask.norms[g];
       drafts[g] = {
@@ -148,7 +156,7 @@ export default function AdminSubtasks() {
     });
   };
 
-  const handleNormDraftChange = (grade: NormGrade, field: keyof NormStats, value: string) => {
+  const handleNormDraftChange = (grade: NormGrade, field: keyof NormStatsDto, value: string) => {
     setNormDrafts((prev) => ({
       ...prev,
       [grade]: { ...prev[grade], [field]: value },
@@ -156,11 +164,11 @@ export default function AdminSubtasks() {
   };
 
   const buildNormsFromDrafts = (): {
-    S1: NormStats | null;
-    S3: NormStats | null;
-    S5: NormStats | null;
+    S1: NormStatsDto | null;
+    S3: NormStatsDto | null;
+    S5: NormStatsDto | null;
   } => {
-    const result = {} as Record<NormGrade, NormStats | null>;
+    const result = {} as Record<NormGrade, NormStatsDto | null>;
     for (const g of NORM_GRADES) {
       const d = normDrafts[g];
       const allEmpty = NORM_FIELDS.every((f) => d[f].trim() === "");
@@ -193,7 +201,7 @@ export default function AdminSubtasks() {
     }
 
     const norms = buildNormsFromDrafts();
-    const input: SaveSubtaskInput = {
+    const input: AdminSaveSubtaskInput = {
       ...(editing?.id ? { id: editing.id } : {}),
       name: formName.trim(),
       questionIds: formQuestionIds,
@@ -221,7 +229,7 @@ export default function AdminSubtasks() {
     }
   };
 
-  const normConfiguredBadge = (norms: SubtaskDef["norms"], grade: NormGrade) =>
+  const normConfiguredBadge = (norms: SubtaskDto["norms"], grade: NormGrade) =>
     norms[grade] ? (
       <span className="inline-block w-5 text-center text-green-600 font-medium">Y</span>
     ) : (

@@ -1,7 +1,13 @@
 import { z } from "zod";
+import type {
+  CreateAssessmentInput,
+  FinishAssessmentInput,
+  GetAssessmentsInput,
+  SetAssessmentArchivedInput,
+} from "@vaca/contracts";
 import { GenderSchema, LanguageEntrySchema } from "../common";
 
-export const AssessmentSchema = z.object({
+export const CreateAssessmentSchema = z.object({
   name: z.string().trim(),
   birthDate: z.string().trim(), // ISO date string
   gender: GenderSchema,
@@ -9,20 +15,16 @@ export const AssessmentSchema = z.object({
   school: z.string().trim(),
   motherTongue: LanguageEntrySchema,
   otherLanguages: z.array(LanguageEntrySchema),
-});
+}) satisfies z.ZodType<CreateAssessmentInput>;
 
 export const GetAssessmentsSchema = z.object({
   finished: z.boolean().optional(),
   archived: z.boolean().optional(),
-});
+}) satisfies z.ZodType<GetAssessmentsInput>;
 
 export const FinishAssessmentSchema = z.object({
   assessmentId: z.string(),
-});
-
-export type AssessmentInput = z.infer<typeof AssessmentSchema>;
-export type GetAssessmentsInput = z.infer<typeof GetAssessmentsSchema>;
-export type FinishAssessmentInput = z.infer<typeof FinishAssessmentSchema>;
+}) satisfies z.ZodType<FinishAssessmentInput>;
 
 export const SetAssessmentArchivedSchema = z.object({
   assessmentId: z
@@ -30,5 +32,4 @@ export const SetAssessmentArchivedSchema = z.object({
     .min(1)
     .refine((id) => !id.includes("/")),
   archived: z.boolean(),
-});
-export type SetAssessmentArchivedInput = z.infer<typeof SetAssessmentArchivedSchema>;
+}) satisfies z.ZodType<SetAssessmentArchivedInput>;

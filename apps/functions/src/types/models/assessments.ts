@@ -1,8 +1,6 @@
-import type { AssessmentDto } from "./assessments-dto";
-export type { AssessmentDto } from "./assessments-dto";
+import type { AssessmentDto, Gender, LanguageEntryDto } from "@vaca/contracts";
 import { FieldValue } from "../../firebase";
 import type { Timestamp } from "firebase-admin/firestore";
-import type { Gender, LanguageEntry } from "../common";
 import { ForbiddenError, NotFoundError } from "../../middleware/error";
 import { BaseCollection } from "./base";
 
@@ -16,8 +14,8 @@ export interface AssessmentDoc {
   gender: Gender;
   grade: string;
   school: string;
-  motherTongue: LanguageEntry;
-  otherLanguages: LanguageEntry[];
+  motherTongue: LanguageEntryDto;
+  otherLanguages: LanguageEntryDto[];
   creatorEmail: string;
   currentSection: number;
   currentQuestion: number;
