@@ -1091,6 +1091,68 @@ async function archiveHookChecks() {
   await restore;
   assert.equal(render().message.key, "archive.restoreSuccess");
 }
+async function validationChecks() {
+  const { z } = require("zod");
+  const { validate } = sourceLoader()("apps/functions/src/middleware/validation.ts");
+  const run = async (schema, body) => {
+    const req = { body };
+    const result = { req, nextCalls: 0 };
+    const res = {
+      status(code) {
+        result.status = code;
+        return this;
+      },
+      json(body) {
+        result.response = body;
+      },
+    };
+    await validate(schema)(req, res, (error) => {
+      result.nextCalls++;
+      result.error = error;
+      if (!error) result.data = req.body.data;
+    });
+    return result;
+  };
+  const schema = z.object({
+    name: z
+      .string()
+      .trim()
+      .min(1)
+      .transform(async (name) => name.toUpperCase()),
+    count: z.number().default(1),
+  });
+  const payload = { name: " Alice ", extra: "discard" };
+  const metadata = { requestId: "test" };
+  for (const body of [{ data: payload, metadata }, payload]) {
+    const result = await run(schema, body);
+    assert.equal(result.nextCalls, 1);
+    assert.equal(result.error, undefined);
+    assert.deepEqual(result.data, { name: "ALICE", count: 1 });
+    if ("data" in body) assert.equal(result.req.body.metadata, metadata);
+  }
+  const optional = await run(z.object({}).optional(), undefined);
+  assert.equal(optional.nextCalls, 1);
+  assert.equal(optional.req.body.data, undefined);
+  const invalidBody = { data: { name: 42 } };
+  const invalid = await run(schema, invalidBody);
+  assert.equal(invalid.nextCalls, 0);
+  assert.equal(invalid.status, 400);
+  assert.equal(invalid.response.ok, false);
+  assert.equal(invalid.response.error, "Invalid request");
+  assert(invalid.response.issues.length > 0);
+  assert.equal(invalid.req.body, invalidBody);
+  const failure = new Error("Transform failed");
+  const failed = await run(
+    z.string().transform(() => {
+      throw failure;
+    }),
+    { data: "test" },
+  );
+  assert.equal(failed.error, failure);
+  assert.equal(failed.nextCalls, 1);
+  assert.equal(failed.response, undefined);
+  console.log("PASS: parsed validation payloads, defaults, async transforms, and error handling.");
+}
 async function finishAssessmentChecks() {
   const app = backend();
   for (const [id, creatorEmail] of [
@@ -1537,7 +1599,7 @@ async function main() {
   };
   await app.call("/admin/save-question-section", hybrid, "owner", { isAdmin: true });
   const newAssessment = await app.call("/create-assessment", {
-    name: "Test",
+    name: " Test ",
     birthDate: "2010-01-01",
     gender: "male",
     grade: "1",
@@ -1546,6 +1608,7 @@ async function main() {
     otherLanguages: [],
   });
   const id = newAssessment.id;
+  assert.equal(app.documents.get(`assessments/${id}`).name, "Test");
   await app.call("/submit-mc-answer", {
     assessmentId: id,
     section: 0,
@@ -1844,6 +1907,7 @@ async function main() {
     scoring.getQuestionScore(2, 0, audioData.studentResponsesBySection, audioData.sections),
     4,
   );
+  await validationChecks();
   await finishAssessmentChecks();
   await archiveChecks();
   await archiveHookChecks();

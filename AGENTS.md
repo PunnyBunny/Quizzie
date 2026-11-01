@@ -95,8 +95,9 @@ Firestore or Storage.
   custom claim. Trace router mounting and middleware order when changing access
   control; a router-level middleware can affect subsequent mounted routers.
 - Follow existing Zod validation and typed Express request/response helpers.
-  The validation middleware checks the payload but does not replace it with the
-  parsed/transformed result; do not assume schema defaults/transforms were applied.
+  The validation middleware stores Zod's parsed payload in `req.body.data` before
+  running handlers, so schema defaults and transforms are applied. Raw payloads are
+  normalized to the same `{ data: ... }` envelope.
 - Use existing model helpers for Firestore access and DTO conversion.
   Assessments track creator email, section/question progress, and completion;
   `getAssessmentWithAuth` checks ownership or admin access. Student response
