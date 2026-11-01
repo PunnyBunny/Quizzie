@@ -87,6 +87,9 @@ Firestore or Storage.
   The server implements Express POST routes under the `api` HTTP function, with
   callable-compatible `{ data: ... }` request and success-response envelopes.
   Preserve this contract when changing both ends.
+- `packages/contracts/api.d.ts` maps callable endpoint names to their input/output
+  contracts. `useCallable("api/...")` infers both types from this map; update it when
+  adding or changing an endpoint. Keep the hook's existing optional payload behavior.
 - Global `authHandler` verifies Firebase Bearer ID tokens and sets
   `res.locals.callerEmail` and `callerClaims`. `adminHandler` checks the `isAdmin`
   custom claim. Trace router mounting and middleware order when changing access

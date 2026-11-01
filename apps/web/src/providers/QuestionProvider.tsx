@@ -1,9 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import type {
-  GetQuestionsOutput,
-  QuestionSectionDto,
-  SectionInstructionDto,
-} from "@vaca/contracts";
+import type { QuestionSectionDto, SectionInstructionDto } from "@vaca/contracts";
 import { useCallable } from "../lib/firebase-hooks.ts";
 import { toUserMessage } from "../lib/errors.ts";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -66,7 +62,7 @@ const QuestionContext = createContext<Section[] | undefined>(undefined);
 export function QuestionProvider({ children }: { children: React.ReactNode }) {
   const [sections, setSections] = useState<Section[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [getQuestions, loading] = useCallable<void, GetQuestionsOutput>("api/get-questions");
+  const [getQuestions, loading] = useCallable("api/get-questions");
 
   useEffect(() => {
     let cancelled = false;

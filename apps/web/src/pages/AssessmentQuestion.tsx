@@ -1,11 +1,4 @@
 import { Button } from "@/components/ui/button";
-import type {
-  FinishAssessmentInput,
-  OkOutput,
-  SubmitAudioAnswerInput,
-  SubmitAudioMcAnswerInput,
-  SubmitMcAnswerInput,
-} from "@vaca/contracts";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuestion, useSection } from "../providers/QuestionProvider.tsx";
 import React, { useLayoutEffect, useRef, useState } from "react";
@@ -161,19 +154,15 @@ function AssessmentQuestionInner() {
 
   const navigate = useNavigate();
 
-  const [submitMcAnswer] = useCallable<SubmitMcAnswerInput, OkOutput>("api/submit-mc-answer");
+  const [submitMcAnswer] = useCallable("api/submit-mc-answer");
 
-  const [submitAudioAnswer] = useCallable<SubmitAudioAnswerInput, OkOutput>(
-    "api/submit-audio-answer",
-  );
+  const [submitAudioAnswer] = useCallable("api/submit-audio-answer");
 
-  const [finishAssessment] = useCallable<FinishAssessmentInput, OkOutput>("api/finish-assessment");
+  const [finishAssessment] = useCallable("api/finish-assessment");
 
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const [submitAudioMcAnswer] = useCallable<SubmitAudioMcAnswerInput, OkOutput>(
-    "api/submit-audio-mc-answer",
-  );
+  const [submitAudioMcAnswer] = useCallable("api/submit-audio-mc-answer");
   const [saving, setSaving] = useState(false);
   const mounted = useRef(true); // Prevents further navigation if we left the page
   const uploaded = useRef<{ blob: Blob; uri: string } | null>(null);

@@ -1,11 +1,5 @@
 import { Button } from "@/components/ui/button";
-import type {
-  CreateAssessmentInput,
-  CreateAssessmentOutput,
-  Gender,
-  Language,
-  LanguageEntryDto,
-} from "@vaca/contracts";
+import type { Gender, Language, LanguageEntryDto } from "@vaca/contracts";
 import React, { useRef, useState } from "react";
 import SimpleReactValidator from "simple-react-validator";
 import useForceUpdate from "use-force-update";
@@ -54,9 +48,7 @@ export default function NewAssessment() {
     }),
   );
 
-  const [createAssessment] = useCallable<CreateAssessmentInput, CreateAssessmentOutput>(
-    "api/create-assessment",
-  );
+  const [createAssessment] = useCallable("api/create-assessment");
 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);

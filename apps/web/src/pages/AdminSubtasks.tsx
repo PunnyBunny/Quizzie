@@ -2,12 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useCallable } from "../lib/firebase-hooks";
 import { INPUT_CLASSES } from "../lib/ui";
 import type {
-  AdminDeleteSubtaskInput,
-  AdminDeleteSubtaskOutput,
   AdminSaveSubtaskInput,
-  AdminSaveSubtaskOutput,
-  GetQuestionsOutput,
-  GetSubtasksOutput,
   NormStatsDto,
   QuestionSectionDto,
   SubtaskDto,
@@ -41,14 +36,10 @@ const EMPTY_NORMS: { S1: NormStatsDto | null; S3: NormStatsDto | null; S5: NormS
 export default function AdminSubtasks() {
   const { t } = useTranslation();
 
-  const [getSubtasks, loadingSubtasks] = useCallable<{}, GetSubtasksOutput>("api/get-subtasks");
-  const [saveSubtask, saving] = useCallable<AdminSaveSubtaskInput, AdminSaveSubtaskOutput>(
-    "api/admin/save-subtask",
-  );
-  const [deleteSubtask, deleting] = useCallable<AdminDeleteSubtaskInput, AdminDeleteSubtaskOutput>(
-    "api/admin/delete-subtask",
-  );
-  const [getQuestions] = useCallable<void, GetQuestionsOutput>("api/get-questions");
+  const [getSubtasks, loadingSubtasks] = useCallable("api/get-subtasks");
+  const [saveSubtask, saving] = useCallable("api/admin/save-subtask");
+  const [deleteSubtask, deleting] = useCallable("api/admin/delete-subtask");
+  const [getQuestions] = useCallable("api/get-questions");
 
   const [subtasks, setSubtasks] = useState<SubtaskDto[]>([]);
   const [sections, setSections] = useState<QuestionSectionDto[]>([]);

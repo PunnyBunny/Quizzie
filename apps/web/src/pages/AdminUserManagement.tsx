@@ -1,14 +1,5 @@
 import React, { useEffect, useState } from "react";
-import type {
-  AdminCreateUserInput,
-  AdminCreateUserOutput,
-  AdminGetUsersOutput,
-  AdminRemoveUserInput,
-  AdminRemoveUserOutput,
-  AdminResetPasswordInput,
-  AdminResetPasswordOutput,
-  UserDto,
-} from "@vaca/contracts";
+import type { UserDto } from "@vaca/contracts";
 import { useCallable } from "../lib/firebase-hooks.ts";
 import { toUserMessage } from "../lib/errors";
 import { INPUT_CLASSES as BASE_INPUT_CLASSES } from "../lib/ui";
@@ -32,17 +23,10 @@ const INPUT_CLASSES = `${BASE_INPUT_CLASSES} shadow-xs`;
 
 export default function AdminUserManagement() {
   const { t } = useTranslation();
-  const [getUsers, gettingUsers] = useCallable<{}, AdminGetUsersOutput>("api/admin/get-users");
-  const [createUser, creatingUser] = useCallable<AdminCreateUserInput, AdminCreateUserOutput>(
-    "api/admin/create-user",
-  );
-  const [resetPassword, resettingPassword] = useCallable<
-    AdminResetPasswordInput,
-    AdminResetPasswordOutput
-  >("api/admin/reset-password");
-  const [removeUser, removingUser] = useCallable<AdminRemoveUserInput, AdminRemoveUserOutput>(
-    "api/admin/remove-user",
-  );
+  const [getUsers, gettingUsers] = useCallable("api/admin/get-users");
+  const [createUser, creatingUser] = useCallable("api/admin/create-user");
+  const [resetPassword, resettingPassword] = useCallable("api/admin/reset-password");
+  const [removeUser, removingUser] = useCallable("api/admin/remove-user");
 
   const [users, setUsers] = useState<UserDto[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>("");

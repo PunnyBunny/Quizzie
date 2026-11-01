@@ -1,9 +1,6 @@
 import { type ReactElement, useEffect, useState } from "react";
 import type {
   AssessmentDto,
-  GetAssessmentStudentResponsesInput,
-  GetAssessmentStudentResponsesOutput,
-  GetSubtasksOutput,
   QuestionSectionDto,
   StudentResponseDto,
   SubtaskDto,
@@ -44,12 +41,9 @@ export default function ScoreModal({ trigger, ...props }: ScoreModalProps) {
 
 function ScoreModalContent({ assessmentId, onGoToGrading }: Omit<ScoreModalProps, "trigger">) {
   const { t } = useTranslation();
-  const [getResponses] = useCallable<
-    GetAssessmentStudentResponsesInput,
-    GetAssessmentStudentResponsesOutput
-  >("api/get-assessment-student-responses");
+  const [getResponses] = useCallable("api/get-assessment-student-responses");
 
-  const [getSubtasks] = useCallable<{}, GetSubtasksOutput>("api/get-subtasks");
+  const [getSubtasks] = useCallable("api/get-subtasks");
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

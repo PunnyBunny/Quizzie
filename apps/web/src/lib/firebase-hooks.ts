@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { ApiEndpoints } from "@vaca/contracts";
 import { httpsCallable, type HttpsCallableResult } from "firebase/functions";
 import { onAuthStateChanged, type Auth, type User } from "firebase/auth";
 import { functions } from "./firebase";
@@ -12,9 +13,11 @@ export type CallableHook<Input, Output> = readonly [
  * Wraps a Firebase callable function. The returned `call` throws on error,
  * so callers can use plain try/catch and surface messages via `toUserMessage`.
  */
-export function useCallable<Input = void, Output = void>(
-  name: string,
-): CallableHook<Input, Output> {
+export function useCallable<Name extends keyof ApiEndpoints>(
+  name: Name,
+): CallableHook<ApiEndpoints[Name]["input"], ApiEndpoints[Name]["output"]> {
+  type Input = ApiEndpoints[Name]["input"];
+  type Output = ApiEndpoints[Name]["output"];
   const fn = useMemo(() => httpsCallable<Input, Output>(functions, name), [name]);
   const [loading, setLoading] = useState(false);
 
@@ -22,7 +25,7 @@ export function useCallable<Input = void, Output = void>(
     async (data?: Input): Promise<HttpsCallableResult<Output>> => {
       setLoading(true);
       try {
-        return await fn(data as Input);
+        return await fn(data);
       } finally {
         setLoading(false);
       }

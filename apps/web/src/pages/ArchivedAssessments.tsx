@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import type { AssessmentDto, GetAssessmentsInput, GetAssessmentsOutput } from "@vaca/contracts";
+import type { AssessmentDto } from "@vaca/contracts";
 import { useCallable } from "../lib/firebase-hooks";
 import { toUserMessage } from "../lib/errors";
 import { useTranslation } from "../hooks/useTranslation";
@@ -13,9 +13,7 @@ import { Alert, AlertAction, AlertDescription } from "@/components/ui/alert";
 export default function ArchivedAssessments() {
   const { t, language } = useTranslation();
   const navigate = useNavigate();
-  const [getAssessments] = useCallable<GetAssessmentsInput, GetAssessmentsOutput>(
-    "api/get-assessments",
-  );
+  const [getAssessments] = useCallable("api/get-assessments");
   const [assessments, setAssessments] = useState<AssessmentDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

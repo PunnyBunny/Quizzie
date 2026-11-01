@@ -4,8 +4,6 @@ import { toUserMessage } from "../lib/errors";
 import { INPUT_CLASSES } from "../lib/ui";
 import type {
   AdminSaveQuestionSectionInput,
-  AdminSaveQuestionSectionOutput,
-  GetQuestionsOutput,
   QuestionSectionDto,
   SectionInstructionDto,
 } from "@vaca/contracts";
@@ -197,13 +195,8 @@ function buildInput(
 
 export default function AdminQuestions() {
   const { t } = useTranslation();
-  const [getQuestions, loadingSections] = useCallable<void, GetQuestionsOutput>(
-    "api/get-questions",
-  );
-  const [saveSection, saving] = useCallable<
-    AdminSaveQuestionSectionInput,
-    AdminSaveQuestionSectionOutput
-  >("api/admin/save-question-section");
+  const [getQuestions, loadingSections] = useCallable("api/get-questions");
+  const [saveSection, saving] = useCallable("api/admin/save-question-section");
 
   const [sections, setSections] = useState<QuestionSectionDto[]>([]);
   const [editing, setEditing] = useState<{ isNew: boolean } | null>(null);

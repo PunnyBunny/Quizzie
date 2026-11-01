@@ -9,14 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tooltip } from "../components/Tooltip";
 import { CheckIcon, SpinnerIcon, XIcon } from "../components/icons";
 import { INPUT_CLASSES } from "../lib/ui";
-import type {
-  GetAssessmentStudentResponsesInput,
-  GetAssessmentStudentResponsesOutput,
-  OkOutput,
-  QuestionSectionDto,
-  SubmitAudioGradeInput,
-  UpdateAudioTranscriptInput,
-} from "@vaca/contracts";
+import type { GetAssessmentStudentResponsesOutput, QuestionSectionDto } from "@vaca/contracts";
 import { getQuestionScore } from "../lib/scoring";
 import { useTranslation } from "../hooks/useTranslation";
 
@@ -34,18 +27,13 @@ export default function GradeAssessment() {
 
   if (!id) throw new Error("Assessment ID not provided");
 
-  const [getAssessmentStudentResponses, fetching] = useCallable<
-    GetAssessmentStudentResponsesInput,
-    GetAssessmentStudentResponsesOutput
-  >("api/get-assessment-student-responses");
-
-  const [submitAudioGrade, submitting] = useCallable<SubmitAudioGradeInput, OkOutput>(
-    "api/submit-audio-grade",
+  const [getAssessmentStudentResponses, fetching] = useCallable(
+    "api/get-assessment-student-responses",
   );
 
-  const [updateAudioTranscript] = useCallable<UpdateAudioTranscriptInput, OkOutput>(
-    "api/update-audio-transcript",
-  );
+  const [submitAudioGrade, submitting] = useCallable("api/submit-audio-grade");
+
+  const [updateAudioTranscript] = useCallable("api/update-audio-transcript");
 
   const [studentResponseData, setStudentResponseData] =
     useState<GetAssessmentStudentResponsesOutput | null>(null);

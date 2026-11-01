@@ -11,15 +11,13 @@ import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/u
 import { ClipboardIcon } from "../components/icons";
 import { useTranslation } from "../hooks/useTranslation";
 
-import type { AssessmentDto, GetAssessmentsInput, GetAssessmentsOutput } from "@vaca/contracts";
+import type { AssessmentDto } from "@vaca/contracts";
 
 export default function ViewAssessments() {
   const navigate = useNavigate();
   const { t, language } = useTranslation();
 
-  const [getAssessments, loading] = useCallable<GetAssessmentsInput, GetAssessmentsOutput>(
-    "api/get-assessments",
-  );
+  const [getAssessments, loading] = useCallable("api/get-assessments");
 
   const [assessments, setAssessments] = useState<AssessmentDto[]>([]);
   const [error, setError] = useState<string | null>(null);
