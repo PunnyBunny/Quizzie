@@ -1091,6 +1091,42 @@ async function archiveHookChecks() {
   await restore;
   assert.equal(render().message.key, "archive.restoreSuccess");
 }
+async function finishAssessmentChecks() {
+  const app = backend();
+  for (const [id, creatorEmail] of [
+    ["owned", "owner"],
+    ["foreign", "someone-else"],
+  ]) {
+    app.documents.set(`assessments/${id}`, {
+      creatorEmail,
+      createdAt: app.timestamp,
+      finished: false,
+    });
+  }
+  const call = mountedRouterCall(app);
+  const before = JSON.stringify([...app.documents]);
+  await assert.rejects(
+    call("/finish-assessment", { assessmentId: "foreign" }),
+    (error) => error.statusCode === 403,
+  );
+  await assert.rejects(
+    call("/finish-assessment", { assessmentId: "missing" }),
+    (error) => error.statusCode === 404,
+  );
+  assert.equal(JSON.stringify([...app.documents]), before, "Rejected requests do not write data");
+  for (const [id, claims] of [
+    ["owned", {}],
+    ["foreign", { isAdmin: true }],
+  ]) {
+    const result = await call("/finish-assessment", { assessmentId: id }, claims);
+    assert.equal(result.ok, true);
+    const saved = app.documents.get(`assessments/${id}`);
+    assert.equal(saved.finished, true);
+    assert.equal(saved.finishedAt, app.timestamp);
+    assert.equal(saved.updatedAt, app.timestamp);
+  }
+  console.log("PASS: finish assessment owner/admin access, non-owner denial, and missing records.");
+}
 async function archiveChecks() {
   const app = backend();
   const seed = {
@@ -1808,6 +1844,7 @@ async function main() {
     scoring.getQuestionScore(2, 0, audioData.studentResponsesBySection, audioData.sections),
     4,
   );
+  await finishAssessmentChecks();
   await archiveChecks();
   await archiveHookChecks();
   await recordingChecks();

@@ -10,7 +10,6 @@ import type {
   SetAssessmentArchivedInput,
 } from "@vaca/contracts";
 import { validate } from "../middleware/validation";
-import { NotFoundError } from "../middleware/error";
 import { FieldValue } from "../firebase";
 import {
   type AssessmentDoc,
@@ -101,16 +100,15 @@ router.post(
     res: FirebaseFunctionResponse<OkOutput>,
   ) => {
     const { assessmentId } = req.body.data;
+    const { callerEmail, callerClaims } = res.locals;
+    const assessmentDoc = await getAssessmentWithAuth(
+      assessmentId,
+      callerEmail,
+      callerClaims?.isAdmin === true,
+    );
     const now = FieldValue.serverTimestamp();
 
-    const assessmentRef = assessmentsDb.doc(assessmentId);
-
-    const assessmentDoc = await assessmentRef.get();
-    if (!assessmentDoc.exists) {
-      throw new NotFoundError("Assessment not found");
-    }
-
-    await assessmentRef.update({
+    await assessmentDoc.ref.update({
       finished: true,
       finishedAt: now,
       updatedAt: now,
