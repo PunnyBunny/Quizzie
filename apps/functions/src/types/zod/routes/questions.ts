@@ -1,3 +1,4 @@
+import { DocumentIdSchema } from "../common";
 import { z } from "zod";
 import type { AdminSaveQuestionSectionInput, SectionInstructionDto } from "@vaca/contracts";
 
@@ -8,7 +9,7 @@ const SectionInstructionSchema = z.object({
 
 export const AdminSaveQuestionSectionSchema = z
   .object({
-    id: z.string().min(1),
+    id: DocumentIdSchema,
     title: z.string(),
     kind: z.enum(["mc", "audio", "audio_mc"]),
     length: z.number().int().min(0),

@@ -5,7 +5,7 @@ import type {
   GetAssessmentsInput,
   SetAssessmentArchivedInput,
 } from "@vaca/contracts";
-import { GenderSchema, LanguageEntrySchema } from "../common";
+import { DocumentIdSchema, GenderSchema, LanguageEntrySchema } from "../common";
 
 export const CreateAssessmentSchema = z.object({
   name: z.string().trim(),
@@ -23,13 +23,10 @@ export const GetAssessmentsSchema = z.object({
 }) satisfies z.ZodType<GetAssessmentsInput>;
 
 export const FinishAssessmentSchema = z.object({
-  assessmentId: z.string(),
+  assessmentId: DocumentIdSchema,
 }) satisfies z.ZodType<FinishAssessmentInput>;
 
 export const SetAssessmentArchivedSchema = z.object({
-  assessmentId: z
-    .string()
-    .min(1)
-    .refine((id) => !id.includes("/")),
+  assessmentId: DocumentIdSchema,
   archived: z.boolean(),
 }) satisfies z.ZodType<SetAssessmentArchivedInput>;

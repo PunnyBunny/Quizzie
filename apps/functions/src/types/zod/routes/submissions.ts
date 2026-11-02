@@ -1,3 +1,4 @@
+import { DocumentIdSchema } from "../common";
 import { z } from "zod";
 import type {
   GetAssessmentStudentResponsesInput,
@@ -7,10 +8,7 @@ import type {
 } from "@vaca/contracts";
 
 const QuestionAddressSchema = z.object({
-  assessmentId: z
-    .string()
-    .min(1)
-    .regex(/^[^/]+$/),
+  assessmentId: DocumentIdSchema,
   section: z.number().int().nonnegative(),
   question: z.number().int().nonnegative(),
 });
@@ -37,8 +35,5 @@ export const SubmitAudioMcAnswerSchema = SubmitAudioAnswerSchema.extend({
   }
 }) satisfies z.ZodType<SubmitAudioMcAnswerInput>;
 export const GetAssessmentStudentResponsesSchema = z.object({
-  assessmentId: z
-    .string()
-    .min(1)
-    .regex(/^[^/]+$/),
+  assessmentId: DocumentIdSchema,
 }) satisfies z.ZodType<GetAssessmentStudentResponsesInput>;

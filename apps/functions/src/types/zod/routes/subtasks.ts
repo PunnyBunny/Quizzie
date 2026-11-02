@@ -1,3 +1,4 @@
+import { DocumentIdSchema } from "../common";
 import { z } from "zod";
 import type { AdminDeleteSubtaskInput, AdminSaveSubtaskInput, NormStatsDto } from "@vaca/contracts";
 
@@ -12,7 +13,7 @@ const NormStatsSchema = z
   .nullable() satisfies z.ZodType<NormStatsDto | null>;
 
 export const AdminSaveSubtaskSchema = z.object({
-  id: z.string().optional(),
+  id: DocumentIdSchema.optional(),
   name: z.string().min(1),
   questionIds: z.array(
     z.object({
@@ -28,5 +29,5 @@ export const AdminSaveSubtaskSchema = z.object({
 }) satisfies z.ZodType<AdminSaveSubtaskInput>;
 
 export const AdminDeleteSubtaskSchema = z.object({
-  id: z.string(),
+  id: DocumentIdSchema,
 }) satisfies z.ZodType<AdminDeleteSubtaskInput>;
