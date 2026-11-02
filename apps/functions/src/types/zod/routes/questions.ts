@@ -1,14 +1,15 @@
+import { DocumentIdSchema } from "../common";
 import { z } from "zod";
-import type { SaveQuestionSectionInput } from "../../questions-inputs";
+import type { AdminSaveQuestionSectionInput, SectionInstructionDto } from "@vaca/contracts";
 
 const SectionInstructionSchema = z.object({
   audio: z.string(),
   text: z.string(),
-});
+}) satisfies z.ZodType<SectionInstructionDto>;
 
-export const SaveQuestionSectionSchema: z.ZodType<SaveQuestionSectionInput> = z
+export const AdminSaveQuestionSectionSchema = z
   .object({
-    id: z.string().min(1),
+    id: DocumentIdSchema,
     title: z.string(),
     kind: z.enum(["mc", "audio", "audio_mc"]),
     length: z.number().int().min(0),
@@ -42,6 +43,4 @@ export const SaveQuestionSectionSchema: z.ZodType<SaveQuestionSectionInput> = z
         });
       }
     }
-  });
-
-export type { SaveQuestionSectionInput };
+  }) satisfies z.ZodType<AdminSaveQuestionSectionInput>;

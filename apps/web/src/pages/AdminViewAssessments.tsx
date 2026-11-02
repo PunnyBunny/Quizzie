@@ -16,15 +16,7 @@ import {
 import { useTranslation } from "../hooks/useTranslation";
 import { downloadAssessmentWorkbook } from "../lib/assessment-export";
 
-import type { AssessmentDto } from "../../../functions/src/types/models/assessments-dto";
-import type {
-  AdminExportAssessmentsOutput,
-  AdminGetAssessmentsOutput,
-} from "../../../functions/src/types/admin";
-import type {
-  AdminExportAssessmentsInput,
-  AdminGetAssessmentsInput,
-} from "../../../functions/src/types/zod/routes/admin";
+import type { AssessmentDto } from "@vaca/contracts";
 
 const SELECT_CLASSES =
   "w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-blue-500 focus:ring-blue-500 shadow-xs";
@@ -39,15 +31,9 @@ export default function AdminViewAssessments({ archived = false }: { archived?: 
   const navigate = useNavigate();
   const { t, language } = useTranslation();
 
-  const [adminGetAssessments, loading] = useCallable<
-    AdminGetAssessmentsInput,
-    AdminGetAssessmentsOutput
-  >("api/admin/get-assessments");
+  const [adminGetAssessments, loading] = useCallable("api/admin/get-assessments");
 
-  const [exportAssessments] = useCallable<
-    AdminExportAssessmentsInput,
-    AdminExportAssessmentsOutput
-  >("api/admin/export-assessments");
+  const [exportAssessments] = useCallable("api/admin/export-assessments");
   const [exporting, setExporting] = useState(false);
   const exportInFlight = useRef(false);
   const [exportError, setExportError] = useState<string | null>(null);

@@ -1,12 +1,8 @@
-import type { BaseStudentResponseDto, StudentResponseDto } from "./student-responses-dto";
-export type {
+import type {
+  AudioMcAttemptDto,
   BaseStudentResponseDto,
-  MCStudentResponseDto,
-  AudioStudentResponseDto,
-  HybridStudentResponseDto,
   StudentResponseDto,
-} from "./student-responses-dto";
-import type { HybridAttempt } from "./hybrid-response-dto";
+} from "@vaca/contracts";
 import { ApiError } from "../../middleware/error";
 import { assessments } from "./assessments";
 import { FieldValue, admin } from "../../firebase";
@@ -26,7 +22,7 @@ interface BaseStudentResponseDoc {
 /**
  * Multiple choice student response document
  */
-export interface MCStudentResponseDoc extends BaseStudentResponseDoc {
+export interface McStudentResponseDoc extends BaseStudentResponseDoc {
   type: "mc";
   studentResponses: Record<string, string | null>;
 }
@@ -44,20 +40,20 @@ export interface AudioStudentResponseDoc extends BaseStudentResponseDoc {
 /**
  * Union type for all student response document types
  */
-export interface HybridStudentResponseDoc extends Omit<AudioStudentResponseDoc, "type"> {
+export interface AudioMcStudentResponseDoc extends Omit<AudioStudentResponseDoc, "type"> {
   type: "audio_mc";
-  attempts: Record<string, HybridAttempt>;
+  attempts: Record<string, AudioMcAttemptDto>;
 }
 export type StudentResponseDoc =
-  | MCStudentResponseDoc
+  | McStudentResponseDoc
   | AudioStudentResponseDoc
-  | HybridStudentResponseDoc;
+  | AudioMcStudentResponseDoc;
 
 export const studentResponses = new BaseCollection<StudentResponseDoc>(
   "studentResponses",
   (data) => {
-    if (data.type === "mc") return data as MCStudentResponseDoc;
-    if (data.type === "audio_mc") return data as HybridStudentResponseDoc;
+    if (data.type === "mc") return data as McStudentResponseDoc;
+    if (data.type === "audio_mc") return data as AudioMcStudentResponseDoc;
     if (data.type === "audio") return data as AudioStudentResponseDoc;
     throw new Error(`Unknown student response type: ${data.type}`);
   },
@@ -66,9 +62,9 @@ export const studentResponses = new BaseCollection<StudentResponseDoc>(
 /**
  * Type guard to check if a student response is a multiple choice response
  */
-export function isMCStudentResponse(
+export function isMcStudentResponse(
   response: StudentResponseDoc,
-): response is MCStudentResponseDoc {
+): response is McStudentResponseDoc {
   return response.type === "mc";
 }
 
@@ -94,7 +90,7 @@ export function toStudentResponseDto(doc: StudentResponseDoc): StudentResponseDt
     createdAtIsoTimestamp: createdAt.toDate().toISOString(),
   };
 
-  if (isMCStudentResponse(doc)) {
+  if (isMcStudentResponse(doc)) {
     return {
       ...base,
       type: "mc",
@@ -140,14 +136,14 @@ export async function findStudentResponseRef(
 /**
  * Create or get existing MC student response document reference
  */
-export async function upsertMCStudentResponseRef(
+export async function upsertMcStudentResponseRef(
   assessmentId: string,
   section: number,
 ): Promise<FirebaseFirestore.DocumentReference<StudentResponseDoc>> {
   let ref = await findStudentResponseRef(assessmentId, section);
 
   if (!ref) {
-    const newDoc: MCStudentResponseDoc = {
+    const newDoc: McStudentResponseDoc = {
       "assessment-id": assessmentId,
       section,
       type: "mc",

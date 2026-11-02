@@ -73,6 +73,7 @@ function sourceLoader(overrides = {}, globals = {}) {
         console,
         setTimeout,
         clearTimeout,
+        Buffer,
         Blob,
         crypto: require("node:crypto").webcrypto,
         React: overrides.react,
@@ -234,7 +235,7 @@ function backend() {
         });
         if (failed) throw failed;
         if (!advanced) {
-          const error = new Error(result?.error);
+          const error = new Error(result?.error?.message);
           error.statusCode = code;
           throw error;
         }
@@ -1091,6 +1092,104 @@ async function archiveHookChecks() {
   await restore;
   assert.equal(render().message.key, "archive.restoreSuccess");
 }
+async function validationChecks() {
+  const { z } = require("zod");
+  const { validate } = sourceLoader()("apps/functions/src/middleware/validation.ts");
+  const run = async (schema, body) => {
+    const req = { body };
+    const result = { req, nextCalls: 0 };
+    const res = {
+      status(code) {
+        result.status = code;
+        return this;
+      },
+      json(body) {
+        result.response = body;
+      },
+    };
+    await validate(schema)(req, res, (error) => {
+      result.nextCalls++;
+      result.error = error;
+      if (!error) result.data = req.body.data;
+    });
+    return result;
+  };
+  const schema = z.object({
+    name: z
+      .string()
+      .trim()
+      .min(1)
+      .transform(async (name) => name.toUpperCase()),
+    count: z.number().default(1),
+  });
+  const payload = { name: " Alice ", extra: "discard" };
+  const metadata = { requestId: "test" };
+  for (const body of [{ data: payload, metadata }, payload]) {
+    const result = await run(schema, body);
+    assert.equal(result.nextCalls, 1);
+    assert.equal(result.error, undefined);
+    assert.deepEqual(result.data, { name: "ALICE", count: 1 });
+    if ("data" in body) assert.equal(result.req.body.metadata, metadata);
+  }
+  const optional = await run(z.object({}).optional(), undefined);
+  assert.equal(optional.nextCalls, 1);
+  assert.equal(optional.req.body.data, undefined);
+  const invalidBody = { data: { name: 42 } };
+  const invalid = await run(schema, invalidBody);
+  assert.equal(invalid.nextCalls, 1);
+  assert.equal(invalid.error.statusCode, 400);
+  assert.equal(invalid.error.message, "Invalid request");
+  assert(invalid.error.details.issues.length > 0);
+  assert.equal(invalid.response, undefined);
+  assert.equal(invalid.req.body, invalidBody);
+  const failure = new Error("Transform failed");
+  const failed = await run(
+    z.string().transform(() => {
+      throw failure;
+    }),
+    { data: "test" },
+  );
+  assert.equal(failed.error, failure);
+  assert.equal(failed.nextCalls, 1);
+  assert.equal(failed.response, undefined);
+  console.log("PASS: parsed validation payloads, defaults, async transforms, and error handling.");
+}
+async function finishAssessmentChecks() {
+  const app = backend();
+  for (const [id, creatorEmail] of [
+    ["owned", "owner"],
+    ["foreign", "someone-else"],
+  ]) {
+    app.documents.set(`assessments/${id}`, {
+      creatorEmail,
+      createdAt: app.timestamp,
+      finished: false,
+    });
+  }
+  const call = mountedRouterCall(app);
+  const before = JSON.stringify([...app.documents]);
+  await assert.rejects(
+    call("/finish-assessment", { assessmentId: "foreign" }),
+    (error) => error.statusCode === 403,
+  );
+  await assert.rejects(
+    call("/finish-assessment", { assessmentId: "missing" }),
+    (error) => error.statusCode === 404,
+  );
+  assert.equal(JSON.stringify([...app.documents]), before, "Rejected requests do not write data");
+  for (const [id, claims] of [
+    ["owned", {}],
+    ["foreign", { isAdmin: true }],
+  ]) {
+    const result = await call("/finish-assessment", { assessmentId: id }, claims);
+    assert.equal(result.ok, true);
+    const saved = app.documents.get(`assessments/${id}`);
+    assert.equal(saved.finished, true);
+    assert.equal(saved.finishedAt, app.timestamp);
+    assert.equal(saved.updatedAt, app.timestamp);
+  }
+  console.log("PASS: finish assessment owner/admin access, non-owner denial, and missing records.");
+}
 async function archiveChecks() {
   const app = backend();
   const seed = {
@@ -1180,7 +1279,7 @@ function mountedRouterCall(app) {
         },
         json: (body) => {
           if (statusCode >= 400) {
-            const error = new Error(body.error);
+            const error = new Error(body.error.message);
             error.statusCode = statusCode;
             reject(error);
           } else resolve(body.data);
@@ -1501,7 +1600,7 @@ async function main() {
   };
   await app.call("/admin/save-question-section", hybrid, "owner", { isAdmin: true });
   const newAssessment = await app.call("/create-assessment", {
-    name: "Test",
+    name: " Test ",
     birthDate: "2010-01-01",
     gender: "male",
     grade: "1",
@@ -1510,6 +1609,7 @@ async function main() {
     otherLanguages: [],
   });
   const id = newAssessment.id;
+  assert.equal(app.documents.get(`assessments/${id}`).name, "Test");
   await app.call("/submit-mc-answer", {
     assessmentId: id,
     section: 0,
@@ -1751,7 +1851,7 @@ async function main() {
   );
   const schema = app.load(
     "apps/functions/src/types/zod/routes/questions.ts",
-  ).SaveQuestionSectionSchema;
+  ).AdminSaveQuestionSectionSchema;
   for (const invalid of [
     { ...hybrid, id: "" },
     { ...hybrid, correctAnswers: ["missing", "D"] },
@@ -1808,6 +1908,8 @@ async function main() {
     scoring.getQuestionScore(2, 0, audioData.studentResponsesBySection, audioData.sections),
     4,
   );
+  await validationChecks();
+  await finishAssessmentChecks();
   await archiveChecks();
   await archiveHookChecks();
   await recordingChecks();

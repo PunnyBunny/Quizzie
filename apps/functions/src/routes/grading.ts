@@ -1,4 +1,12 @@
 import express from "express";
+import type {
+  GetAssessmentStudentResponsesInput,
+  GetAssessmentStudentResponsesOutput,
+  OkOutput,
+  StudentResponseDto,
+  SubmitAudioGradeInput,
+  UpdateAudioTranscriptInput,
+} from "@vaca/contracts";
 import { validate } from "../middleware/validation";
 import { NotFoundError } from "../middleware/error";
 import { FieldValue } from "../firebase";
@@ -11,21 +19,11 @@ import {
   getSignedUrl,
   hasRecordedEvidence,
   toStudentResponseDto,
-  type StudentResponseDto,
   studentResponses as studentResponsesDb,
 } from "../types/models/student-responses";
-import {
-  type GetAssessmentStudentResponsesInput,
-  GetAssessmentStudentResponsesSchema,
-} from "../types/zod/routes/submissions";
-import { type GetAssessmentStudentResponsesOutput } from "../types/submissions";
-import {
-  type SubmitAudioGradeInput,
-  SubmitAudioGradeSchema,
-  type UpdateAudioTranscriptInput,
-  UpdateAudioTranscriptSchema,
-} from "../types/zod/routes/grading";
-import { type FirebaseFunctionRequest, type FirebaseFunctionResponse } from "../utils/express";
+import { GetAssessmentStudentResponsesSchema } from "../types/zod/routes/submissions";
+import { SubmitAudioGradeSchema, UpdateAudioTranscriptSchema } from "../types/zod/routes/grading";
+import type { FirebaseFunctionRequest, FirebaseFunctionResponse } from "../utils/express";
 
 export const router = express.Router();
 
@@ -100,7 +98,7 @@ router.post(
   validate(SubmitAudioGradeSchema),
   async (
     req: FirebaseFunctionRequest<SubmitAudioGradeInput>,
-    res: FirebaseFunctionResponse<{ ok: boolean }>,
+    res: FirebaseFunctionResponse<OkOutput>,
   ) => {
     const { assessmentId, section, question, grade } = req.body.data;
     const { callerEmail, callerClaims } = res.locals;
@@ -134,7 +132,7 @@ router.post(
   validate(UpdateAudioTranscriptSchema),
   async (
     req: FirebaseFunctionRequest<UpdateAudioTranscriptInput>,
-    res: FirebaseFunctionResponse<{ ok: boolean }>,
+    res: FirebaseFunctionResponse<OkOutput>,
   ) => {
     const { assessmentId, section, question, transcript } = req.body.data;
     const { callerEmail, callerClaims } = res.locals;

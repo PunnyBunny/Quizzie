@@ -2,28 +2,7 @@
  * Shared scoring utilities used by ScoreModal and GradeAssessment.
  */
 
-import type { QuestionSectionDto } from "../../../functions/src/types/models/questions-dto";
-import type { NormStats, SubtaskDto } from "../../../functions/src/types/models/subtasks-dto";
-
-export type QuizSection = QuestionSectionDto;
-export type SubtaskDef = SubtaskDto;
-export type { NormStats };
-
-import type { HybridStudentResponseDto } from "../../../functions/src/types/models/student-responses-dto";
-
-export interface MCStudentResponse {
-  type: "mc";
-  studentResponses: Record<string, string | null>;
-}
-
-export interface AudioStudentResponse {
-  type: "audio";
-  files: Record<string, string | null>;
-  transcripts: Record<string, string | null>;
-  grades?: Record<string, number | null>;
-}
-
-export type StudentResponse = MCStudentResponse | AudioStudentResponse | HybridStudentResponseDto;
+import type { QuestionSectionDto, StudentResponseDto } from "@vaca/contracts";
 
 export type NormGrade = "S1" | "S3" | "S5";
 
@@ -50,8 +29,8 @@ export function getQuestionMaxScore(sectionKind: string): number {
 export function getQuestionScore(
   sectionIndex: number,
   questionIndex: number,
-  responsesBySection: Record<string, StudentResponse>,
-  sections: QuizSection[],
+  responsesBySection: Record<string, StudentResponseDto>,
+  sections: QuestionSectionDto[],
 ): number | null {
   const section = sections[sectionIndex];
   if (!section || questionIndex < 0 || questionIndex >= section.length) return null;
@@ -86,8 +65,8 @@ export interface SubtaskScoreResult {
  */
 export function computeSubtaskScore(
   questionIds: { sectionIndex: number; questionIndex: number }[],
-  responsesBySection: Record<string, StudentResponse>,
-  sections: QuizSection[],
+  responsesBySection: Record<string, StudentResponseDto>,
+  sections: QuestionSectionDto[],
 ): SubtaskScoreResult {
   let score = 0;
   let maxScore = 0;

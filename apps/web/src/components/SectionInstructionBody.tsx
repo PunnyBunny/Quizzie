@@ -1,10 +1,10 @@
-import type { SectionInstruction } from "../providers/QuestionProvider.tsx";
+import type { SectionInstructionDto } from "@vaca/contracts";
 import { useStorageUrl } from "../hooks/useStorageUrl.ts";
 import { audioStoragePath } from "../lib/asset-paths.ts";
 import { useTranslation } from "../hooks/useTranslation";
 
 interface SectionInstructionBodyProps {
-  instruction: SectionInstruction | null | undefined;
+  instruction: SectionInstructionDto | null | undefined;
 }
 
 export function SectionInstructionBody({ instruction }: SectionInstructionBodyProps) {

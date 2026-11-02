@@ -1,4 +1,4 @@
-export interface SectionInstruction {
+export interface SectionInstructionDto {
   audio: string;
   text: string;
 }
@@ -15,5 +15,15 @@ export interface QuestionSectionDto {
   choices?: Record<string, string>[];
   correctAnswers?: string[];
   images?: (string | null)[];
-  instructions: SectionInstruction;
+  instructions: SectionInstructionDto;
+}
+
+export interface GetQuestionsOutput {
+  sections: QuestionSectionDto[];
+}
+
+export type AdminSaveQuestionSectionInput = QuestionSectionDto;
+
+export interface AdminSaveQuestionSectionOutput {
+  id: string;
 }

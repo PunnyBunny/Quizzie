@@ -68,25 +68,6 @@ function StopIcon() {
   );
 }
 
-interface SubmitMcAnswerRequest {
-  assessmentId: string;
-  section: number;
-  question: number;
-  answer: string | null;
-}
-
-interface SubmitAudioAnswerRequest {
-  assessmentId: string;
-  section: number;
-  question: number;
-  transcript: string | null;
-  gsUri: string | null;
-}
-
-interface FinishAssessmentRequest {
-  assessmentId: string;
-}
-
 // TODO: document this
 export function AssessmentQuestion() {
   // A unique key is given to the inner component so that its state is cleared
@@ -173,18 +154,15 @@ function AssessmentQuestionInner() {
 
   const navigate = useNavigate();
 
-  const [submitMcAnswerFunc] = useCallable<SubmitMcAnswerRequest>("api/submit-mc-answer");
+  const [submitMcAnswer] = useCallable("api/submit-mc-answer");
 
-  const [submitAudioAnswerFunc] = useCallable<SubmitAudioAnswerRequest>("api/submit-audio-answer");
+  const [submitAudioAnswer] = useCallable("api/submit-audio-answer");
 
-  const [finishAssessmentFunc] = useCallable<FinishAssessmentRequest>("api/finish-assessment");
+  const [finishAssessment] = useCallable("api/finish-assessment");
 
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // TODO: fix this type
-  const [submitHybrid] = useCallable<
-    import("../../../functions/src/types/zod/routes/submissions").HybridStudentResponseInput
-  >("api/submit-audio-mc-answer");
+  const [submitAudioMcAnswer] = useCallable("api/submit-audio-mc-answer");
   const [saving, setSaving] = useState(false);
   const mounted = useRef(true); // Prevents further navigation if we left the page
   const uploaded = useRef<{ blob: Blob; uri: string } | null>(null);
@@ -234,7 +212,7 @@ function AssessmentQuestionInner() {
     try {
       if (question.kind === "audio_mc") {
         const gsUri = await uploadRecordingIfNotAlready();
-        await submitHybrid({
+        await submitAudioMcAnswer({
           assessmentId: id,
           section: sectionIndex,
           question: questionIndex,
@@ -245,14 +223,14 @@ function AssessmentQuestionInner() {
           skipped: true,
         });
       } else if (question.kind === "mc") {
-        await submitMcAnswerFunc({
+        await submitMcAnswer({
           assessmentId: id,
           section: sectionIndex,
           question: questionIndex,
           answer: null,
         });
       } else if (question.kind === "audio") {
-        await submitAudioAnswerFunc({
+        await submitAudioAnswer({
           assessmentId: id,
           section: sectionIndex,
           question: questionIndex,
@@ -262,7 +240,7 @@ function AssessmentQuestionInner() {
       }
 
       if (isLastQuestionInAssessment) {
-        await finishAssessmentFunc({ assessmentId: id });
+        await finishAssessment({ assessmentId: id });
       }
 
       if (mounted.current) navigateToNext();
@@ -298,7 +276,7 @@ function AssessmentQuestionInner() {
     try {
       if (question.kind === "audio_mc") {
         const gsUri = await uploadRecordingIfNotAlready();
-        await submitHybrid({
+        await submitAudioMcAnswer({
           assessmentId: id,
           section: sectionIndex,
           question: questionIndex,
@@ -310,7 +288,7 @@ function AssessmentQuestionInner() {
           skipped: false,
         });
       } else if (question.kind === "mc") {
-        await submitMcAnswerFunc({
+        await submitMcAnswer({
           assessmentId: id,
           section: sectionIndex,
           question: questionIndex,
@@ -318,7 +296,7 @@ function AssessmentQuestionInner() {
         });
       } else if (question.kind === "audio" && audioBlob != null) {
         const gsUri = await uploadRecordingIfNotAlready();
-        await submitAudioAnswerFunc({
+        await submitAudioAnswer({
           assessmentId: id,
           section: sectionIndex,
           question: questionIndex,
@@ -328,7 +306,7 @@ function AssessmentQuestionInner() {
       }
 
       if (isLastQuestionInAssessment) {
-        await finishAssessmentFunc({ assessmentId: id });
+        await finishAssessment({ assessmentId: id });
       }
 
       if (mounted.current) navigateToNext();
@@ -342,6 +320,10 @@ function AssessmentQuestionInner() {
 
   const title = section?.title ?? t("instruction.section");
   const questionText = question.question ?? "";
+  const hasQuestionText = questionText.trim().length > 0;
+  const hasQuestionMedia =
+    (question.image != null && Boolean(questionImage.url)) ||
+    (question.audio != null && Boolean(questionAudio.url));
 
   return (
     <div
@@ -415,32 +397,36 @@ function AssessmentQuestionInner() {
               <AlertDescription>{submitError}</AlertDescription>
             </Alert>
           )}
-          <section className="p-4 bg-white border border-gray-200 rounded-lg shadow-xs">
-            {/* Image and audio, TODO: add heading to indicate this is question */}
-            <section className="flex flex-col gap-4">
-              {question.image != null && questionImage.url && (
-                <img
-                  src={questionImage.url}
-                  alt={questionText ? questionText : t("question.questionImageAlt")}
-                  className="w-full max-h-72 object-contain"
-                />
+          {(hasQuestionText || hasQuestionMedia) && (
+            <section className="p-4 bg-white border border-gray-200 rounded-lg shadow-xs">
+              {/* Image and audio, TODO: add heading to indicate this is question */}
+              {hasQuestionMedia && (
+                <section className="flex flex-col gap-4">
+                  {question.image != null && questionImage.url && (
+                    <img
+                      src={questionImage.url}
+                      alt={questionText ? questionText : t("question.questionImageAlt")}
+                      className="w-full max-h-72 object-contain"
+                    />
+                  )}
+                  {question.audio != null && questionAudio.url && (
+                    <audio controls src={questionAudio.url} className="w-full">
+                      {t("question.audioFallback")}
+                    </audio>
+                  )}
+                </section>
               )}
-              {question.audio != null && questionAudio.url && (
-                <audio controls src={questionAudio.url} className="w-full">
-                  {t("question.audioFallback")}
-                </audio>
+
+              {/* Question text */}
+              {hasQuestionText && (
+                <section className="self-center w-full">
+                  <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold text-gray-800 whitespace-pre-wrap wrap-break-word">
+                    {questionText}
+                  </h1>
+                </section>
               )}
             </section>
-
-            {/* Question text */}
-            {questionText && (
-              <section className="self-center w-full">
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold text-gray-800 whitespace-pre-wrap wrap-break-word">
-                  {questionText}
-                </h1>
-              </section>
-            )}
-          </section>
+          )}
 
           {/* Choices */}
           {(question.kind === "mc" || question.kind === "audio_mc") && (

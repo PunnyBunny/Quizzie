@@ -1,21 +1,25 @@
+import { DocumentIdSchema } from "../common";
 import { z } from "zod";
+import type {
+  GetAssessmentStudentResponsesInput,
+  SubmitAudioAnswerInput,
+  SubmitAudioMcAnswerInput,
+  SubmitMcAnswerInput,
+} from "@vaca/contracts";
 
-const QuestionAddress = z.object({
-  assessmentId: z
-    .string()
-    .min(1)
-    .regex(/^[^/]+$/),
+const QuestionAddressSchema = z.object({
+  assessmentId: DocumentIdSchema,
   section: z.number().int().nonnegative(),
   question: z.number().int().nonnegative(),
 });
-export const MCStudentResponseSchema = QuestionAddress.extend({
+export const SubmitMcAnswerSchema = QuestionAddressSchema.extend({
   answer: z.string().min(1).nullable(),
-});
-export const AudioStudentResponseSchema = QuestionAddress.extend({
+}) satisfies z.ZodType<SubmitMcAnswerInput>;
+export const SubmitAudioAnswerSchema = QuestionAddressSchema.extend({
   transcript: z.string().nullable(),
   gsUri: z.string().min(1).nullable(),
-});
-export const HybridStudentResponseSchema = AudioStudentResponseSchema.extend({
+}) satisfies z.ZodType<SubmitAudioAnswerInput>;
+export const SubmitAudioMcAnswerSchema = SubmitAudioAnswerSchema.extend({
   assistanceOffered: z.boolean(),
   selectedOption: z.string().min(1).nullable(),
   skipped: z.boolean(),
@@ -29,16 +33,7 @@ export const HybridStudentResponseSchema = AudioStudentResponseSchema.extend({
   ) {
     ctx.addIssue({ code: "custom", message: "Invalid hybrid evidence" });
   }
-});
+}) satisfies z.ZodType<SubmitAudioMcAnswerInput>;
 export const GetAssessmentStudentResponsesSchema = z.object({
-  assessmentId: z
-    .string()
-    .min(1)
-    .regex(/^[^/]+$/),
-});
-export type MCStudentResponseInput = z.infer<typeof MCStudentResponseSchema>;
-export type AudioStudentResponseInput = z.infer<typeof AudioStudentResponseSchema>;
-export type HybridStudentResponseInput = z.infer<typeof HybridStudentResponseSchema>;
-export type GetAssessmentStudentResponsesInput = z.infer<
-  typeof GetAssessmentStudentResponsesSchema
->;
+  assessmentId: DocumentIdSchema,
+}) satisfies z.ZodType<GetAssessmentStudentResponsesInput>;

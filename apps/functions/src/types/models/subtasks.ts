@@ -1,9 +1,7 @@
 import { FieldValue } from "../../firebase";
 import type { Timestamp } from "firebase-admin/firestore";
 import { BaseCollection } from "./base";
-import type { NormStats, SubtaskDto } from "./subtasks-dto";
-
-export type { NormStats, SubtaskDto } from "./subtasks-dto";
+import type { NormStatsDto, SubtaskDto } from "@vaca/contracts";
 
 /**
  * Subtask document stored in Firestore.
@@ -13,22 +11,17 @@ export interface SubtaskDoc {
   name: string;
   questionIds: { sectionIndex: number; questionIndex: number }[];
   norms: {
-    S1: NormStats | null;
-    S3: NormStats | null;
-    S5: NormStats | null;
+    S1: NormStatsDto | null;
+    S3: NormStatsDto | null;
+    S5: NormStatsDto | null;
   };
   createdAt: Timestamp | FieldValue;
   updatedAt: Timestamp | FieldValue;
 }
 
-export const subtasks = new BaseCollection<SubtaskDoc>(
-  "subtasks",
-  (data) => data as SubtaskDoc,
-);
+export const subtasks = new BaseCollection<SubtaskDoc>("subtasks", (data) => data as SubtaskDoc);
 
-export function toSubtaskDto(
-  doc: FirebaseFirestore.QueryDocumentSnapshot<SubtaskDoc>,
-): SubtaskDto {
+export function toSubtaskDto(doc: FirebaseFirestore.QueryDocumentSnapshot<SubtaskDoc>): SubtaskDto {
   const data = doc.data();
   return {
     id: doc.id,

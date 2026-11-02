@@ -1,13 +1,14 @@
 import express from "express";
+import type {
+  AdminSaveQuestionSectionInput,
+  AdminSaveQuestionSectionOutput,
+  GetQuestionsOutput,
+} from "@vaca/contracts";
 import { validate } from "../middleware/validation";
 import { questionSections, getQuestionSections } from "../types/models/questions";
 import type { QuestionSectionDoc } from "../types/models/questions";
-import { type GetQuestionsOutput, type SaveQuestionSectionOutput } from "../types/questions";
-import {
-  type SaveQuestionSectionInput,
-  SaveQuestionSectionSchema,
-} from "../types/zod/routes/questions";
-import { type FirebaseFunctionRequest, type FirebaseFunctionResponse } from "../utils/express";
+import { AdminSaveQuestionSectionSchema } from "../types/zod/routes/questions";
+import type { FirebaseFunctionRequest, FirebaseFunctionResponse } from "../utils/express";
 import { adminHandler } from "../middleware/admin";
 
 export const router = express.Router();
@@ -29,10 +30,10 @@ router.post(
 router.post(
   "/admin/save-question-section",
   adminHandler,
-  validate(SaveQuestionSectionSchema),
+  validate(AdminSaveQuestionSectionSchema),
   async (
-    req: FirebaseFunctionRequest<SaveQuestionSectionInput>,
-    res: FirebaseFunctionResponse<SaveQuestionSectionOutput>,
+    req: FirebaseFunctionRequest<AdminSaveQuestionSectionInput>,
+    res: FirebaseFunctionResponse<AdminSaveQuestionSectionOutput>,
   ) => {
     const {
       id,
@@ -48,7 +49,6 @@ router.post(
       images,
       instructions,
     } = req.body.data;
-    console.log("here");
 
     const data: QuestionSectionDoc = {
       title,

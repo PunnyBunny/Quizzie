@@ -1,36 +1,39 @@
 import express from "express";
+import type {
+  AssessmentDto,
+  CreateAssessmentInput,
+  CreateAssessmentOutput,
+  FinishAssessmentInput,
+  GetAssessmentsInput,
+  GetAssessmentsOutput,
+  OkOutput,
+  SetAssessmentArchivedInput,
+} from "@vaca/contracts";
 import { validate } from "../middleware/validation";
-import { NotFoundError } from "../middleware/error";
 import { FieldValue } from "../firebase";
 import {
   type AssessmentDoc,
-  type AssessmentDto,
   assessments as assessmentsDb,
   toAssessmentDto,
   getAssessmentWithAuth,
 } from "../types/models/assessments";
 import {
-  type AssessmentInput,
-  AssessmentSchema,
-  type FinishAssessmentInput,
+  CreateAssessmentSchema,
   FinishAssessmentSchema,
-  type GetAssessmentsInput,
   GetAssessmentsSchema,
-  type SetAssessmentArchivedInput,
   SetAssessmentArchivedSchema,
 } from "../types/zod/routes/assessments";
-import { type SetAssessmentArchivedOutput, type GetAssessmentsOutput } from "../types/assessments";
-import { type FirebaseFunctionRequest, type FirebaseFunctionResponse } from "../utils/express";
+import type { FirebaseFunctionRequest, FirebaseFunctionResponse } from "../utils/express";
 
 export const router = express.Router();
 
 // POST /create-assessment
 router.post(
   "/create-assessment",
-  validate(AssessmentSchema),
+  validate(CreateAssessmentSchema),
   async (
-    req: FirebaseFunctionRequest<AssessmentInput>,
-    res: FirebaseFunctionResponse<{ id: string }>,
+    req: FirebaseFunctionRequest<CreateAssessmentInput>,
+    res: FirebaseFunctionResponse<CreateAssessmentOutput>,
   ) => {
     const { name, birthDate, gender, grade, school, motherTongue, otherLanguages } = req.body.data;
     const { callerEmail } = res.locals;
@@ -94,19 +97,18 @@ router.post(
   validate(FinishAssessmentSchema),
   async (
     req: FirebaseFunctionRequest<FinishAssessmentInput>,
-    res: FirebaseFunctionResponse<{}>,
+    res: FirebaseFunctionResponse<OkOutput>,
   ) => {
     const { assessmentId } = req.body.data;
+    const { callerEmail, callerClaims } = res.locals;
+    const assessmentDoc = await getAssessmentWithAuth(
+      assessmentId,
+      callerEmail,
+      callerClaims?.isAdmin === true,
+    );
     const now = FieldValue.serverTimestamp();
 
-    const assessmentRef = assessmentsDb.doc(assessmentId);
-
-    const assessmentDoc = await assessmentRef.get();
-    if (!assessmentDoc.exists) {
-      throw new NotFoundError("Assessment not found");
-    }
-
-    await assessmentRef.update({
+    await assessmentDoc.ref.update({
       finished: true,
       finishedAt: now,
       updatedAt: now,
@@ -121,7 +123,7 @@ router.post(
   validate(SetAssessmentArchivedSchema),
   async (
     req: FirebaseFunctionRequest<SetAssessmentArchivedInput>,
-    res: FirebaseFunctionResponse<SetAssessmentArchivedOutput>,
+    res: FirebaseFunctionResponse<OkOutput>,
   ) => {
     const { assessmentId, archived } = req.body.data;
     const { callerEmail, callerClaims } = res.locals;

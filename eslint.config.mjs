@@ -6,6 +6,12 @@ import tseslint from "typescript-eslint";
 import prettierConfig from "eslint-config-prettier";
 import { defineConfig } from "eslint/config";
 
+const contractsImports = {
+  group: ["@vaca/contracts", "@vaca/contracts/*"],
+  allowTypeImports: true,
+  message: "Use import type or export type for @vaca/contracts.",
+};
+
 export default defineConfig(
   {
     // Build output only — "**/lib/**" would also swallow apps/web/src/lib/.
@@ -42,6 +48,26 @@ export default defineConfig(
       ],
       "no-unused-vars": "off",
       "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
+      "@typescript-eslint/no-import-type-side-effects": "error",
+      "@typescript-eslint/no-restricted-imports": ["error", { patterns: [contractsImports] }],
+    },
+  },
+  {
+    files: ["apps/web/**/*.{ts,tsx}"],
+    rules: {
+      "@typescript-eslint/consistent-type-imports": "error",
+      "@typescript-eslint/no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            contractsImports,
+            {
+              group: ["**/functions/src", "**/functions/src/**"],
+              message: "Import shared DTOs and API types from @vaca/contracts.",
+            },
+          ],
+        },
+      ],
     },
   },
   {

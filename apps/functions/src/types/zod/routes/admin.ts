@@ -1,25 +1,28 @@
 import { z } from "zod";
+import type {
+  AdminCreateUserInput,
+  AdminExportAssessmentsInput,
+  AdminGetAssessmentsInput,
+  AdminRemoveUserInput,
+  AdminResetPasswordInput,
+} from "@vaca/contracts";
 
 export const AdminCreateUserSchema = z.object({
   email: z.email(),
-});
+}) satisfies z.ZodType<AdminCreateUserInput>;
 
 export const AdminResetPasswordSchema = z.object({
   email: z.email(),
-});
+}) satisfies z.ZodType<AdminResetPasswordInput>;
 
 export const AdminRemoveUserSchema = z.object({
   email: z.email(),
-});
-
-export type AdminCreateUserInput = z.infer<typeof AdminCreateUserSchema>;
-export type AdminResetPasswordInput = z.infer<typeof AdminResetPasswordSchema>;
-export type AdminRemoveUserInput = z.infer<typeof AdminRemoveUserSchema>;
+}) satisfies z.ZodType<AdminRemoveUserInput>;
 
 export const AdminGetAssessmentsSchema = z.object({
   archived: z.boolean().optional(),
-});
-export type AdminGetAssessmentsInput = z.infer<typeof AdminGetAssessmentsSchema>;
+}) satisfies z.ZodType<AdminGetAssessmentsInput>;
 
-export const AdminExportAssessmentsSchema = z.strictObject({});
-export type AdminExportAssessmentsInput = z.infer<typeof AdminExportAssessmentsSchema>;
+export const AdminExportAssessmentsSchema = z.strictObject(
+  {},
+) satisfies z.ZodType<AdminExportAssessmentsInput>;

@@ -1,0 +1,22 @@
+{
+  "name": "@vaca/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --project tsconfig.json",
+    "lint": "eslint ."
+  },
+  "engines": {
+    "node": "22"
+  },
+  "devDependencies": {
+    "eslint": "^9.36.0",
+    "typescript": "^5.0.0"
+  }
+}

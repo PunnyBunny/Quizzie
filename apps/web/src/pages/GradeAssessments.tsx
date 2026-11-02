@@ -11,17 +11,13 @@ import { Alert, AlertAction, AlertDescription } from "@/components/ui/alert";
 import { ClipboardCheckIcon } from "../components/icons";
 import { useTranslation } from "../hooks/useTranslation";
 
-import type { AssessmentDto } from "../../../functions/src/types/models/assessments-dto";
-import type { GetAssessmentsInput } from "../../../functions/src/types/zod/routes/assessments";
-import type { GetAssessmentsOutput } from "../../../functions/src/types/assessments";
+import type { AssessmentDto } from "@vaca/contracts";
 
 export default function GradeAssessments() {
   const navigate = useNavigate();
   const { t, language } = useTranslation();
 
-  const [getAssessments, loading] = useCallable<GetAssessmentsInput, GetAssessmentsOutput>(
-    "api/get-assessments",
-  );
+  const [getAssessments, loading] = useCallable("api/get-assessments");
 
   const [assessments, setAssessments] = useState<AssessmentDto[]>([]);
   const [error, setError] = useState<string | null>(null);

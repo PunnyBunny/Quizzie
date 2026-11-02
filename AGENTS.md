@@ -6,8 +6,12 @@ This repository is VACA (the directory and Firebase project retain the Quizzie n
 an assessment application with multiple-choice and recorded audio answers, grading,
 subtask scores, and admin management of users, questions, and assessments.
 
-- npm workspaces: `apps/web` and `apps/functions`; use Node.js 22 and the root
-  `package-lock.json`.
+- npm workspaces: `apps/web`, `apps/functions`, and `packages/contracts`; use Node.js 22
+  and the root `package-lock.json`.
+- `packages/contracts` owns shared DTOs and API input/output types, organized by
+  domain in declaration files. Import them from the public `@vaca/contracts` entrypoint
+  using `import type`. It is a root development dependency with no runtime module or
+  build step; it must not become a Functions runtime dependency.
 - `apps/web`: React 19, TypeScript, Vite 8, React Router 6, Tailwind CSS 4, and
   the Firebase browser SDK. `src/main.tsx` installs the language provider, error
   boundary, and router; `src/App.tsx` defines routes and authentication/admin guards.
@@ -21,8 +25,10 @@ subtask scores, and admin management of users, questions, and assessments.
   and Zod 4. `src/index.ts` exports the HTTP function `api`; `src/routes/index.ts`
   mounts assessment, submission, grading, admin, question, and subtask routers.
 - Functions `src/types/models` contains typed Firestore collections and DTO
-  conversions. `src/types/zod/routes` contains request schemas; other files in
-  `src/types` expose request/response types used by frontend type-only imports.
+  conversions. `src/types/zod/routes` contains local request schemas checked with
+  `satisfies z.ZodType<Contract>` against shared contracts, preserving schema inference
+  for composition. Firestore document types and runtime constants stay in Functions;
+  transformed question models and form state stay in the web app.
 - Root `firebase.json`, `firestore.rules`, `firestore.indexes.json`, and
   `storage.rules` configure Firebase hosting, functions, data rules, and indexes.
   Generated output goes to `apps/web/dist` and `apps/functions/lib`.
@@ -33,6 +39,8 @@ Run from the repository root unless otherwise noted:
 
 ```sh
 npm ci
+npm run typecheck --workspace @vaca/contracts
+npm run lint --workspace @vaca/contracts
 npm run dev --workspace apps/web
 npm run build --workspace apps/web
 npm run build --workspace apps/functions
@@ -44,12 +52,23 @@ npm run preview --workspace apps/web
 
 The root package has no development/build/test scripts. The web dev server defaults
 to port 5173, listens on `0.0.0.0`, and accepts a `PORT` override. Both builds check
-TypeScript; the web build also bundles with Vite. There is no workspace test script.
+TypeScript; the web build also bundles with Vite. The contracts type-check uses strict
+mode with `skipLibCheck: false` to check the declaration files without emitting output.
+There is no workspace test script.
 Run `node scripts/verify-audio-mc.cjs` for local hybrid-question and assessment-export
-regression checks using fake data and media APIs. For code changes, run the relevant build and lint,
+regression checks using fake data and media APIs. Run `node scripts/verify-api-errors.cjs`,
+`node scripts/verify-api-validation.cjs`, and `node scripts/verify-api-conventions.cjs`
+for offline API error, document-ID validation, and authorization/response checks.
+For code changes, run the relevant build and lint,
 and manually exercise the affected UI/API flow when feasible. Report any existing
 failures separately from failures introduced by the change. Documentation-only
 changes do not require application builds.
+
+For contract changes, run the contracts type-check and lint, both application builds
+and lints, and the regression script. Both apps resolve `@vaca/contracts` through npm
+workspaces without a package path alias. Confirm compiled Functions JavaScript has no
+`@vaca/contracts` reference. ESLint rejects web imports into Functions source and
+runtime imports or exports from the contracts package.
 
 For the backend emulator, run `npm run serve --workspace apps/functions`. This
 builds the backend and starts **only** the Functions emulator. It requires the
@@ -71,13 +90,25 @@ Firestore or Storage.
   The server implements Express POST routes under the `api` HTTP function, with
   callable-compatible `{ data: ... }` request and success-response envelopes.
   Preserve this contract when changing both ends.
-- Global `authHandler` verifies Firebase Bearer ID tokens and sets
+- API failures use `{ error: { status, message, details? } }`, where `status` is a
+  canonical Firebase callable status. Forward failures to the central error middleware;
+  validation issues are in `error.details.issues`, and unexpected failures return a
+  generic message. Acknowledgments use `{ data: { ok: true } }` and `OkOutput`.
+- `packages/contracts/api.d.ts` maps callable endpoint names to their input/output
+  contracts. `useCallable("api/...")` infers both types from this map; update it when
+  adding or changing an endpoint. No-payload endpoints use `void`. Keep the hook's
+  existing optional payload behavior.
+- Global `authHandler` verifies Firebase Bearer ID tokens, requires a nonblank email, and sets
   `res.locals.callerEmail` and `callerClaims`. `adminHandler` checks the `isAdmin`
-  custom claim. Trace router mounting and middleware order when changing access
-  control; a router-level middleware can affect subsequent mounted routers.
+  custom claim using `=== true`. Apply it explicitly to each admin route. Trace router
+  mounting and middleware order when changing access control; a router-level middleware
+  can affect subsequent mounted routers.
 - Follow existing Zod validation and typed Express request/response helpers.
-  The validation middleware checks the payload but does not replace it with the
-  parsed/transformed result; do not assume schema defaults/transforms were applied.
+  The validation middleware stores Zod's parsed payload in `req.body.data` before
+  running handlers, so schema defaults and transforms are applied. Raw payloads are
+  normalized to the same `{ data: ... }` envelope.
+- Reuse `DocumentIdSchema` from Functions `src/types/zod/common.ts` for inbound
+  Firestore document IDs. Preserve valid IDs exactly without trimming.
 - Use existing model helpers for Firestore access and DTO conversion.
   Assessments track creator email, section/question progress, and completion;
   `getAssessmentWithAuth` checks ownership or admin access. Student response
@@ -92,9 +123,16 @@ Firestore or Storage.
   `question-assets/audios` and `question-assets/images`; browser path helpers live
   in `src/lib/asset-paths.ts`. Storage rules distinguish question assets from
   assessment files.
-- Update request schemas, API types/DTOs, and frontend consumers together when
-  changing contracts. Prefer type-only imports of backend types in browser code;
-  avoid importing Firebase Admin or server runtime modules into the web bundle.
+- Update shared contracts, local request schemas, DTO conversions, and frontend
+  consumers together when changing payloads. Browser code must not import Functions
+  source, including type-only imports; use `@vaca/contracts` for shared types.
+- Name API payloads after their endpoint operation with `Input` and `Output` suffixes
+  (for example, `CreateAssessmentInput` and `SubmitAudioMcAnswerInput`), including the
+  `Admin` prefix for `/admin/...` operations. Use the shared `OkOutput` for `{ ok: true }`
+  acknowledgments. Shared data objects use `Dto`; persisted
+  Firestore models use `Doc`. Scalar unions such as `Gender` and `Language` need no
+  suffix. Use PascalCase with acronyms written as words (`Mc`, `Dto`, `Url`), and name
+  local Zod schemas `<Operation>Schema` or `<DataName>Schema`.
 - The admin-only `api/admin/export-assessments` endpoint returns all assessment
   metadata, responses, current questions, and subtasks, including archived records.
   The browser's `src/lib/assessment-export.ts` builds the section-based XLSX workbook with the

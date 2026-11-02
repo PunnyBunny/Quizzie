@@ -1,4 +1,10 @@
 import express from "express";
+import type {
+  OkOutput,
+  SubmitAudioAnswerInput,
+  SubmitAudioMcAnswerInput,
+  SubmitMcAnswerInput,
+} from "@vaca/contracts";
 import { validate } from "../middleware/validation";
 import { ApiError } from "../middleware/error";
 import { admin, FieldValue } from "../firebase";
@@ -6,20 +12,17 @@ import { getAssessmentWithAuth } from "../types/models/assessments";
 import { getQuestionSections, getConfiguredQuestion } from "../types/models/questions";
 import { saveStudentAnswer } from "../types/models/student-responses";
 import {
-  MCStudentResponseSchema,
-  AudioStudentResponseSchema,
-  HybridStudentResponseSchema,
-  type MCStudentResponseInput,
-  type AudioStudentResponseInput,
-  type HybridStudentResponseInput,
+  SubmitMcAnswerSchema,
+  SubmitAudioAnswerSchema,
+  SubmitAudioMcAnswerSchema,
 } from "../types/zod/routes/submissions";
 import type { FirebaseFunctionRequest, FirebaseFunctionResponse } from "../utils/express";
 
 export const router = express.Router();
 async function configuration(
-  input: MCStudentResponseInput | AudioStudentResponseInput,
+  input: SubmitMcAnswerInput | SubmitAudioAnswerInput,
   kind: "mc" | "audio" | "audio_mc",
-  res: FirebaseFunctionResponse<{ ok: boolean }>,
+  res: FirebaseFunctionResponse<OkOutput>,
 ) {
   await getAssessmentWithAuth(
     input.assessmentId,
@@ -38,7 +41,7 @@ async function configuration(
     },
   };
 }
-async function validateRecording(input: AudioStudentResponseInput) {
+async function validateRecording(input: SubmitAudioAnswerInput) {
   if (input.gsUri === null) return;
   const bucket = admin.storage().bucket();
   const path = `assessments/${input.assessmentId}/${input.section}/${input.question}.`;
@@ -53,10 +56,10 @@ async function validateRecording(input: AudioStudentResponseInput) {
 }
 router.post(
   "/submit-mc-answer",
-  validate(MCStudentResponseSchema),
+  validate(SubmitMcAnswerSchema),
   async (
-    req: FirebaseFunctionRequest<MCStudentResponseInput>,
-    res: FirebaseFunctionResponse<{ ok: boolean }>,
+    req: FirebaseFunctionRequest<SubmitMcAnswerInput>,
+    res: FirebaseFunctionResponse<OkOutput>,
   ) => {
     const input = req.body.data;
     const { config, progress } = await configuration(input, "mc", res);
@@ -83,10 +86,10 @@ router.post(
 );
 router.post(
   "/submit-audio-answer",
-  validate(AudioStudentResponseSchema),
+  validate(SubmitAudioAnswerSchema),
   async (
-    req: FirebaseFunctionRequest<AudioStudentResponseInput>,
-    res: FirebaseFunctionResponse<{ ok: boolean }>,
+    req: FirebaseFunctionRequest<SubmitAudioAnswerInput>,
+    res: FirebaseFunctionResponse<OkOutput>,
   ) => {
     const input = req.body.data;
     const { progress } = await configuration(input, "audio", res);
@@ -110,10 +113,10 @@ router.post(
 );
 router.post(
   "/submit-audio-mc-answer",
-  validate(HybridStudentResponseSchema),
+  validate(SubmitAudioMcAnswerSchema),
   async (
-    req: FirebaseFunctionRequest<HybridStudentResponseInput>,
-    res: FirebaseFunctionResponse<{ ok: boolean }>,
+    req: FirebaseFunctionRequest<SubmitAudioMcAnswerInput>,
+    res: FirebaseFunctionResponse<OkOutput>,
   ) => {
     const input = req.body.data;
     const { config, progress } = await configuration(input, "audio_mc", res);

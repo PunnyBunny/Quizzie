@@ -9,8 +9,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tooltip } from "../components/Tooltip";
 import { CheckIcon, SpinnerIcon, XIcon } from "../components/icons";
 import { INPUT_CLASSES } from "../lib/ui";
-import type { HybridStudentResponseDto } from "../../../functions/src/types/models/student-responses-dto";
-import { getQuestionScore, type QuizSection } from "../lib/scoring";
+import type { GetAssessmentStudentResponsesOutput, QuestionSectionDto } from "@vaca/contracts";
+import { getQuestionScore } from "../lib/scoring";
 import { useTranslation } from "../hooks/useTranslation";
 
 /**
@@ -20,62 +20,6 @@ import { useTranslation } from "../hooks/useTranslation";
  */
 const TRANSCRIPT_MAX_LENGTH = 5000;
 
-interface LanguageEntry {
-  language: "cantonese" | "mandarin" | "english" | "other";
-  otherSpecify?: string;
-}
-
-interface Assessment {
-  id: string;
-  name: string;
-  birthDate: string;
-  gender: "male" | "female";
-  grade: string;
-  school: string;
-  motherTongue: LanguageEntry;
-  otherLanguages: LanguageEntry[];
-  createdAtIsoTimestamp: string;
-}
-
-interface GetAssessmentStudentResponsesRequest {
-  assessmentId: string;
-}
-
-interface MCStudentResponse {
-  type: "mc";
-  studentResponses: Record<string, string | null>;
-}
-
-interface AudioStudentResponse {
-  type: "audio";
-  files: Record<string, string | null>;
-  transcripts: Record<string, string | null>;
-  grades?: Record<string, number | null>;
-}
-
-interface GetAssessmentStudentResponsesResponse {
-  assessment: Assessment;
-  sections: QuizSection[];
-  studentResponsesBySection: Record<
-    string,
-    MCStudentResponse | AudioStudentResponse | HybridStudentResponseDto
-  >;
-}
-
-interface SubmitAudioGradeRequest {
-  assessmentId: string;
-  section: number;
-  question: number;
-  grade: number;
-}
-
-interface UpdateAudioTranscriptRequest {
-  assessmentId: string;
-  section: number;
-  question: number;
-  transcript: string;
-}
-
 export default function GradeAssessment() {
   const { t } = useTranslation();
   const { id = "" } = useParams<{ id: string }>();
@@ -83,21 +27,17 @@ export default function GradeAssessment() {
 
   if (!id) throw new Error("Assessment ID not provided");
 
-  const [getAssessmentStudentResponses, fetching] = useCallable<
-    GetAssessmentStudentResponsesRequest,
-    GetAssessmentStudentResponsesResponse
-  >("api/get-assessment-student-responses");
-
-  const [submitAudioGrade, submitting] =
-    useCallable<SubmitAudioGradeRequest>("api/submit-audio-grade");
-
-  const [updateAudioTranscript] = useCallable<UpdateAudioTranscriptRequest>(
-    "api/update-audio-transcript",
+  const [getAssessmentStudentResponses, fetching] = useCallable(
+    "api/get-assessment-student-responses",
   );
 
+  const [submitAudioGrade, submitting] = useCallable("api/submit-audio-grade");
+
+  const [updateAudioTranscript] = useCallable("api/update-audio-transcript");
+
   const [studentResponseData, setStudentResponseData] =
-    useState<GetAssessmentStudentResponsesResponse | null>(null);
-  const [quizQuestions, setQuizQuestions] = useState<QuizSection[] | null>(null);
+    useState<GetAssessmentStudentResponsesOutput | null>(null);
+  const [quizQuestions, setQuizQuestions] = useState<QuestionSectionDto[] | null>(null);
   const [activeSectionIdx, setActiveSectionIdx] = useState(0);
   const [localAudioGrades, setLocalAudioGrades] = useState<Record<string, Record<string, number>>>(
     {},

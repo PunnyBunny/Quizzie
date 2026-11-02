@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import type { Gender, Language, LanguageEntryDto } from "@vaca/contracts";
 import React, { useRef, useState } from "react";
 import SimpleReactValidator from "simple-react-validator";
 import useForceUpdate from "use-force-update";
@@ -7,14 +8,6 @@ import { useCallable } from "../lib/firebase-hooks.ts";
 import { toUserMessage } from "../lib/errors.ts";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useTranslation } from "../hooks/useTranslation";
-
-type Language = "cantonese" | "mandarin" | "english" | "other";
-type Gender = "male" | "female";
-
-interface LanguageEntry {
-  language: Language;
-  otherSpecify?: string;
-}
 
 function BrowserSupportCheck({ children }: { children: React.ReactNode }) {
   const browserSupport = useBrowserSupport();
@@ -34,20 +27,6 @@ function BrowserSupportCheck({ children }: { children: React.ReactNode }) {
   return children;
 }
 
-interface CreateAssessmentRequest {
-  name: string;
-  birthDate: string;
-  gender: Gender;
-  grade: string;
-  school: string;
-  motherTongue: LanguageEntry;
-  otherLanguages: LanguageEntry[];
-}
-
-interface CreateAssessmentResponse {
-  id: string;
-}
-
 export default function NewAssessment() {
   const { t } = useTranslation();
   const [studentName, setStudentName] = useState("");
@@ -56,9 +35,9 @@ export default function NewAssessment() {
   const [gender, setGender] = useState<Gender | "">("");
   const [grade, setGrade] = useState("");
   const [school, setSchool] = useState("");
-  const [motherTongue, setMotherTongue] = useState<LanguageEntry>({ language: "" as Language });
+  const [motherTongue, setMotherTongue] = useState<LanguageEntryDto>({ language: "" as Language });
   const [motherTongueOther, setMotherTongueOther] = useState("");
-  const [otherLanguages, setOtherLanguages] = useState<LanguageEntry[]>([]);
+  const [otherLanguages, setOtherLanguages] = useState<LanguageEntryDto[]>([]);
 
   const forceUpdate = useForceUpdate();
 
@@ -69,9 +48,7 @@ export default function NewAssessment() {
     }),
   );
 
-  const [createAssessmentFunc] = useCallable<CreateAssessmentRequest, CreateAssessmentResponse>(
-    "api/create-assessment",
-  );
+  const [createAssessment] = useCallable("api/create-assessment");
 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -91,14 +68,14 @@ export default function NewAssessment() {
       setSubmitting(true);
 
       // Build mother tongue with otherSpecify if needed
-      const finalMotherTongue: LanguageEntry = {
+      const finalMotherTongue: LanguageEntryDto = {
         language: motherTongue.language,
         ...(motherTongue.language === "other" && motherTongueOther
           ? { otherSpecify: motherTongueOther }
           : {}),
       };
 
-      const response = await createAssessmentFunc({
+      const response = await createAssessment({
         name: studentName,
         birthDate: `${birthYear}-${birthMonth.padStart(2, "0")}`,
         gender: gender as Gender,

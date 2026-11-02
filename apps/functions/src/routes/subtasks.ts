@@ -1,19 +1,16 @@
 import express from "express";
+import type {
+  AdminDeleteSubtaskInput,
+  OkOutput,
+  AdminSaveSubtaskInput,
+  AdminSaveSubtaskOutput,
+  GetSubtasksOutput,
+} from "@vaca/contracts";
 import { validate } from "../middleware/validation";
 import { FieldValue } from "../firebase";
 import { subtasks as subtasksDb, toSubtaskDto } from "../types/models/subtasks";
-import {
-  type SaveSubtaskInput,
-  SaveSubtaskSchema,
-  type DeleteSubtaskInput,
-  DeleteSubtaskSchema,
-} from "../types/zod/routes/subtasks";
-import {
-  type GetSubtasksOutput,
-  type SaveSubtaskOutput,
-  type DeleteSubtaskOutput,
-} from "../types/subtasks";
-import { type FirebaseFunctionRequest, type FirebaseFunctionResponse } from "../utils/express";
+import { AdminSaveSubtaskSchema, AdminDeleteSubtaskSchema } from "../types/zod/routes/subtasks";
+import type { FirebaseFunctionRequest, FirebaseFunctionResponse } from "../utils/express";
 import { adminHandler } from "../middleware/admin";
 import { NotFoundError } from "../middleware/error";
 
@@ -22,10 +19,7 @@ export const router = express.Router();
 // POST /get-subtasks (any authenticated user)
 router.post(
   "/get-subtasks",
-  async (
-    _req: FirebaseFunctionRequest<{}>,
-    res: FirebaseFunctionResponse<GetSubtasksOutput>,
-  ) => {
+  async (_req: FirebaseFunctionRequest<void>, res: FirebaseFunctionResponse<GetSubtasksOutput>) => {
     const snapshot = await subtasksDb.collection().orderBy("createdAt").get();
 
     const subtasks = snapshot.docs.map(toSubtaskDto);
@@ -38,10 +32,10 @@ router.post(
 router.post(
   "/admin/save-subtask",
   adminHandler,
-  validate(SaveSubtaskSchema),
+  validate(AdminSaveSubtaskSchema),
   async (
-    req: FirebaseFunctionRequest<SaveSubtaskInput>,
-    res: FirebaseFunctionResponse<SaveSubtaskOutput>,
+    req: FirebaseFunctionRequest<AdminSaveSubtaskInput>,
+    res: FirebaseFunctionResponse<AdminSaveSubtaskOutput>,
   ) => {
     const { id, name, questionIds, norms } = req.body.data;
     const now = FieldValue.serverTimestamp();
@@ -71,10 +65,10 @@ router.post(
 router.post(
   "/admin/delete-subtask",
   adminHandler,
-  validate(DeleteSubtaskSchema),
+  validate(AdminDeleteSubtaskSchema),
   async (
-    req: FirebaseFunctionRequest<DeleteSubtaskInput>,
-    res: FirebaseFunctionResponse<DeleteSubtaskOutput>,
+    req: FirebaseFunctionRequest<AdminDeleteSubtaskInput>,
+    res: FirebaseFunctionResponse<OkOutput>,
   ) => {
     const { id } = req.body.data;
 
@@ -85,6 +79,6 @@ router.post(
     }
 
     await docRef.delete();
-    res.status(200).json({ data: { success: true } });
+    res.status(200).json({ data: { ok: true } });
   },
 );
