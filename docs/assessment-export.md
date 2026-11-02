@@ -57,3 +57,5 @@ responses do not store a separate skipped flag, so that field remains blank.
 The export timestamp records when the server finished loading the data; reads
 are not a database transaction. Empty datasets still produce headers and the
 current Questions guide. New sections/items/languages may add sheets or columns.
+
+The Demographics sheet includes `special_needs`, containing one of `none`, `autism_spectrum_disorder`, or `developmental_language_disorder`.

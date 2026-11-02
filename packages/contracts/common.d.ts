@@ -1,4 +1,8 @@
 export type Language = "cantonese" | "mandarin" | "english" | "other";
+export type SpecialEducationalNeeds =
+  | "none"
+  | "autism_spectrum_disorder"
+  | "developmental_language_disorder";
 export type Gender = "male" | "female";
 
 export interface LanguageEntryDto {

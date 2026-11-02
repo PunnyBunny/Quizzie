@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import type { Gender, Language, LanguageEntryDto } from "@vaca/contracts";
+import type { Gender, Language, LanguageEntryDto, SpecialEducationalNeeds } from "@vaca/contracts";
 import React, { useRef, useState } from "react";
 import SimpleReactValidator from "simple-react-validator";
 import useForceUpdate from "use-force-update";
@@ -33,6 +33,9 @@ export default function NewAssessment() {
   const [birthYear, setBirthYear] = useState("");
   const [birthMonth, setBirthMonth] = useState("");
   const [gender, setGender] = useState<Gender | "">("");
+  const [specialEducationalNeeds, setSpecialEducationalNeeds] = useState<
+    SpecialEducationalNeeds | ""
+  >("");
   const [grade, setGrade] = useState("");
   const [school, setSchool] = useState("");
   const [motherTongue, setMotherTongue] = useState<LanguageEntryDto>({ language: "" as Language });
@@ -52,14 +55,14 @@ export default function NewAssessment() {
 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-
-  const formValid = validator.current.allValid(); // note: messages are only revealed on submit
+  const [showSpecialEducationalNeedsError, setShowSpecialEducationalNeedsError] = useState(false);
 
   const submitForm = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError(null);
 
-    if (!formValid) {
+    if (!validator.current.allValid() || !specialEducationalNeeds) {
+      setShowSpecialEducationalNeedsError(true);
       validator.current.showMessages();
       return;
     }
@@ -79,6 +82,7 @@ export default function NewAssessment() {
         name: studentName,
         birthDate: `${birthYear}-${birthMonth.padStart(2, "0")}`,
         gender: gender as Gender,
+        specialEducationalNeeds,
         grade,
         school,
         motherTongue: finalMotherTongue,
@@ -223,6 +227,49 @@ export default function NewAssessment() {
                   </label>
                 </div>
                 <span>{validator.current.message("gender", gender, "required")}</span>
+              </div>
+
+              <div className="space-y-1">
+                <label
+                  htmlFor="specialEducationalNeeds"
+                  className="block text-sm font-medium text-gray-800"
+                >
+                  {t("newAssessment.specialEducationalNeeds")}{" "}
+                  <span className="text-red-500">*</span>
+                </label>
+                <select
+                  id="specialEducationalNeeds"
+                  required
+                  aria-invalid={showSpecialEducationalNeedsError && !specialEducationalNeeds}
+                  aria-describedby={
+                    showSpecialEducationalNeedsError && !specialEducationalNeeds
+                      ? "specialEducationalNeeds-error"
+                      : undefined
+                  }
+                  className={`w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-hidden focus:ring-2 focus:ring-indigo-400 ${
+                    showSpecialEducationalNeedsError && !specialEducationalNeeds
+                      ? "border-red-300"
+                      : "border-gray-300"
+                  }`}
+                  value={specialEducationalNeeds}
+                  onChange={(e) =>
+                    setSpecialEducationalNeeds(e.target.value as SpecialEducationalNeeds | "")
+                  }
+                >
+                  <option value="">{t("newAssessment.lang.select")}</option>
+                  {(
+                    ["none", "autism_spectrum_disorder", "developmental_language_disorder"] as const
+                  ).map((value) => (
+                    <option key={value} value={value}>
+                      {t(`newAssessment.specialEducationalNeeds.${value}`)}
+                    </option>
+                  ))}
+                </select>
+                {showSpecialEducationalNeedsError && !specialEducationalNeeds && (
+                  <p id="specialEducationalNeeds-error" className="mt-1 text-xs text-red-600">
+                    {t("newAssessment.specialEducationalNeeds.required")}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-1">

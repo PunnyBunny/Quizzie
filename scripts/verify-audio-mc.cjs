@@ -1315,6 +1315,7 @@ async function assessmentExportChecks() {
     name: '陳, "一"\n學生',
     birthDate: "2010-03",
     gender: "female",
+    specialEducationalNeeds: "none",
     grade: "S2",
     school: "學校\\path\\n",
     motherTongue: { language: "cantonese" },
@@ -1331,6 +1332,7 @@ async function assessmentExportChecks() {
   app.documents.set("assessments/a", { ...seed, updatedAt: app.timestamp });
   app.documents.set("assessments/b", {
     ...seed,
+    specialEducationalNeeds: "autism_spectrum_disorder",
     name: '=HYPERLINK("test")',
     grade: "S3",
     finished: true,
@@ -1338,7 +1340,11 @@ async function assessmentExportChecks() {
     finishedAt: app.timestamp,
     otherLanguages: [],
   });
-  app.documents.set("assessments/c", { ...seed, otherLanguages: [] });
+  app.documents.set("assessments/c", {
+    ...seed,
+    specialEducationalNeeds: "developmental_language_disorder",
+    otherLanguages: [],
+  });
   const section = {
     title: "題目",
     goal: "",
@@ -1479,6 +1485,10 @@ async function assessmentExportChecks() {
   };
   const demographics = getSheet("Demographics");
   const [a, b, c] = demographics.rows;
+  assert.deepEqual(
+    [a, b, c].map((row) => cell(demographics, row, "special_needs")),
+    ["none", "autism_spectrum_disorder", "developmental_language_disorder"],
+  );
   assert.equal(cell(demographics, a, "name"), seed.name);
   assert.equal(cell(demographics, a, "school"), seed.school);
   assert.equal(cell(demographics, a, "birth_date"), "2010-03");
@@ -1569,7 +1579,87 @@ async function assessmentExportChecks() {
     "PASS: admin-only complete XLSX export, section sheets/short headers, native Unicode/text/numbers, missing versus zero scores, hybrid/historical evidence, norms, safe sheet names, empty data, and no Storage links/formulas.",
   );
 }
+async function newAssessmentDemographicsChecks() {
+  const hooks = hookRuntime();
+  const submitted = [];
+  const key = (relative) => path.join(root, `apps/web/src/${relative}`);
+  const Component = sourceLoader(
+    {
+      react: hooks.React,
+      "use-force-update": { __esModule: true, default: () => () => {} },
+      [key("providers/RecordingSessionProvider.tsx")]: { useBrowserSupport: () => true },
+      [key("lib/firebase-hooks.ts")]: {
+        useCallable: () => [
+          async (input) => {
+            submitted.push(input);
+            return { data: { id: "test" } };
+          },
+        ],
+      },
+      [key("hooks/useTranslation.ts")]: { useTranslation: () => ({ t: (value) => value }) },
+      ...componentStubs(["Button", "Alert"]),
+    },
+    { window: { location: {} } },
+  )("apps/web/src/pages/NewAssessment.tsx").default;
+  const render = () => nodes(hooks.render(() => Component()));
+  const select = () => render().find((node) => node.props?.id === "specialEducationalNeeds");
+  const submit = () =>
+    render()
+      .find((node) => node.type === "form")
+      .props.onSubmit({ preventDefault() {} });
+  const change = (node, value) => node.props.onChange({ target: { value } });
+  const values = ["none", "autism_spectrum_disorder", "developmental_language_disorder"];
+  assert.equal(select().props.value, "");
+  assert.deepEqual(
+    nodes(select())
+      .filter((node) => node.type === "option")
+      .map((node) => node.props.value),
+    ["", ...values],
+  );
+  for (const [id, value] of [
+    ["studentName", "Test"],
+    ["birthYear", "2010"],
+    ["birthMonth", "1"],
+    ["grade", "S1"],
+    ["school", "Test"],
+  ]) {
+    change(
+      render().find((node) => node.props?.id === id),
+      value,
+    );
+  }
+  change(
+    render().find((node) => node.type === "input" && node.props.name === "gender"),
+    "male",
+  );
+  change(
+    render().find(
+      (node) =>
+        node.type === "select" &&
+        nodes(node).some((child) => child.type === "option" && child.props.value === "cantonese"),
+    ),
+    "cantonese",
+  );
+  await submit();
+  assert.equal(submitted.length, 0);
+  assert.equal(select().props["aria-invalid"], true);
+  assert.equal(select().props["aria-describedby"], "specialEducationalNeeds-error");
+  for (const value of values) {
+    change(select(), value);
+    await submit();
+  }
+  assert.deepEqual(
+    submitted.map((input) => input.specialEducationalNeeds),
+    values,
+  );
+  change(select(), "");
+  await submit();
+  assert.equal(submitted.length, 3);
+  assert.equal(select().props["aria-invalid"], true);
+}
+
 async function main() {
+  await newAssessmentDemographicsChecks();
   const app = backend();
   const config = {
     title: "Section",
@@ -1603,12 +1693,46 @@ async function main() {
     name: " Test ",
     birthDate: "2010-01-01",
     gender: "male",
+    specialEducationalNeeds: "none",
     grade: "1",
     school: "Test",
     motherTongue: { language: "cantonese" },
     otherLanguages: [],
   });
   const id = newAssessment.id;
+  for (const value of ["none", "autism_spectrum_disorder", "developmental_language_disorder"]) {
+    const created = await app.call("/create-assessment", {
+      name: "Test",
+      birthDate: "2010-01",
+      gender: "male",
+      specialEducationalNeeds: value,
+      grade: "S1",
+      school: "Test",
+      motherTongue: { language: "cantonese" },
+      otherLanguages: [],
+    });
+    assert.equal(app.documents.get(`assessments/${created.id}`).specialEducationalNeeds, value);
+    const assessments = await app.call("/get-assessments", {});
+    assert.equal(
+      assessments.assessments.find((item) => item.id === created.id).specialEducationalNeeds,
+      value,
+    );
+  }
+  for (const value of [undefined, "", "unknown", ["none"], null]) {
+    await assert.rejects(
+      app.call("/create-assessment", {
+        name: "Test",
+        birthDate: "2010-01",
+        gender: "male",
+        specialEducationalNeeds: value,
+        grade: "S1",
+        school: "Test",
+        motherTongue: { language: "cantonese" },
+        otherLanguages: [],
+      }),
+      (error) => error.statusCode === 400,
+    );
+  }
   assert.equal(app.documents.get(`assessments/${id}`).name, "Test");
   await app.call("/submit-mc-answer", {
     assessmentId: id,

@@ -35,13 +35,23 @@ router.post(
     req: FirebaseFunctionRequest<CreateAssessmentInput>,
     res: FirebaseFunctionResponse<CreateAssessmentOutput>,
   ) => {
-    const { name, birthDate, gender, grade, school, motherTongue, otherLanguages } = req.body.data;
+    const {
+      name,
+      birthDate,
+      gender,
+      specialEducationalNeeds,
+      grade,
+      school,
+      motherTongue,
+      otherLanguages,
+    } = req.body.data;
     const { callerEmail } = res.locals;
 
     const doc: AssessmentDoc = {
       name,
       birthDate,
       gender,
+      specialEducationalNeeds,
       grade,
       school,
       motherTongue,
