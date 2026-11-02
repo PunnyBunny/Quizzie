@@ -73,6 +73,7 @@ function sourceLoader(overrides = {}, globals = {}) {
         console,
         setTimeout,
         clearTimeout,
+        Buffer,
         Blob,
         crypto: require("node:crypto").webcrypto,
         React: overrides.react,
@@ -234,7 +235,7 @@ function backend() {
         });
         if (failed) throw failed;
         if (!advanced) {
-          const error = new Error(result?.error);
+          const error = new Error(result?.error?.message);
           error.statusCode = code;
           throw error;
         }
@@ -1135,11 +1136,11 @@ async function validationChecks() {
   assert.equal(optional.req.body.data, undefined);
   const invalidBody = { data: { name: 42 } };
   const invalid = await run(schema, invalidBody);
-  assert.equal(invalid.nextCalls, 0);
-  assert.equal(invalid.status, 400);
-  assert.equal(invalid.response.ok, false);
-  assert.equal(invalid.response.error, "Invalid request");
-  assert(invalid.response.issues.length > 0);
+  assert.equal(invalid.nextCalls, 1);
+  assert.equal(invalid.error.statusCode, 400);
+  assert.equal(invalid.error.message, "Invalid request");
+  assert(invalid.error.details.issues.length > 0);
+  assert.equal(invalid.response, undefined);
   assert.equal(invalid.req.body, invalidBody);
   const failure = new Error("Transform failed");
   const failed = await run(
@@ -1278,7 +1279,7 @@ function mountedRouterCall(app) {
         },
         json: (body) => {
           if (statusCode >= 400) {
-            const error = new Error(body.error);
+            const error = new Error(body.error.message);
             error.statusCode = statusCode;
             reject(error);
           } else resolve(body.data);
