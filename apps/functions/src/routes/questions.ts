@@ -49,7 +49,6 @@ router.post(
       images,
       instructions,
     } = req.body.data;
-    console.log("here");
 
     const data: QuestionSectionDoc = {
       title,

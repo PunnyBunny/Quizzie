@@ -60,7 +60,7 @@ function ScoreModalContent({ assessmentId, onGoToGrading }: Omit<ScoreModalProps
       try {
         const [responsesResult, subtasksResult] = await Promise.all([
           getResponses({ assessmentId }),
-          getSubtasks({}),
+          getSubtasks(),
         ]);
 
         setAssessment(responsesResult.data.assessment);

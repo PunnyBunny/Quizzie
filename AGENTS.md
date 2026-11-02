@@ -56,7 +56,10 @@ TypeScript; the web build also bundles with Vite. The contracts type-check uses 
 mode with `skipLibCheck: false` to check the declaration files without emitting output.
 There is no workspace test script.
 Run `node scripts/verify-audio-mc.cjs` for local hybrid-question and assessment-export
-regression checks using fake data and media APIs. For code changes, run the relevant build and lint,
+regression checks using fake data and media APIs. Run `node scripts/verify-api-errors.cjs`,
+`node scripts/verify-api-validation.cjs`, and `node scripts/verify-api-conventions.cjs`
+for offline API error, document-ID validation, and authorization/response checks.
+For code changes, run the relevant build and lint,
 and manually exercise the affected UI/API flow when feasible. Report any existing
 failures separately from failures introduced by the change. Documentation-only
 changes do not require application builds.
@@ -87,17 +90,25 @@ Firestore or Storage.
   The server implements Express POST routes under the `api` HTTP function, with
   callable-compatible `{ data: ... }` request and success-response envelopes.
   Preserve this contract when changing both ends.
+- API failures use `{ error: { status, message, details? } }`, where `status` is a
+  canonical Firebase callable status. Forward failures to the central error middleware;
+  validation issues are in `error.details.issues`, and unexpected failures return a
+  generic message. Acknowledgments use `{ data: { ok: true } }` and `OkOutput`.
 - `packages/contracts/api.d.ts` maps callable endpoint names to their input/output
   contracts. `useCallable("api/...")` infers both types from this map; update it when
-  adding or changing an endpoint. Keep the hook's existing optional payload behavior.
-- Global `authHandler` verifies Firebase Bearer ID tokens and sets
+  adding or changing an endpoint. No-payload endpoints use `void`. Keep the hook's
+  existing optional payload behavior.
+- Global `authHandler` verifies Firebase Bearer ID tokens, requires a nonblank email, and sets
   `res.locals.callerEmail` and `callerClaims`. `adminHandler` checks the `isAdmin`
-  custom claim. Trace router mounting and middleware order when changing access
-  control; a router-level middleware can affect subsequent mounted routers.
+  custom claim using `=== true`. Apply it explicitly to each admin route. Trace router
+  mounting and middleware order when changing access control; a router-level middleware
+  can affect subsequent mounted routers.
 - Follow existing Zod validation and typed Express request/response helpers.
   The validation middleware stores Zod's parsed payload in `req.body.data` before
   running handlers, so schema defaults and transforms are applied. Raw payloads are
   normalized to the same `{ data: ... }` envelope.
+- Reuse `DocumentIdSchema` from Functions `src/types/zod/common.ts` for inbound
+  Firestore document IDs. Preserve valid IDs exactly without trimming.
 - Use existing model helpers for Firestore access and DTO conversion.
   Assessments track creator email, section/question progress, and completion;
   `getAssessmentWithAuth` checks ownership or admin access. Student response

@@ -37,9 +37,6 @@ import { subtasks, toSubtaskDto } from "../types/models/subtasks";
 
 export const router = express.Router();
 
-// Scope this guard to admin paths so it cannot block later public routers.
-router.use("/admin", adminHandler);
-
 function optionalTimestamp(value: AssessmentDoc["updatedAt"]): string | null {
   return value && "toDate" in value ? value.toDate().toISOString() : null;
 }
@@ -47,6 +44,7 @@ function optionalTimestamp(value: AssessmentDoc["updatedAt"]): string | null {
 // Export the complete dataset independently of list filters, archive state, or pagination.
 router.post(
   "/admin/export-assessments",
+  adminHandler,
   validate(AdminExportAssessmentsSchema),
   async (
     _req: FirebaseFunctionRequest<AdminExportAssessmentsInput>,
@@ -90,6 +88,7 @@ router.post(
 // POST /admin/get-assessments
 router.post(
   "/admin/get-assessments",
+  adminHandler,
   validate(AdminGetAssessmentsSchema.optional()),
   async (
     req: FirebaseFunctionRequest<AdminGetAssessmentsInput | undefined>,
@@ -113,12 +112,16 @@ router.post(
 // POST /admin/get-users
 router.post(
   "/admin/get-users",
-  async (_req: FirebaseFunctionRequest<{}>, res: FirebaseFunctionResponse<AdminGetUsersOutput>) => {
+  adminHandler,
+  async (
+    _req: FirebaseFunctionRequest<void>,
+    res: FirebaseFunctionResponse<AdminGetUsersOutput>,
+  ) => {
     const listUsersResult = await admin.auth().listUsers();
 
     const users: UserDto[] = listUsersResult.users.map((userRecord) => ({
       email: userRecord.email,
-      isAdmin: (userRecord.customClaims?.isAdmin as boolean) ?? false,
+      isAdmin: userRecord.customClaims?.isAdmin === true,
     }));
 
     console.log(`Retrieved ${users.length} users`);
@@ -129,6 +132,7 @@ router.post(
 // POST /admin/create-user
 router.post(
   "/admin/create-user",
+  adminHandler,
   validate(AdminCreateUserSchema),
   async (
     req: FirebaseFunctionRequest<AdminCreateUserInput>,
@@ -160,6 +164,7 @@ router.post(
 // POST /admin/reset-password
 router.post(
   "/admin/reset-password",
+  adminHandler,
   validate(AdminResetPasswordSchema),
   async (
     req: FirebaseFunctionRequest<AdminResetPasswordInput>,
@@ -182,6 +187,7 @@ router.post(
 // POST /admin/remove-user
 router.post(
   "/admin/remove-user",
+  adminHandler,
   validate(AdminRemoveUserSchema),
   async (
     req: FirebaseFunctionRequest<AdminRemoveUserInput>,

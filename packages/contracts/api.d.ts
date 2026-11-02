@@ -35,7 +35,6 @@ import type {
 } from "./submissions";
 import type {
   AdminDeleteSubtaskInput,
-  AdminDeleteSubtaskOutput,
   AdminSaveSubtaskInput,
   AdminSaveSubtaskOutput,
   GetSubtasksOutput,
@@ -61,13 +60,13 @@ export interface ApiEndpoints {
   >;
   "api/submit-audio-grade": Endpoint<SubmitAudioGradeInput, OkOutput>;
   "api/update-audio-transcript": Endpoint<UpdateAudioTranscriptInput, OkOutput>;
-  "api/get-subtasks": Endpoint<{}, GetSubtasksOutput>;
+  "api/get-subtasks": Endpoint<void, GetSubtasksOutput>;
   "api/admin/save-question-section": Endpoint<
     AdminSaveQuestionSectionInput,
     AdminSaveQuestionSectionOutput
   >;
   "api/admin/save-subtask": Endpoint<AdminSaveSubtaskInput, AdminSaveSubtaskOutput>;
-  "api/admin/delete-subtask": Endpoint<AdminDeleteSubtaskInput, AdminDeleteSubtaskOutput>;
+  "api/admin/delete-subtask": Endpoint<AdminDeleteSubtaskInput, OkOutput>;
   "api/admin/get-assessments": Endpoint<
     AdminGetAssessmentsInput | undefined,
     AdminGetAssessmentsOutput
@@ -76,7 +75,7 @@ export interface ApiEndpoints {
     AdminExportAssessmentsInput,
     AdminExportAssessmentsOutput
   >;
-  "api/admin/get-users": Endpoint<{}, AdminGetUsersOutput>;
+  "api/admin/get-users": Endpoint<void, AdminGetUsersOutput>;
   "api/admin/create-user": Endpoint<AdminCreateUserInput, AdminCreateUserOutput>;
   "api/admin/reset-password": Endpoint<AdminResetPasswordInput, AdminResetPasswordOutput>;
   "api/admin/remove-user": Endpoint<AdminRemoveUserInput, AdminRemoveUserOutput>;

@@ -8,7 +8,7 @@ export function adminHandler(
   next: NextFunction,
 ) {
   const claims = res.locals.callerClaims;
-  if (!claims?.isAdmin) {
+  if (claims?.isAdmin !== true) {
     throw new ForbiddenError();
   }
   next();

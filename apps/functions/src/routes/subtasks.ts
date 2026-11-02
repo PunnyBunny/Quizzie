@@ -1,7 +1,7 @@
 import express from "express";
 import type {
   AdminDeleteSubtaskInput,
-  AdminDeleteSubtaskOutput,
+  OkOutput,
   AdminSaveSubtaskInput,
   AdminSaveSubtaskOutput,
   GetSubtasksOutput,
@@ -19,7 +19,7 @@ export const router = express.Router();
 // POST /get-subtasks (any authenticated user)
 router.post(
   "/get-subtasks",
-  async (_req: FirebaseFunctionRequest<{}>, res: FirebaseFunctionResponse<GetSubtasksOutput>) => {
+  async (_req: FirebaseFunctionRequest<void>, res: FirebaseFunctionResponse<GetSubtasksOutput>) => {
     const snapshot = await subtasksDb.collection().orderBy("createdAt").get();
 
     const subtasks = snapshot.docs.map(toSubtaskDto);
@@ -68,7 +68,7 @@ router.post(
   validate(AdminDeleteSubtaskSchema),
   async (
     req: FirebaseFunctionRequest<AdminDeleteSubtaskInput>,
-    res: FirebaseFunctionResponse<AdminDeleteSubtaskOutput>,
+    res: FirebaseFunctionResponse<OkOutput>,
   ) => {
     const { id } = req.body.data;
 
@@ -79,6 +79,6 @@ router.post(
     }
 
     await docRef.delete();
-    res.status(200).json({ data: { success: true } });
+    res.status(200).json({ data: { ok: true } });
   },
 );

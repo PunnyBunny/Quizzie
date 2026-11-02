@@ -63,7 +63,7 @@ export default function AdminSubtasks() {
   });
 
   useEffect(() => {
-    void Promise.all([getSubtasks({}), getQuestions()])
+    void Promise.all([getSubtasks(), getQuestions()])
       .then(([subtasksRes, questionsRes]) => {
         setSubtasks(subtasksRes.data.subtasks);
         setSections(questionsRes.data.sections);
@@ -75,7 +75,7 @@ export default function AdminSubtasks() {
   }, [getSubtasks, getQuestions, t]);
 
   const refreshSubtasks = async () => {
-    const res = await getSubtasks({});
+    const res = await getSubtasks();
     setSubtasks(res.data.subtasks);
   };
 

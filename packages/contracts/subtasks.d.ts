@@ -39,7 +39,3 @@ export interface GetSubtasksOutput {
 export interface AdminSaveSubtaskOutput {
   id: string;
 }
-
-export interface AdminDeleteSubtaskOutput {
-  success: boolean;
-}
