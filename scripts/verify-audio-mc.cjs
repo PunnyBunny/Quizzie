@@ -1579,7 +1579,7 @@ async function assessmentExportChecks() {
     "PASS: admin-only complete XLSX export, section sheets/short headers, native Unicode/text/numbers, missing versus zero scores, hybrid/historical evidence, norms, safe sheet names, empty data, and no Storage links/formulas.",
   );
 }
-async function newAssessmentDemographicsChecks() {
+async function newAssessmentDemographicsChecks(validFirst = false) {
   const hooks = hookRuntime();
   const submitted = [];
   const key = (relative) => path.join(root, `apps/web/src/${relative}`);
@@ -1609,6 +1609,109 @@ async function newAssessmentDemographicsChecks() {
       .props.onSubmit({ preventDefault() {} });
   const change = (node, value) => node.props.onChange({ target: { value } });
   const values = ["none", "autism_spectrum_disorder", "developmental_language_disorder"];
+  const byId = (id) => render().find((node) => node.props?.id === id);
+  const otherSelect = () =>
+    render().find(
+      (node) =>
+        node.type === "select" && node.props["aria-label"] === "newAssessment.otherLanguages",
+    );
+  const add = () =>
+    render()
+      .find(
+        (node) =>
+          isButton(node) &&
+          JSON.stringify(node.props.children).includes("newAssessment.lang.addAnother"),
+      )
+      .props.onClick();
+  const remove = () =>
+    render()
+      .find(
+        (node) => isButton(node) && JSON.stringify(node.props.children).includes("common.remove"),
+      )
+      .props.onClick();
+  const invalid = (node) => node.props["aria-invalid"] === true;
+  for (const id of [
+    "birthYear",
+    "birthMonth",
+    "grade",
+    "motherTongue",
+    "specialEducationalNeeds",
+  ]) {
+    assert.equal(invalid(byId(id)), false, `${id} initially neutral`);
+    assert(byId(id).props.className.includes("border-gray-300"));
+  }
+  for (const [id, invalidValue] of [
+    ["studentName", "T"],
+    ["school", ""],
+  ]) {
+    assert.equal(byId(id).props.required, true);
+    assert.equal(invalid(byId(id)), false, `${id} initially neutral`);
+    assert.equal(byId(id).props["aria-describedby"], undefined);
+    assert(!nodes(byId(`${id}-error`)).some((node) => node.type === "p"));
+    assert(byId(id).props.className.includes("border-gray-300"));
+    change(byId(id), invalidValue);
+    assert.equal(invalid(byId(id)), false, `${id} stays neutral before submit`);
+    assert.equal(byId(id).props["aria-describedby"], undefined);
+    assert(byId(id).props.className.includes("border-gray-300"));
+  }
+  const controls = render().filter((node) => ["input", "select"].includes(node.type));
+  assert.equal(controls.at(-1).props.id, "specialEducationalNeeds", "SEN is the last data control");
+  add();
+  assert.equal(invalid(otherSelect()), false);
+  remove();
+  if (!validFirst) {
+    await submit();
+    assert.equal(submitted.length, 0);
+    for (const id of [
+      "birthYear",
+      "birthMonth",
+      "grade",
+      "motherTongue",
+      "specialEducationalNeeds",
+    ]) {
+      assert.equal(invalid(byId(id)), true, `${id} invalid after submit`);
+      assert(byId(id).props.className.includes("border-red-300"));
+      assert(byId(id).props["aria-describedby"]);
+      assert(byId(`${id}-error`));
+    }
+    for (const [id, invalidValue] of [
+      ["studentName", "T"],
+      ["school", ""],
+    ]) {
+      assert.equal(invalid(byId(id)), true, `${id} invalid after submit`);
+      assert(byId(id).props.className.includes("border-red-300"));
+      assert.equal(byId(id).props["aria-describedby"], `${id}-error`);
+      assert(nodes(byId(`${id}-error`)).some((node) => node.type === "p"));
+      change(byId(id), "Test");
+      assert.equal(invalid(byId(id)), false, `${id} clears immediately`);
+      assert.equal(byId(id).props["aria-describedby"], undefined);
+      change(byId(id), invalidValue);
+      assert.equal(invalid(byId(id)), true, `${id} restores immediately`);
+      await submit();
+      assert.equal(submitted.length, 0, `${id} blocks submission`);
+    }
+    for (const [id, value] of [
+      ["birthYear", "2010"],
+      ["birthMonth", "1"],
+      ["grade", "S1"],
+      ["motherTongue", "cantonese"],
+      ["specialEducationalNeeds", "none"],
+    ]) {
+      change(byId(id), value);
+      assert.equal(invalid(byId(id)), false, `${id} clears immediately`);
+      change(byId(id), "");
+      assert.equal(invalid(byId(id)), true, `${id} restores immediately`);
+    }
+    add();
+    assert.equal(invalid(otherSelect()), true);
+    await submit();
+    assert.equal(submitted.length, 0);
+    change(otherSelect(), "english");
+    assert.equal(invalid(otherSelect()), false);
+    change(otherSelect(), "");
+    assert.equal(invalid(otherSelect()), true);
+    remove();
+  }
   assert.equal(select().props.value, "");
   assert.deepEqual(
     nodes(select())
@@ -1627,6 +1730,20 @@ async function newAssessmentDemographicsChecks() {
       render().find((node) => node.props?.id === id),
       value,
     );
+    if (id === "studentName" || id === "school") {
+      assert(byId(id).props.className.includes("border-gray-300"), `${id} clears immediately`);
+    }
+  }
+  for (const [id, invalidValue] of [
+    ["studentName", "T"],
+    ["school", ""],
+  ]) {
+    assert(byId(id).props.className.includes("border-gray-300"), `${id} remains valid on rerender`);
+    change(byId(id), invalidValue);
+    assert.equal(invalid(byId(id)), !validFirst, `${id} follows error visibility`);
+    assert(byId(id).props.className.includes(validFirst ? "border-gray-300" : "border-red-300"));
+    change(byId(id), "Test");
+    assert(byId(id).props.className.includes("border-gray-300"), `${id} corrects immediately`);
   }
   change(
     render().find((node) => node.type === "input" && node.props.name === "gender"),
@@ -1640,6 +1757,33 @@ async function newAssessmentDemographicsChecks() {
     ),
     "cantonese",
   );
+  if (validFirst) {
+    change(select(), "none");
+    await submit();
+    assert.equal(submitted.length, 1, "valid first submit succeeds after removing an empty row");
+    for (const [id, invalidValue] of [
+      ["studentName", "T"],
+      ["school", ""],
+    ]) {
+      change(byId(id), invalidValue);
+      await submit();
+      assert.equal(submitted.length, 1, `${id} alone blocks submission`);
+      assert.equal(invalid(byId(id)), true);
+      change(byId(id), "Test");
+      assert.equal(invalid(byId(id)), false);
+    }
+    add();
+    await submit();
+    assert.equal(submitted.length, 1, "an empty added language blocks submission");
+    remove();
+    await submit();
+    assert.equal(submitted.length, 2, "valid submit succeeds after removing an empty row");
+    change(byId("grade"), "");
+    await submit();
+    assert.equal(submitted.length, 2, "a changed required field blocks submission");
+    assert.equal(invalid(byId("grade")), true);
+    return;
+  }
   await submit();
   assert.equal(submitted.length, 0);
   assert.equal(select().props["aria-invalid"], true);
@@ -1660,6 +1804,7 @@ async function newAssessmentDemographicsChecks() {
 
 async function main() {
   await newAssessmentDemographicsChecks();
+  await newAssessmentDemographicsChecks(true);
   const app = backend();
   const config = {
     title: "Section",

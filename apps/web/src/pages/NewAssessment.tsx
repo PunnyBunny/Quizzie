@@ -55,14 +55,14 @@ export default function NewAssessment() {
 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [showSpecialEducationalNeedsError, setShowSpecialEducationalNeedsError] = useState(false);
+  const [showValidationErrors, setShowValidationErrors] = useState(false);
 
   const submitForm = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError(null);
 
     if (!validator.current.allValid() || !specialEducationalNeeds) {
-      setShowSpecialEducationalNeedsError(true);
+      setShowValidationErrors(true);
       validator.current.showMessages();
       return;
     }
@@ -99,6 +99,12 @@ export default function NewAssessment() {
     }
   };
 
+  // Re-register only fields present in this render, including dynamic language rows.
+  validator.current.purgeFields();
+  const dropdownInvalid = (value: string) => showValidationErrors && !value;
+  const textInvalid = (value: string, rules: string) =>
+    showValidationErrors && !validator.current.check(value, rules);
+
   return (
     <BrowserSupportCheck>
       <div className="p-4 sm:p-6">
@@ -131,8 +137,13 @@ export default function NewAssessment() {
                 <input
                   id="studentName"
                   type="text"
+                  required
+                  aria-invalid={textInvalid(studentName, "required|min:2")}
+                  aria-describedby={
+                    textInvalid(studentName, "required|min:2") ? "studentName-error" : undefined
+                  }
                   className={`w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-hidden focus:ring-2 focus:ring-indigo-400 ${
-                    !validator.current.fieldValid("studentName")
+                    textInvalid(studentName, "required|min:2")
                       ? "border-red-300"
                       : "border-gray-300"
                   }`}
@@ -143,7 +154,7 @@ export default function NewAssessment() {
                   }}
                   autoComplete="name"
                 />
-                <span>
+                <span id="studentName-error">
                   {validator.current.message("studentName", studentName, "required|min:2")}
                 </span>
               </div>
@@ -156,10 +167,11 @@ export default function NewAssessment() {
                   <div className="flex-1">
                     <select
                       id="birthYear"
+                      required
+                      aria-invalid={dropdownInvalid(birthYear)}
+                      aria-describedby={dropdownInvalid(birthYear) ? "birthYear-error" : undefined}
                       className={`w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-hidden focus:ring-2 focus:ring-indigo-400 ${
-                        !validator.current.fieldValid("birthYear")
-                          ? "border-red-300"
-                          : "border-gray-300"
+                        dropdownInvalid(birthYear) ? "border-red-300" : "border-gray-300"
                       }`}
                       value={birthYear}
                       onChange={(e) => setBirthYear(e.target.value)}
@@ -173,15 +185,21 @@ export default function NewAssessment() {
                         ),
                       )}
                     </select>
-                    <span>{validator.current.message("birthYear", birthYear, "required")}</span>
+                    <span id="birthYear-error">
+                      {validator.current.message("birthYear", birthYear, "required")}
+                    </span>
                   </div>
                   <div className="flex-1">
                     <select
                       id="birthMonth"
+                      aria-label={t("newAssessment.month")}
+                      required
+                      aria-invalid={dropdownInvalid(birthMonth)}
+                      aria-describedby={
+                        dropdownInvalid(birthMonth) ? "birthMonth-error" : undefined
+                      }
                       className={`w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-hidden focus:ring-2 focus:ring-indigo-400 ${
-                        !validator.current.fieldValid("birthMonth")
-                          ? "border-red-300"
-                          : "border-gray-300"
+                        dropdownInvalid(birthMonth) ? "border-red-300" : "border-gray-300"
                       }`}
                       value={birthMonth}
                       onChange={(e) => setBirthMonth(e.target.value)}
@@ -193,7 +211,9 @@ export default function NewAssessment() {
                         </option>
                       ))}
                     </select>
-                    <span>{validator.current.message("birthMonth", birthMonth, "required")}</span>
+                    <span id="birthMonth-error">
+                      {validator.current.message("birthMonth", birthMonth, "required")}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -230,56 +250,16 @@ export default function NewAssessment() {
               </div>
 
               <div className="space-y-1">
-                <label
-                  htmlFor="specialEducationalNeeds"
-                  className="block text-sm font-medium text-gray-800"
-                >
-                  {t("newAssessment.specialEducationalNeeds")}{" "}
-                  <span className="text-red-500">*</span>
-                </label>
-                <select
-                  id="specialEducationalNeeds"
-                  required
-                  aria-invalid={showSpecialEducationalNeedsError && !specialEducationalNeeds}
-                  aria-describedby={
-                    showSpecialEducationalNeedsError && !specialEducationalNeeds
-                      ? "specialEducationalNeeds-error"
-                      : undefined
-                  }
-                  className={`w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-hidden focus:ring-2 focus:ring-indigo-400 ${
-                    showSpecialEducationalNeedsError && !specialEducationalNeeds
-                      ? "border-red-300"
-                      : "border-gray-300"
-                  }`}
-                  value={specialEducationalNeeds}
-                  onChange={(e) =>
-                    setSpecialEducationalNeeds(e.target.value as SpecialEducationalNeeds | "")
-                  }
-                >
-                  <option value="">{t("newAssessment.lang.select")}</option>
-                  {(
-                    ["none", "autism_spectrum_disorder", "developmental_language_disorder"] as const
-                  ).map((value) => (
-                    <option key={value} value={value}>
-                      {t(`newAssessment.specialEducationalNeeds.${value}`)}
-                    </option>
-                  ))}
-                </select>
-                {showSpecialEducationalNeedsError && !specialEducationalNeeds && (
-                  <p id="specialEducationalNeeds-error" className="mt-1 text-xs text-red-600">
-                    {t("newAssessment.specialEducationalNeeds.required")}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-1">
                 <label htmlFor="grade" className="block text-sm font-medium text-gray-800">
                   {t("newAssessment.grade")} <span className="text-red-500">*</span>
                 </label>
                 <select
                   id="grade"
+                  required
+                  aria-invalid={dropdownInvalid(grade)}
+                  aria-describedby={dropdownInvalid(grade) ? "grade-error" : undefined}
                   className={`w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-hidden focus:ring-2 focus:ring-indigo-400 ${
-                    !validator.current.fieldValid("grade") ? "border-red-300" : "border-gray-300"
+                    dropdownInvalid(grade) ? "border-red-300" : "border-gray-300"
                   }`}
                   value={grade}
                   onChange={(e) => {
@@ -293,7 +273,9 @@ export default function NewAssessment() {
                     </option>
                   ))}
                 </select>
-                <span>{validator.current.message("grade", grade, "required|min:1")}</span>
+                <span id="grade-error">
+                  {validator.current.message("grade", grade, "required|min:1")}
+                </span>
               </div>
 
               <div className="space-y-1">
@@ -303,8 +285,11 @@ export default function NewAssessment() {
                 <input
                   id="school"
                   type="text"
+                  required
+                  aria-invalid={textInvalid(school, "required")}
+                  aria-describedby={textInvalid(school, "required") ? "school-error" : undefined}
                   className={`w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-hidden focus:ring-2 focus:ring-indigo-400 ${
-                    !validator.current.fieldValid("school") ? "border-red-300" : "border-gray-300"
+                    textInvalid(school, "required") ? "border-red-300" : "border-gray-300"
                   }`}
                   placeholder={t("newAssessment.school.placeholder")}
                   value={school}
@@ -312,20 +297,26 @@ export default function NewAssessment() {
                     setSchool(e.target.value);
                   }}
                 />
-                <span>{validator.current.message("school", school, "required")}</span>
+                <span id="school-error">
+                  {validator.current.message("school", school, "required")}
+                </span>
               </div>
 
               {/* Mother Tongue */}
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-800">
+                <label htmlFor="motherTongue" className="block text-sm font-medium text-gray-800">
                   {t("newAssessment.motherTongue")} <span className="text-red-500">*</span>
                 </label>
                 <div className="flex flex-col gap-2">
                   <select
+                    id="motherTongue"
+                    required
+                    aria-invalid={dropdownInvalid(motherTongue.language)}
+                    aria-describedby={
+                      dropdownInvalid(motherTongue.language) ? "motherTongue-error" : undefined
+                    }
                     className={`w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-hidden focus:ring-2 focus:ring-indigo-400 ${
-                      !validator.current.fieldValid("motherTongue")
-                        ? "border-red-300"
-                        : "border-gray-300"
+                      dropdownInvalid(motherTongue.language) ? "border-red-300" : "border-gray-300"
                     }`}
                     value={motherTongue.language}
                     onChange={(e) => {
@@ -341,7 +332,7 @@ export default function NewAssessment() {
                     <option value="english">{t("newAssessment.lang.english")}</option>
                     <option value="other">{t("newAssessment.lang.other")}</option>
                   </select>
-                  <span>
+                  <span id="motherTongue-error">
                     {validator.current.message("motherTongue", motherTongue.language, "required")}
                   </span>
                   {motherTongue.language === "other" && (
@@ -370,10 +361,16 @@ export default function NewAssessment() {
                     <div key={index} className="flex gap-2 items-start">
                       <div className="flex-1 flex flex-col gap-2">
                         <select
+                          aria-label={t("newAssessment.otherLanguages")}
+                          required
+                          aria-invalid={dropdownInvalid(entry.language)}
+                          aria-describedby={
+                            dropdownInvalid(entry.language)
+                              ? `otherLanguage-${index}-error`
+                              : undefined
+                          }
                           className={`w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-hidden focus:ring-2 focus:ring-indigo-400 ${
-                            !validator.current.fieldValid(`otherLanguage-${index}`)
-                              ? "border-red-300"
-                              : "border-gray-300"
+                            dropdownInvalid(entry.language) ? "border-red-300" : "border-gray-300"
                           }`}
                           value={entry.language}
                           onChange={(e) => {
@@ -388,7 +385,7 @@ export default function NewAssessment() {
                           <option value="english">{t("newAssessment.lang.english")}</option>
                           <option value="other">{t("newAssessment.lang.other")}</option>
                         </select>
-                        <span>
+                        <span id={`otherLanguage-${index}-error`}>
                           {validator.current.message(
                             `otherLanguage-${index}`,
                             entry.language,
@@ -432,6 +429,47 @@ export default function NewAssessment() {
                     {t("newAssessment.lang.addAnother")}
                   </Button>
                 </div>
+              </div>
+
+              <div className="space-y-1">
+                <label
+                  htmlFor="specialEducationalNeeds"
+                  className="block text-sm font-medium text-gray-800"
+                >
+                  {t("newAssessment.specialEducationalNeeds")}{" "}
+                  <span className="text-red-500">*</span>
+                </label>
+                <select
+                  id="specialEducationalNeeds"
+                  required
+                  aria-invalid={dropdownInvalid(specialEducationalNeeds)}
+                  aria-describedby={
+                    dropdownInvalid(specialEducationalNeeds)
+                      ? "specialEducationalNeeds-error"
+                      : undefined
+                  }
+                  className={`w-full rounded-lg border bg-gray-50 px-4 py-2.5 outline-hidden focus:ring-2 focus:ring-indigo-400 ${
+                    dropdownInvalid(specialEducationalNeeds) ? "border-red-300" : "border-gray-300"
+                  }`}
+                  value={specialEducationalNeeds}
+                  onChange={(e) =>
+                    setSpecialEducationalNeeds(e.target.value as SpecialEducationalNeeds | "")
+                  }
+                >
+                  <option value="">{t("newAssessment.lang.select")}</option>
+                  {(
+                    ["none", "autism_spectrum_disorder", "developmental_language_disorder"] as const
+                  ).map((value) => (
+                    <option key={value} value={value}>
+                      {t(`newAssessment.specialEducationalNeeds.${value}`)}
+                    </option>
+                  ))}
+                </select>
+                {dropdownInvalid(specialEducationalNeeds) && (
+                  <p id="specialEducationalNeeds-error" className="mt-1 text-xs text-red-600">
+                    {t("newAssessment.specialEducationalNeeds.required")}
+                  </p>
+                )}
               </div>
 
               <Button
