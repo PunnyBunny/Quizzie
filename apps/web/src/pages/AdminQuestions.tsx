@@ -52,8 +52,6 @@ interface FormState {
   instructionAudio: string;
   rows: QuestionRow[];
   questionsNull: boolean;
-  choicesEnabled: boolean;
-  correctAnswersEnabled: boolean;
   imagesEnabled: boolean;
 }
 
@@ -61,12 +59,12 @@ const DEFAULT_CHOICE_KEYS = ["A", "B", "C", "D"];
 
 const PAGE_SIZE = 1;
 
-function blankRow(choicesEnabled: boolean): QuestionRow {
+function blankRow(kind: Kind): QuestionRow {
   return {
     question: "",
     audio: "",
     choicesAudio: "",
-    choices: choicesEnabled ? DEFAULT_CHOICE_KEYS.map((key) => ({ key, value: "" })) : [],
+    choices: kind === "audio" ? [] : DEFAULT_CHOICE_KEYS.map((key) => ({ key, value: "" })),
     correctAnswer: "",
     image: "",
   };
@@ -81,8 +79,6 @@ const blankForm = (id = ""): FormState => ({
   instructionAudio: "",
   rows: [],
   questionsNull: false,
-  choicesEnabled: true,
-  correctAnswersEnabled: true,
   imagesEnabled: false,
 });
 
@@ -112,8 +108,6 @@ function sectionToForm(section: QuestionSectionDto): FormState {
     instructionAudio: section.instructions.audio,
     rows,
     questionsNull: section.questions === null,
-    choicesEnabled: section.choices !== undefined,
-    correctAnswersEnabled: section.correctAnswers !== undefined,
     imagesEnabled: section.images !== undefined,
   };
 }
@@ -131,8 +125,6 @@ function buildInput(
   if (form.kind === "audio_mc") {
     // TODO: add validation for other kinds as well
     if (
-      !form.choicesEnabled ||
-      !form.correctAnswersEnabled ||
       form.rows.some(
         (row) =>
           row.choices.length < 2 ||
@@ -152,7 +144,7 @@ function buildInput(
   const audios = form.rows.map((r) => r.audio);
 
   let choices: Record<string, string>[] | undefined;
-  if (form.choicesEnabled) {
+  if (form.kind !== "audio") {
     choices = [];
     for (const [idx, row] of form.rows.entries()) {
       const record: Record<string, string> = {};
@@ -167,9 +159,7 @@ function buildInput(
     }
   }
 
-  const correctAnswers = form.correctAnswersEnabled
-    ? form.rows.map((r) => r.correctAnswer)
-    : undefined;
+  const correctAnswers = form.kind !== "audio" ? form.rows.map((r) => r.correctAnswer) : undefined;
 
   const images = form.imagesEnabled
     ? form.rows.map((r) => (r.image === "" ? null : r.image))
@@ -269,7 +259,7 @@ export default function AdminQuestions() {
 
   const addRow = () => {
     setForm((prev) => {
-      const rows = [...prev.rows, blankRow(prev.choicesEnabled)];
+      const rows = [...prev.rows, blankRow(prev.kind)];
       setPage(Math.floor((rows.length - 1) / PAGE_SIZE));
       return { ...prev, rows };
     });
@@ -484,10 +474,8 @@ export default function AdminQuestions() {
                               setForm((previous) => ({
                                 ...previous,
                                 kind,
-                                ...(kind === "audio_mc"
+                                ...(kind !== "audio"
                                   ? {
-                                      choicesEnabled: true,
-                                      correctAnswersEnabled: true,
                                       rows: previous.rows.map((row) => ({
                                         ...row,
                                         choices: row.choices.length
@@ -570,26 +558,6 @@ export default function AdminQuestions() {
                               onChange={(e) => updateForm("questionsNull", !e.target.checked)}
                             />
                             {t("adminQuestions.questionText")}
-                          </label>
-                          <label className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              disabled={form.kind === "audio_mc"}
-                              checked={form.choicesEnabled}
-                              onChange={(e) => updateForm("choicesEnabled", e.target.checked)}
-                            />
-                            {t("adminQuestions.choices")}
-                          </label>
-                          <label className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              disabled={form.kind === "audio_mc"}
-                              checked={form.correctAnswersEnabled}
-                              onChange={(e) =>
-                                updateForm("correctAnswersEnabled", e.target.checked)
-                              }
-                            />
-                            {t("adminQuestions.correctAnswers")}
                           </label>
                           <label className="flex items-center gap-2">
                             <input
@@ -697,7 +665,7 @@ export default function AdminQuestions() {
                             </div>
                           )}
 
-                          {form.choicesEnabled && (
+                          {form.kind !== "audio" && (
                             <div>
                               <div className="flex items-center justify-between mb-1">
                                 <label className="block text-xs font-medium text-gray-600">
@@ -755,7 +723,7 @@ export default function AdminQuestions() {
                             </div>
                           )}
 
-                          {form.correctAnswersEnabled && (
+                          {form.kind !== "audio" && (
                             <div>
                               <label className="block text-xs font-medium text-gray-600 mb-1">
                                 {t("adminQuestions.correctAnswer")}
@@ -768,9 +736,7 @@ export default function AdminQuestions() {
                                 }
                                 className={INPUT_CLASSES}
                                 placeholder={
-                                  form.choicesEnabled && row.choices.length > 0
-                                    ? `e.g. ${row.choices[0].key}`
-                                    : ""
+                                  row.choices.length > 0 ? `e.g. ${row.choices[0].key}` : ""
                                 }
                               />
                             </div>
