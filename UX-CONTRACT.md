@@ -16,6 +16,7 @@ in `types/zod/routes/assessments.ts` define accepted archive requests.
 | Dialogs          | shadcn Dialog                               | Controlled dismissal; shared scrolling body with visible title/actions, localized close labels, and focus return. |
 | Buttons          | shadcn Button + ButtonLink + ArchiveButton  | Shared variant recipe; ghost archive actions, stable busy geometry, duplicate-submit protection, visible focus.   |
 | Admin filtering  | AdminViewAssessments                        | Existing native selects; operating-system popup appearance is accepted.                                           |
+| Demographics     | shadcn Input + AssessmentSelect             | Authored popup; delayed aria-invalid state, linked errors, and localized clearing placeholders.                   |
 | Navigation       | App route guards + PageHeader               | User archive is owner-scoped; admin archive requires admin claims.                                                |
 | Excel export     | AdminViewAssessments + assessment-export.ts | Admin-only complete dataset; shared score helpers, guarded retries, and a localized download action.              |
 

@@ -64,6 +64,13 @@ the application does not yet offer a complete dark-mode interface.
 The application `Button` module re-exports `src/components/ui/button.tsx`, using
 the shadcn Base UI primitive.
 
+Demographics uses the shadcn Nova `Input` and authored `Select` primitives in
+`src/components/ui`. Their preset sizing, borders, focus rings, popups, and
+`aria-invalid` styling are canonical; the page adds layout constraints only.
+`AssessmentSelect` supplies localized option labels and maps the empty form value
+to Base UI's `null` selection. Validation becomes visible after an invalid submit,
+then updates as values change. SEN remains the final demographic field.
+
 Use orange `default` for the main action, `outline` for secondary actions,
 `secondary` for selected section controls, `ghost` for utilities, and
 `destructive` for removal or stopping recording. Selected grade and question

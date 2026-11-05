@@ -1579,6 +1579,49 @@ async function assessmentExportChecks() {
     "PASS: admin-only complete XLSX export, section sheets/short headers, native Unicode/text/numbers, missing versus zero scores, hybrid/historical evidence, norms, safe sheet names, empty data, and no Storage links/formulas.",
   );
 }
+function assessmentSelectChecks() {
+  const hooks = hookRuntime();
+  const parts = [
+    "Select",
+    "SelectContent",
+    "SelectGroup",
+    "SelectItem",
+    "SelectTrigger",
+    "SelectValue",
+  ];
+  const { AssessmentSelect } = sourceLoader({
+    react: hooks.React,
+    [path.join(root, "apps/web/src/components/ui/select.tsx")]: Object.fromEntries(
+      parts.map((part) => [part, part]),
+    ),
+  })("apps/web/src/components/AssessmentSelect.tsx");
+  const selected = [];
+  const props = {
+    id: "needs",
+    value: "",
+    placeholder: "請選擇",
+    options: [{ value: "none", label: "沒有" }],
+    required: true,
+    "aria-invalid": true,
+    "aria-describedby": "needs-error",
+    onValueChange: (value) => selected.push(value),
+  };
+  const tree = AssessmentSelect(props);
+  assert.equal(tree.props.value, null, "empty form value uses Base UI's empty selection");
+  assert.equal(tree.props.required, true);
+  assert.equal(tree.props.items[0].label, "請選擇");
+  assert.equal(tree.props.items[0].value, null, "placeholder can clear an existing selection");
+  assert.equal(tree.props.items[1].label, "沒有", "display labels are separate from stored keys");
+  const trigger = nodes(tree).find((node) => node.type === "SelectTrigger");
+  assert.equal(trigger.props.id, "needs");
+  assert.equal(trigger.props["aria-invalid"], true);
+  assert.equal(trigger.props["aria-describedby"], "needs-error");
+  tree.props.onValueChange("none");
+  tree.props.onValueChange(null);
+  assert.deepEqual(selected, ["none", ""], "clearing preserves required form validation");
+  assert.equal(AssessmentSelect({ ...props, value: "none" }).props.value, "none");
+}
+
 async function newAssessmentDemographicsChecks(validFirst = false) {
   const hooks = hookRuntime();
   const submitted = [];
@@ -1598,6 +1641,8 @@ async function newAssessmentDemographicsChecks(validFirst = false) {
       },
       [key("hooks/useTranslation.ts")]: { useTranslation: () => ({ t: (value) => value }) },
       ...componentStubs(["Button", "Alert"]),
+      [key("components/ui/input.tsx")]: { Input: "Input" },
+      [key("components/AssessmentSelect.tsx")]: { AssessmentSelect: "AssessmentSelect" },
     },
     { window: { location: {} } },
   )("apps/web/src/pages/NewAssessment.tsx").default;
@@ -1607,13 +1652,17 @@ async function newAssessmentDemographicsChecks(validFirst = false) {
     render()
       .find((node) => node.type === "form")
       .props.onSubmit({ preventDefault() {} });
-  const change = (node, value) => node.props.onChange({ target: { value } });
+  const change = (node, value) =>
+    node.type === "AssessmentSelect"
+      ? node.props.onValueChange(value)
+      : node.props.onChange({ target: { value } });
   const values = ["none", "autism_spectrum_disorder", "developmental_language_disorder"];
   const byId = (id) => render().find((node) => node.props?.id === id);
   const otherSelect = () =>
     render().find(
       (node) =>
-        node.type === "select" && node.props["aria-label"] === "newAssessment.otherLanguages",
+        node.type === "AssessmentSelect" &&
+        node.props["aria-label"] === "newAssessment.otherLanguages",
     );
   const add = () =>
     render()
@@ -1638,7 +1687,6 @@ async function newAssessmentDemographicsChecks(validFirst = false) {
     "specialEducationalNeeds",
   ]) {
     assert.equal(invalid(byId(id)), false, `${id} initially neutral`);
-    assert(byId(id).props.className.includes("border-gray-300"));
   }
   for (const [id, invalidValue] of [
     ["studentName", "T"],
@@ -1648,13 +1696,13 @@ async function newAssessmentDemographicsChecks(validFirst = false) {
     assert.equal(invalid(byId(id)), false, `${id} initially neutral`);
     assert.equal(byId(id).props["aria-describedby"], undefined);
     assert(!nodes(byId(`${id}-error`)).some((node) => node.type === "p"));
-    assert(byId(id).props.className.includes("border-gray-300"));
     change(byId(id), invalidValue);
     assert.equal(invalid(byId(id)), false, `${id} stays neutral before submit`);
     assert.equal(byId(id).props["aria-describedby"], undefined);
-    assert(byId(id).props.className.includes("border-gray-300"));
   }
-  const controls = render().filter((node) => ["input", "select"].includes(node.type));
+  const controls = render().filter((node) =>
+    ["input", "Input", "AssessmentSelect"].includes(node.type),
+  );
   assert.equal(controls.at(-1).props.id, "specialEducationalNeeds", "SEN is the last data control");
   add();
   assert.equal(invalid(otherSelect()), false);
@@ -1670,7 +1718,6 @@ async function newAssessmentDemographicsChecks(validFirst = false) {
       "specialEducationalNeeds",
     ]) {
       assert.equal(invalid(byId(id)), true, `${id} invalid after submit`);
-      assert(byId(id).props.className.includes("border-red-300"));
       assert(byId(id).props["aria-describedby"]);
       assert(byId(`${id}-error`));
     }
@@ -1679,7 +1726,6 @@ async function newAssessmentDemographicsChecks(validFirst = false) {
       ["school", ""],
     ]) {
       assert.equal(invalid(byId(id)), true, `${id} invalid after submit`);
-      assert(byId(id).props.className.includes("border-red-300"));
       assert.equal(byId(id).props["aria-describedby"], `${id}-error`);
       assert(nodes(byId(`${id}-error`)).some((node) => node.type === "p"));
       change(byId(id), "Test");
@@ -1714,10 +1760,8 @@ async function newAssessmentDemographicsChecks(validFirst = false) {
   }
   assert.equal(select().props.value, "");
   assert.deepEqual(
-    nodes(select())
-      .filter((node) => node.type === "option")
-      .map((node) => node.props.value),
-    ["", ...values],
+    Array.from(select().props.options, (option) => option.value),
+    values,
   );
   for (const [id, value] of [
     ["studentName", "Test"],
@@ -1731,30 +1775,25 @@ async function newAssessmentDemographicsChecks(validFirst = false) {
       value,
     );
     if (id === "studentName" || id === "school") {
-      assert(byId(id).props.className.includes("border-gray-300"), `${id} clears immediately`);
+      assert.equal(invalid(byId(id)), false, `${id} clears immediately`);
     }
   }
   for (const [id, invalidValue] of [
     ["studentName", "T"],
     ["school", ""],
   ]) {
-    assert(byId(id).props.className.includes("border-gray-300"), `${id} remains valid on rerender`);
+    assert.equal(invalid(byId(id)), false, `${id} remains valid on rerender`);
     change(byId(id), invalidValue);
     assert.equal(invalid(byId(id)), !validFirst, `${id} follows error visibility`);
-    assert(byId(id).props.className.includes(validFirst ? "border-gray-300" : "border-red-300"));
     change(byId(id), "Test");
-    assert(byId(id).props.className.includes("border-gray-300"), `${id} corrects immediately`);
+    assert.equal(invalid(byId(id)), false, `${id} corrects immediately`);
   }
   change(
     render().find((node) => node.type === "input" && node.props.name === "gender"),
     "male",
   );
   change(
-    render().find(
-      (node) =>
-        node.type === "select" &&
-        nodes(node).some((child) => child.type === "option" && child.props.value === "cantonese"),
-    ),
+    render().find((node) => node.type === "AssessmentSelect" && node.props.id === "motherTongue"),
     "cantonese",
   );
   if (validFirst) {
@@ -1803,6 +1842,7 @@ async function newAssessmentDemographicsChecks(validFirst = false) {
 }
 
 async function main() {
+  assessmentSelectChecks();
   await newAssessmentDemographicsChecks();
   await newAssessmentDemographicsChecks(true);
   const app = backend();
