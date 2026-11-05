@@ -986,9 +986,8 @@ async function adminQuestionsChecks(app) {
   await new Promise(setImmediate);
   button("adminQuestions.new").props.onClick();
   assert.equal(
-    render().find((node) => node.type === "input" && node.props.placeholder === "e.g. 0").props
-      .value,
-    "7",
+    render().find((node) => node.type === "input" && node.props.id === "section-id").props.value,
+    "s8",
   );
   assert(
     nodes(kindSelect()).some((node) => node.type === "option" && node.props.value === "audio_mc"),
@@ -1005,8 +1004,8 @@ async function adminQuestionsChecks(app) {
     ),
   );
   const uploaders = render().filter((node) => node.type === "AssetUploader");
-  uploaders[1].props.onChange("7/question.mp3");
-  uploaders[2].props.onChange("7/choices.mp3");
+  uploaders[1].props.onChange("s8/question.mp3");
+  uploaders[2].props.onChange("s8/choices.mp3");
   for (let index = 0; index < 4; index++) {
     render()
       .filter(
@@ -1019,10 +1018,10 @@ async function adminQuestionsChecks(app) {
     .props.onChange({ target: { value: "B" } });
   await submit();
   assert.equal(saved.length, 1);
-  const stored = app.documents.get("questions/7");
+  const stored = app.documents.get("questions/s8");
   assert.equal(stored.kind, "audio_mc");
-  assert.equal(stored.audios[0], "7/question.mp3");
-  assert.equal(stored.choicesAudios[0], "7/choices.mp3");
+  assert.equal(stored.audios[0], "s8/question.mp3");
+  assert.equal(stored.choicesAudios[0], "s8/choices.mp3");
   assert.equal(stored.choices[0].B, "Option 2");
   assert.equal(stored.correctAnswers[0], "B");
   render()
@@ -1035,7 +1034,7 @@ async function adminQuestionsChecks(app) {
   assert.equal(kindSelect().props.value, "audio_mc");
   assert.equal(
     render().filter((node) => node.type === "AssetUploader")[2].props.value,
-    "7/choices.mp3",
+    "s8/choices.mp3",
   );
   assert.equal(
     render().find((node) => node.type === "input" && node.props.placeholder === "e.g. A").props

@@ -411,7 +411,9 @@ const en: Dict = {
   "adminQuestions.settings": "Section settings",
   "adminQuestions.hide": "Hide ▲",
   "adminQuestions.show": "Show ▼",
-  "adminQuestions.sectionId": "Section ID (doc key)",
+  "adminQuestions.sectionId": "Section ID",
+  "adminQuestions.sectionIdHelp":
+    "Enter a unique ID for this section. Contact the developer if it needs to be changed after creation.",
   "adminQuestions.kind": "Kind",
   "adminQuestions.titleField": "Title",
   "adminQuestions.goal": "Goal",
@@ -835,7 +837,9 @@ const zh: Dict = {
   "adminQuestions.settings": "章節設定",
   "adminQuestions.hide": "隱藏 ▲",
   "adminQuestions.show": "顯示 ▼",
-  "adminQuestions.sectionId": "章節 ID (文件鍵值)",
+  "adminQuestions.sectionId": "章節 ID",
+  "adminQuestions.sectionIdHelp":
+    "請輸入這個章節專用、不與其他章節重複的 ID。建立後如需更改，請聯絡開發人員。",
   "adminQuestions.kind": "類型",
   "adminQuestions.titleField": "標題",
   "adminQuestions.goal": "目標",

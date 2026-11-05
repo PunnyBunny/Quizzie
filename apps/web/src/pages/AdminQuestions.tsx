@@ -218,7 +218,7 @@ export default function AdminQuestions() {
   };
 
   const openNew = () => {
-    const nextId = sections.length.toString();
+    const nextId = `s${sections.length + 1}`;
     const initial = blankForm(nextId);
     setForm(initial);
     setInitialFormJson(JSON.stringify(initial));
@@ -450,18 +450,27 @@ export default function AdminQuestions() {
                     <div className="border-t border-gray-200 px-4 py-4 space-y-4">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label
+                            htmlFor="section-id"
+                            className="block text-sm font-medium text-gray-700 mb-1"
+                          >
                             {t("adminQuestions.sectionId")}
                           </label>
                           <input
+                            id="section-id"
                             type="text"
                             value={form.id}
                             onChange={(e) => updateForm("id", e.target.value)}
                             className={INPUT_CLASSES}
-                            placeholder="e.g. 0"
+                            aria-describedby={editing.isNew ? "section-id-help" : undefined}
                             disabled={!editing.isNew}
                             required
                           />
+                          {editing.isNew && (
+                            <p id="section-id-help" className="mt-1 text-xs text-gray-600">
+                              {t("adminQuestions.sectionIdHelp")}
+                            </p>
+                          )}
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
