@@ -12,8 +12,11 @@ export interface SubtaskDoc {
   questionIds: { sectionIndex: number; questionIndex: number }[];
   norms: {
     S1: NormStatsDto | null;
+    S2: NormStatsDto | null;
     S3: NormStatsDto | null;
+    S4: NormStatsDto | null;
     S5: NormStatsDto | null;
+    S6: NormStatsDto | null;
   };
   createdAt: Timestamp | FieldValue;
   updatedAt: Timestamp | FieldValue;

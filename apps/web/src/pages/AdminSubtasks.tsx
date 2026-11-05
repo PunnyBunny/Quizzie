@@ -23,14 +23,17 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toUserMessage } from "../lib/errors";
 import { useTranslation } from "../hooks/useTranslation";
 
-type NormGrade = "S1" | "S3" | "S5";
-const NORM_GRADES: NormGrade[] = ["S1", "S3", "S5"];
+type NormGrade = keyof SubtaskDto["norms"];
+const NORM_GRADES: NormGrade[] = ["S1", "S2", "S3", "S4", "S5", "S6"];
 const NORM_FIELDS: (keyof NormStatsDto)[] = ["min", "max", "n", "stdDev", "mean"];
 
-const EMPTY_NORMS: { S1: NormStatsDto | null; S3: NormStatsDto | null; S5: NormStatsDto | null } = {
+const EMPTY_NORMS: SubtaskDto["norms"] = {
   S1: null,
+  S2: null,
   S3: null,
+  S4: null,
   S5: null,
+  S6: null,
 };
 
 export default function AdminSubtasks() {
@@ -58,8 +61,11 @@ export default function AdminSubtasks() {
     Record<NormGrade, Record<keyof NormStatsDto, string>>
   >({
     S1: { min: "", max: "", n: "", stdDev: "", mean: "" },
+    S2: { min: "", max: "", n: "", stdDev: "", mean: "" },
     S3: { min: "", max: "", n: "", stdDev: "", mean: "" },
+    S4: { min: "", max: "", n: "", stdDev: "", mean: "" },
     S5: { min: "", max: "", n: "", stdDev: "", mean: "" },
+    S6: { min: "", max: "", n: "", stdDev: "", mean: "" },
   });
 
   useEffect(() => {
@@ -85,8 +91,11 @@ export default function AdminSubtasks() {
     setFormQuestionIds([]);
     setNormDrafts({
       S1: { min: "", max: "", n: "", stdDev: "", mean: "" },
+      S2: { min: "", max: "", n: "", stdDev: "", mean: "" },
       S3: { min: "", max: "", n: "", stdDev: "", mean: "" },
+      S4: { min: "", max: "", n: "", stdDev: "", mean: "" },
       S5: { min: "", max: "", n: "", stdDev: "", mean: "" },
+      S6: { min: "", max: "", n: "", stdDev: "", mean: "" },
     });
     setError(null);
   };
@@ -156,8 +165,11 @@ export default function AdminSubtasks() {
 
   const buildNormsFromDrafts = (): {
     S1: NormStatsDto | null;
+    S2: NormStatsDto | null;
     S3: NormStatsDto | null;
+    S4: NormStatsDto | null;
     S5: NormStatsDto | null;
+    S6: NormStatsDto | null;
   } => {
     const result = {} as Record<NormGrade, NormStatsDto | null>;
     for (const g of NORM_GRADES) {
@@ -273,23 +285,31 @@ export default function AdminSubtasks() {
                     <th className="px-3 sm:px-6 py-3 font-medium text-center whitespace-nowrap">
                       {t("adminSubtasks.col.numQuestions")}
                     </th>
-                    <th className="px-2 sm:px-6 py-3 font-medium text-center">S1</th>
-                    <th className="px-2 sm:px-6 py-3 font-medium text-center">S3</th>
-                    <th className="px-2 sm:px-6 py-3 font-medium text-center">S5</th>
+                    {NORM_GRADES.map((grade) => (
+                      <th key={grade} className="px-2 sm:px-6 py-3 font-medium text-center">
+                        {grade}
+                      </th>
+                    ))}
                     <th className="px-4 sm:px-6 py-3 font-medium">{t("adminUsers.col.actions")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {loadingSubtasks && (
                     <tr>
-                      <td colSpan={6} className="px-4 sm:px-6 py-8 text-center text-gray-500">
+                      <td
+                        colSpan={NORM_GRADES.length + 3}
+                        className="px-4 sm:px-6 py-8 text-center text-gray-500"
+                      >
                         {t("common.loadingDots")}
                       </td>
                     </tr>
                   )}
                   {!loadingSubtasks && subtasks.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="px-4 sm:px-6 py-8 text-center text-gray-500">
+                      <td
+                        colSpan={NORM_GRADES.length + 3}
+                        className="px-4 sm:px-6 py-8 text-center text-gray-500"
+                      >
                         {t("adminSubtasks.empty")}
                       </td>
                     </tr>
@@ -298,15 +318,11 @@ export default function AdminSubtasks() {
                     <tr key={st.id} className="hover:bg-gray-50">
                       <td className="px-4 sm:px-6 py-3 font-medium text-gray-900">{st.name}</td>
                       <td className="px-3 sm:px-6 py-3 text-center">{st.questionIds.length}</td>
-                      <td className="px-2 sm:px-6 py-3 text-center">
-                        {normConfiguredBadge(st.norms, "S1")}
-                      </td>
-                      <td className="px-2 sm:px-6 py-3 text-center">
-                        {normConfiguredBadge(st.norms, "S3")}
-                      </td>
-                      <td className="px-2 sm:px-6 py-3 text-center">
-                        {normConfiguredBadge(st.norms, "S5")}
-                      </td>
+                      {NORM_GRADES.map((grade) => (
+                        <td key={grade} className="px-2 sm:px-6 py-3 text-center">
+                          {normConfiguredBadge(st.norms, grade)}
+                        </td>
+                      ))}
                       <td className="px-4 sm:px-6 py-3 whitespace-nowrap space-x-2">
                         <DialogTrigger
                           render={<Button variant="outline" size="sm" />}

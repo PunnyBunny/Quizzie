@@ -213,7 +213,7 @@ const en: Dict = {
     "No subtasks have been configured yet. An admin can set them up under Subtasks & Norms.",
   "scoreModal.col.subtask": "Subtask",
   "scoreModal.col.score": "Score",
-  "scoreModal.col.maxScore": "Max",
+  "scoreModal.col.maxScore": "Full Mark",
   "scoreModal.col.min": "Min",
   "scoreModal.col.max": "Max",
   "scoreModal.col.mean": "Mean",

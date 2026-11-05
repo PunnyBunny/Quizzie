@@ -23,8 +23,11 @@ export const AdminSaveSubtaskSchema = z.object({
   ),
   norms: z.object({
     S1: NormStatsSchema,
+    S2: NormStatsSchema,
     S3: NormStatsSchema,
+    S4: NormStatsSchema,
     S5: NormStatsSchema,
+    S6: NormStatsSchema,
   }),
 }) satisfies z.ZodType<AdminSaveSubtaskInput>;
 

@@ -49,7 +49,8 @@ first and is the only frozen column on assessment sheets; ID remains in column B
 The Questions guide has no frozen columns. The XLSX writer loads only when exporting.
 
 Scores use the same helpers and current configuration as the score dialog.
-Totals sum available scores; `scored` and `ungraded` identify partial results.
+Norm groups match the student form directly (S1–S6); each form has independent
+subtask norms. Totals sum available scores; `scored` and `ungraded` identify partial results.
 Ungraded counts follow the score dialog's audio-only definition. Z-scores are
 blank when norms are absent or standard deviation is not positive. Plain audio
 responses do not store a separate skipped flag, so that field remains blank.

@@ -1413,14 +1413,14 @@ async function assessmentExportChecks() {
       { sectionIndex: 1, questionIndex: 0 },
       { sectionIndex: 2, questionIndex: 0 },
     ],
-    norms: { S1: { min: 0, max: 11, n: 40, mean: 5, stdDev: 2 }, S3: null, S5: null },
+    norms: { S1: null, S2: { min: 0, max: 11, n: 40, mean: 5, stdDev: 2 }, S3: null, S4: null, S5: null, S6: null },
     createdAt: app.timestamp,
     updatedAt: app.timestamp,
   };
   app.documents.set("subtasks/summary", subtask);
   app.documents.set("subtasks/summary_score", {
     ...subtask,
-    norms: { ...subtask.norms, S1: { ...subtask.norms.S1, stdDev: 0 } },
+    norms: { ...subtask.norms, S2: { ...subtask.norms.S2, stdDev: 0 } },
   });
   const before = JSON.stringify([...app.documents]);
   const call = mountedRouterCall(app);
@@ -1926,6 +1926,9 @@ async function main() {
   });
   assert.equal(app.documents.get(`studentResponses/${id}-0`).studentResponses[0], "B");
   const scoring = app.load("apps/web/src/lib/scoring.ts");
+  for (let form = 1; form <= 6; form++) {
+    assert.equal(scoring.getNormGrade(`S${form}`), `S${form}`);
+  }
   for (const answer of [0, "", "A", "toString", "b"])
     await assert.rejects(
       app.call("/submit-mc-answer", {
