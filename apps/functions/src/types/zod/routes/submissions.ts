@@ -5,6 +5,8 @@ import type {
   SubmitAudioAnswerInput,
   SubmitAudioMcAnswerInput,
   SubmitMcAnswerInput,
+  GetOptionAudioPlaybackInput,
+  UpdateOptionAudioPlaybackInput,
 } from "@vaca/contracts";
 
 const QuestionAddressSchema = z.object({
@@ -12,6 +14,12 @@ const QuestionAddressSchema = z.object({
   section: z.number().int().nonnegative(),
   question: z.number().int().nonnegative(),
 });
+export const GetOptionAudioPlaybackSchema =
+  QuestionAddressSchema satisfies z.ZodType<GetOptionAudioPlaybackInput>;
+export const UpdateOptionAudioPlaybackSchema = QuestionAddressSchema.extend({
+  optionKey: z.string().min(1).max(200),
+  playbackId: z.uuid(),
+}) satisfies z.ZodType<UpdateOptionAudioPlaybackInput>;
 export const SubmitMcAnswerSchema = QuestionAddressSchema.extend({
   answer: z.string().min(1).nullable(),
 }) satisfies z.ZodType<SubmitMcAnswerInput>;

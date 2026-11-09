@@ -18,13 +18,14 @@ export const AdminSaveQuestionSectionSchema = z
     audios: z.array(z.string()),
     choicesAudios: z.array(z.string()).optional(),
     choices: z.array(z.record(z.string(), z.string())).optional(),
+    optionAudios: z.array(z.record(z.string(), z.string())).optional(),
+    maxOptionPlays: z.number().int().min(1).max(20).optional(),
     correctAnswers: z.array(z.string()).optional(),
     images: z.array(z.string().nullable()).optional(),
     instructions: SectionInstructionSchema,
   })
   .superRefine((section, ctx) => {
-    if (section.kind !== "audio_mc") return;
-    // TODO: add other kinds
+    if (section.kind === "audio") return;
     for (let i = 0; i < section.length; i++) {
       const choices = section.choices?.[i];
       const correct = section.correctAnswers?.[i];
@@ -32,15 +33,24 @@ export const AdminSaveQuestionSectionSchema = z
         !choices ||
         Object.keys(choices).length < 2 ||
         Object.keys(choices).some((key) => !key.trim()) ||
-        Object.values(choices).some((label) => !label.trim()) ||
         !correct ||
         !Object.prototype.hasOwnProperty.call(choices, correct)
       ) {
         ctx.addIssue({
           code: "custom",
           path: ["choices", i],
-          message: `Question ${i + 1} requires at least two labeled options, and a valid answer key`,
+          message: `Question ${i + 1} requires at least two options and a valid answer key`,
         });
       }
+      if (
+        Object.keys(section.optionAudios?.[i] ?? {}).some(
+          (key) => !Object.prototype.hasOwnProperty.call(choices ?? {}, key),
+        )
+      )
+        ctx.addIssue({
+          code: "custom",
+          path: ["optionAudios", i],
+          message: `Question ${i + 1} recordings must use configured option keys`,
+        });
     }
   }) satisfies z.ZodType<AdminSaveQuestionSectionInput>;

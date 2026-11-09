@@ -368,9 +368,7 @@ function GradeAssessmentContent({ id }: { id: string }) {
                 const studentMcChoiceKey =
                   mcStudentResponse?.studentResponses[questionIdx.toString()];
                 const choicesMap = currentQuizSection.choices?.[questionIdx] ?? {};
-                const choiceEntries = Object.entries(choicesMap).sort(([a], [b]) =>
-                  a.localeCompare(b),
-                );
+                const choiceKeys = Object.keys(choicesMap).sort((a, b) => a.localeCompare(b));
                 const correctAnswerKey = currentQuizSection.correctAnswers?.[questionIdx];
                 const hasAnswer = studentMcChoiceKey != undefined;
                 const validAnswer = hasAnswer && studentMcChoiceKey in choicesMap;
@@ -396,7 +394,7 @@ function GradeAssessmentContent({ id }: { id: string }) {
                           </div>
                         )}
                         <div className="grid gap-2">
-                          {choiceEntries.map(([key, choice]) => {
+                          {choiceKeys.map((key) => {
                             const isUserChoice = validAnswer && key === studentMcChoiceKey;
                             const isCorrectChoice = key === correctAnswerKey;
 
@@ -415,7 +413,15 @@ function GradeAssessmentContent({ id }: { id: string }) {
                                 className={`flex items-center gap-2 p-2 rounded-md ${choiceClass}`}
                               >
                                 <span className="font-medium text-gray-500">{key}.</span>
-                                <span>{choice}</span>
+                                {mcStudentResponse?.optionPlayCounts?.[questionIdx] && (
+                                  <span className="text-xs text-muted-foreground">
+                                    {t("gradeAssessment.optionPlays", {
+                                      key,
+                                      count:
+                                        mcStudentResponse.optionPlayCounts[questionIdx][key] ?? 0,
+                                    })}
+                                  </span>
+                                )}
                                 {isCorrectChoice && validAnswer && (
                                   <CheckIcon className="w-5 h-5 text-green-600" />
                                 )}
@@ -480,24 +486,25 @@ function GradeAssessmentContent({ id }: { id: string }) {
                             </p>
                             {attempt.assistanceOffered && (
                               <>
-                                <p>
-                                  {attempt.selectedOption === null
-                                    ? t("gradeAssessment.noAnswer")
-                                    : `${attempt.selectedOption}: ${currentQuizSection.choices?.[questionIdx]?.[attempt.selectedOption] ?? ""}`}
-                                </p>
+                                <p>{attempt.selectedOption ?? t("gradeAssessment.noAnswer")}</p>
                                 <p>
                                   {t("gradeAssessment.correctAnswer")}:{" "}
-                                  {currentQuizSection.correctAnswers?.[questionIdx]}:{" "}
-                                  {
-                                    currentQuizSection.choices?.[questionIdx]?.[
-                                      currentQuizSection.correctAnswers?.[questionIdx] ?? ""
-                                    ]
-                                  }
+                                  {currentQuizSection.correctAnswers?.[questionIdx]}
                                 </p>
                               </>
                             )}
                           </div>
                         )}
+                        {audioStudentResponse?.type === "audio_mc" &&
+                          audioStudentResponse.optionPlayCounts?.[questionIdx] && (
+                            <div className="mb-3 text-sm text-muted-foreground">
+                              {Object.entries(
+                                audioStudentResponse.optionPlayCounts[questionIdx],
+                              ).map(([key, count]) => (
+                                <p key={key}>{t("gradeAssessment.optionPlays", { key, count })}</p>
+                              ))}
+                            </div>
+                          )}
                         {submitted ? (
                           <div className="space-y-3">
                             {/* Audio Player */}

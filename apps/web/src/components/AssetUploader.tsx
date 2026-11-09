@@ -5,8 +5,8 @@ import { storage } from "../lib/firebase";
 import { audioStoragePath, imageStoragePath } from "../lib/asset-paths";
 import { invalidateStorageUrl, useStorageUrl } from "../hooks/useStorageUrl";
 import { toUserMessage } from "../lib/errors";
-import { INPUT_CLASSES } from "../lib/ui";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { useTranslation } from "../hooks/useTranslation";
 
 interface AssetUploaderProps {
@@ -14,7 +14,9 @@ interface AssetUploaderProps {
   value: string;
   onChange: (path: string) => void;
   sectionId: string;
-  placeholder?: string;
+  label?: string;
+  /** Covers uploading and URL lookup; finishes after the new path reaches the form. */
+  onUploadingChange?: (uploading: boolean) => void;
 }
 
 export function AssetUploader({
@@ -22,7 +24,8 @@ export function AssetUploader({
   value,
   onChange,
   sectionId,
-  placeholder,
+  label,
+  onUploadingChange,
 }: AssetUploaderProps) {
   const { t } = useTranslation();
   const [uploading, setUploading] = useState(false);
@@ -44,9 +47,12 @@ export function AssetUploader({
   }, [value]);
 
   const handleFile = async (file: File) => {
-    const rel = value.length > 0 ? value : `${sectionId || "misc"}/${file.name}`;
+    // Each selection gets its own path, so replacing a file keeps the saved asset intact.
+    const extension = /\.[a-z0-9]+$/i.exec(file.name)?.[0].toLowerCase() ?? "";
+    const rel = `${sectionId || "misc"}/${crypto.randomUUID()}${extension}`;
     const fullPath = kind === "audio" ? audioStoragePath(rel) : imageStoragePath(rel);
     setUploading(true);
+    onUploadingChange?.(true);
     setError(null);
     try {
       const result = await uploadBytes(storageRef(storage, fullPath), file, {
@@ -54,44 +60,69 @@ export function AssetUploader({
       });
       invalidateStorageUrl(fullPath);
       const url = await getDownloadURL(result.ref);
-      // Append a cache-buster so a re-upload to the same path doesn't show the
-      // stale browser-cached blob.
-      setFreshUrl(`${url}${url.includes("?") ? "&" : "?"}_v=${Date.now()}`);
-      if (rel !== value) onChange(rel);
+      setFreshUrl(url);
+      onChange(rel);
     } catch (err) {
       console.error("Asset upload failed:", err);
       setError(toUserMessage(err, t("asset.errorUpload")));
     } finally {
       setUploading(false);
+      onUploadingChange?.(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
-  const previewUrl = freshUrl ?? preview.url;
+  const previewUrl = value ? (freshUrl ?? preview.url) : null;
+  const uploadLabel = t(value ? "asset.replaceFile" : "asset.uploadFile");
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-col sm:flex-row gap-2">
-        <input
-          type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className={INPUT_CLASSES}
-          placeholder={placeholder}
-        />
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept={kind === "audio" ? "audio/*" : "image/*"}
+      <input
+        ref={fileInputRef}
+        type="file"
+        aria-label={label ?? t(kind === "audio" ? "asset.audioFile" : "asset.imageFile")}
+        accept={kind === "audio" ? "audio/*" : "image/*"}
+        disabled={uploading}
+        hidden
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) void handleFile(file);
+        }}
+      />
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          type="button"
+          variant="outline"
           disabled={uploading}
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) void handleFile(file);
-          }}
-          className="text-sm text-gray-700"
-        />
+          aria-busy={uploading}
+          aria-label={`${uploadLabel}: ${label ?? t(kind === "audio" ? "asset.audioFile" : "asset.imageFile")}`}
+          onClick={() => fileInputRef.current?.click()}
+          className="min-w-32"
+        >
+          {uploadLabel}
+        </Button>
+        {value && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={uploading}
+            aria-label={`${t("common.remove")} ${label ?? t(kind === "audio" ? "asset.audioFile" : "asset.imageFile")}`}
+            onClick={() => {
+              setFreshUrl(null);
+              setError(null);
+              onChange("");
+            }}
+          >
+            {t("common.remove")}
+          </Button>
+        )}
       </div>
-      {uploading && <p className="text-xs text-gray-500">{t("asset.uploading")}</p>}
+      {uploading && (
+        <p role="status" className="text-xs text-gray-500">
+          {t("asset.uploading")}
+        </p>
+      )}
       {error && (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
@@ -102,7 +133,7 @@ export function AssetUploader({
           {kind === "image" ? (
             <img
               src={previewUrl}
-              alt={value}
+              alt={label ?? t("asset.imagePreview")}
               className="max-h-32 rounded-sm border border-gray-200"
             />
           ) : (

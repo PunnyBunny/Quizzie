@@ -29,6 +29,10 @@ import type {
 import type {
   GetAssessmentStudentResponsesInput,
   GetAssessmentStudentResponsesOutput,
+  GetOptionAudioPlaybackInput,
+  GetOptionAudioPlaybackOutput,
+  UpdateOptionAudioPlaybackInput,
+  UpdateOptionAudioPlaybackOutput,
   SubmitAudioAnswerInput,
   SubmitAudioMcAnswerInput,
   SubmitMcAnswerInput,
@@ -52,6 +56,14 @@ export interface ApiEndpoints {
   "api/set-assessment-archived": Endpoint<SetAssessmentArchivedInput, OkOutput>;
   "api/get-questions": Endpoint<void, GetQuestionsOutput>;
   "api/submit-mc-answer": Endpoint<SubmitMcAnswerInput, OkOutput>;
+  "api/get-option-audio-playback": Endpoint<
+    GetOptionAudioPlaybackInput,
+    GetOptionAudioPlaybackOutput
+  >;
+  "api/update-option-audio-playback": Endpoint<
+    UpdateOptionAudioPlaybackInput,
+    UpdateOptionAudioPlaybackOutput
+  >;
   "api/submit-audio-answer": Endpoint<SubmitAudioAnswerInput, OkOutput>;
   "api/submit-audio-mc-answer": Endpoint<SubmitAudioMcAnswerInput, OkOutput>;
   "api/get-assessment-student-responses": Endpoint<

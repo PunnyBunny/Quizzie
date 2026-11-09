@@ -25,16 +25,23 @@ const SECTION_FIELDS: Record<StudentResponseDto["type"], ItemField[]> = {
 };
 
 function responseKeys(response: StudentResponseDto): string[] {
-  return response.type === "mc"
-    ? Object.keys(response.studentResponses)
-    : [
-        ...new Set([
-          ...Object.keys(response.files),
-          ...Object.keys(response.transcripts),
-          ...Object.keys(response.grades ?? {}),
-          ...(response.type === "audio_mc" ? Object.keys(response.attempts) : []),
-        ]),
-      ];
+  const evidenceKeys =
+    response.type === "mc"
+      ? Object.keys(response.studentResponses)
+      : [
+          ...new Set([
+            ...Object.keys(response.files),
+            ...Object.keys(response.transcripts),
+            ...Object.keys(response.grades ?? {}),
+            ...(response.type === "audio_mc" ? Object.keys(response.attempts) : []),
+          ]),
+        ];
+  return [
+    ...new Set([
+      ...evidenceKeys,
+      ...Object.keys(response.type !== "audio" ? (response.optionPlayCounts ?? {}) : {}),
+    ]),
+  ];
 }
 function flag(value: boolean | undefined): number | null {
   return value === undefined ? null : Number(value);
@@ -180,6 +187,16 @@ export function buildAssessmentWorkbook(data: AdminExportAssessmentsOutput): Exp
     );
     const kinds = section ? [section.kind] : [...(kindsBySection.get(sectionIndex) ?? [])];
     const fields = [...new Set(kinds.flatMap((kind) => SECTION_FIELDS[kind]))];
+    const optionKeys = new Map(
+      questions.map((q) => {
+        const keys = new Set(Object.keys(section?.optionAudios?.[q] ?? {}));
+        for (const response of data.responses) {
+          if (response.section === sectionIndex && response.type !== "audio")
+            Object.keys(response.optionPlayCounts?.[q] ?? {}).forEach((key) => keys.add(key));
+        }
+        return [q, [...keys].sort((a, b) => a.localeCompare(b))];
+      }),
+    );
     const sheet: ExportSheet = {
       name,
       headers: ["name", "id"],
@@ -188,6 +205,7 @@ export function buildAssessmentWorkbook(data: AdminExportAssessmentsOutput): Exp
     for (const q of questions) {
       sheet.headers.push(
         ...fields.map((field) => "q" + (q + 1) + (fields.length === 1 ? "" : "_" + field)),
+        ...optionKeys.get(q)!.map((key) => `q${q + 1}_plays_${key}`),
       );
       const current = section && q < section.length;
       questionGuide.rows.push([
@@ -216,6 +234,9 @@ export function buildAssessmentWorkbook(data: AdminExportAssessmentsOutput): Exp
           help: flag(attempt?.assistanceOffered),
         };
         row.push(...fields.map((field) => values[field]));
+        const counts =
+          response && response.type !== "audio" ? response.optionPlayCounts?.[q] : undefined;
+        row.push(...optionKeys.get(q)!.map((key) => (counts ? (counts[key] ?? 0) : null)));
       }
       sheet.rows.push(row);
     }

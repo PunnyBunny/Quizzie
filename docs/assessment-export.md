@@ -20,6 +20,10 @@ the browser builds the `.xlsx` download without changing stored data.
   `q1_transcript`, `q1_choice`, `q1_help`, etc. Choices are blank when none were
   selected; help uses `1`/`0`, or is blank when no attempt was stored. Skipped
   and unanswered MC questions are blank. Scores stay in the summary sheets.
+  MC and audio MC questions with option recordings or playback history also add
+  `q1_plays_A`, `q1_plays_B`, etc., using each configured or historical option key.
+  These are numeric counts, including zero for unplayed options in tracked
+  questions; historical/unanswered questions without tracking stay blank.
   No recording/Storage links are exported.
 - **Subtasks**: one row per assessment and subtask, linked by `id`. Columns include
   `subtask`, `subtask_name`, `score`, `max_score`, `scored`, `ungraded`, `norm_group`,

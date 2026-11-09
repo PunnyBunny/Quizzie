@@ -17,6 +17,22 @@ interface BaseStudentResponseDoc {
   section: number;
   createdAt: Timestamp | FieldValue;
   updatedAt?: Timestamp | FieldValue;
+  /**
+   * Playback-start UUIDs, indexed by question and then option key.
+   * Each UUID records one successful audio start, saved afterward by the frontend.
+   * Retrying the save reuses the UUID. Stops retain the play; failed starts add none.
+   * Each array's length becomes the count exposed in response DTOs.
+   */
+  optionPlaybackIds?: Record<string, Record<string, string[]>>;
+}
+
+export function getOptionPlayCounts(doc: StudentResponseDoc | undefined) {
+  return Object.fromEntries(
+    Object.entries(doc?.optionPlaybackIds ?? {}).map(([question, options]) => [
+      question,
+      Object.fromEntries(Object.entries(options).map(([key, ids]) => [key, ids.length])),
+    ]),
+  );
 }
 
 /**
@@ -95,6 +111,7 @@ export function toStudentResponseDto(doc: StudentResponseDoc): StudentResponseDt
       ...base,
       type: "mc",
       studentResponses: doc.studentResponses,
+      ...(doc.optionPlaybackIds && { optionPlayCounts: getOptionPlayCounts(doc) }),
     };
   }
 
@@ -106,6 +123,7 @@ export function toStudentResponseDto(doc: StudentResponseDoc): StudentResponseDt
       transcripts: doc.transcripts,
       grades: doc.grades,
       attempts: doc.attempts,
+      ...(doc.optionPlaybackIds && { optionPlayCounts: getOptionPlayCounts(doc) }),
     };
   return {
     ...base,
@@ -131,6 +149,22 @@ export async function findStudentResponseRef(
     .get();
 
   return snap.empty ? null : snap.docs[0].ref;
+}
+
+/** Reuse an existing response's ID, or read the stable ID for a new response. */
+export async function getStudentResponseSnapshot(
+  transaction: FirebaseFirestore.Transaction,
+  assessmentId: string,
+  section: number,
+): Promise<FirebaseFirestore.DocumentSnapshot<StudentResponseDoc>> {
+  const existing = await transaction.get(
+    studentResponses
+      .collection()
+      .where("assessment-id", "==", assessmentId)
+      .where("section", "==", section)
+      .limit(1),
+  );
+  return existing.docs[0] ?? transaction.get(studentResponses.doc(`${assessmentId}-${section}`));
 }
 
 /**
@@ -213,20 +247,16 @@ export async function saveStudentAnswer(
   progress: { currentSection: number; currentQuestion: number },
 ): Promise<void> {
   await admin.firestore().runTransaction(async (transaction) => {
-    const query = studentResponses
-      .collection()
-      .where("assessment-id", "==", assessmentId)
-      .where("section", "==", section)
-      .limit(1);
-    const existing = await transaction.get(query);
-    const target = existing.docs[0]?.ref ?? studentResponses.doc(`${assessmentId}-${section}`);
-    const current = existing.docs[0] ?? (await transaction.get(target));
+    const current = await getStudentResponseSnapshot(transaction, assessmentId, section);
+    const target = current.ref;
     const currentData = current.data();
     if (currentData && currentData.type !== response.type)
       throw new ApiError("Response type does not match assessment configuration", 409);
     if (!current.exists) transaction.set(target, response);
     else {
       const updates: Record<string, unknown> = { updatedAt: FieldValue.serverTimestamp() };
+      if (response.optionPlaybackIds?.[question] && !currentData?.optionPlaybackIds?.[question])
+        updates[`optionPlaybackIds.${question}`] = response.optionPlaybackIds[question];
       if (response.type === "mc")
         updates[`studentResponses.${question}`] = response.studentResponses[question];
       else {

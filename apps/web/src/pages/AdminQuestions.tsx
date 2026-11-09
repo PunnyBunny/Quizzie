@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useCallable } from "../lib/firebase-hooks";
 import { toUserMessage } from "../lib/errors";
 import { INPUT_CLASSES } from "../lib/ui";
@@ -31,7 +31,8 @@ const SMALL_INPUT_CLASSES =
 
 interface ChoicePair {
   key: string;
-  value: string;
+  hint: string;
+  audio: string;
 }
 
 interface QuestionRow {
@@ -53,6 +54,7 @@ interface FormState {
   rows: QuestionRow[];
   questionsNull: boolean;
   imagesEnabled: boolean;
+  maxOptionPlays: number;
 }
 
 const DEFAULT_CHOICE_KEYS = ["A", "B", "C", "D"];
@@ -64,7 +66,8 @@ function blankRow(kind: Kind): QuestionRow {
     question: "",
     audio: "",
     choicesAudio: "",
-    choices: kind === "audio" ? [] : DEFAULT_CHOICE_KEYS.map((key) => ({ key, value: "" })),
+    choices:
+      kind === "audio" ? [] : DEFAULT_CHOICE_KEYS.map((key) => ({ key, hint: "", audio: "" })),
     correctAnswer: "",
     image: "",
   };
@@ -80,10 +83,14 @@ const blankForm = (id = ""): FormState => ({
   rows: [],
   questionsNull: false,
   imagesEnabled: false,
+  maxOptionPlays: 2,
 });
 
-function recordToChoicePairs(record: Record<string, string>): ChoicePair[] {
-  return Object.entries(record).map(([key, value]) => ({ key, value }));
+function recordToChoicePairs(
+  record: Record<string, string>,
+  audios: Record<string, string> = {},
+): ChoicePair[] {
+  return Object.entries(record).map(([key, hint]) => ({ key, hint, audio: audios[key] ?? "" }));
 }
 
 function sectionToForm(section: QuestionSectionDto): FormState {
@@ -94,7 +101,9 @@ function sectionToForm(section: QuestionSectionDto): FormState {
       question: section.questions?.[i] ?? "",
       audio: section.audios[i] ?? "",
       choicesAudio: section.choicesAudios?.[i] ?? "",
-      choices: section.choices?.[i] ? recordToChoicePairs(section.choices[i]) : [],
+      choices: section.choices?.[i]
+        ? recordToChoicePairs(section.choices[i], section.optionAudios?.[i])
+        : [],
       correctAnswer: section.correctAnswers?.[i] ?? "",
       image: section.images?.[i] ?? "",
     });
@@ -109,6 +118,7 @@ function sectionToForm(section: QuestionSectionDto): FormState {
     rows,
     questionsNull: section.questions === null,
     imagesEnabled: section.images !== undefined,
+    maxOptionPlays: section.maxOptionPlays ?? 2,
   };
 }
 
@@ -122,13 +132,18 @@ function buildInput(
   const id = form.id.trim();
   if (!id) return { error: t("adminQuestions.errorIdRequired") };
 
-  if (form.kind === "audio_mc") {
-    // TODO: add validation for other kinds as well
+  if (form.kind !== "audio") {
+    if (
+      !Number.isInteger(form.maxOptionPlays) ||
+      form.maxOptionPlays < 1 ||
+      form.maxOptionPlays > 20
+    )
+      return { error: t("adminQuestions.invalidPlayLimit") };
     if (
       form.rows.some(
         (row) =>
           row.choices.length < 2 ||
-          row.choices.some((choice) => !choice.key.trim() || !choice.value.trim()) ||
+          row.choices.some((choice) => !choice.key.trim()) ||
           !row.choices.some((choice) => choice.key.trim() === row.correctAnswer),
       )
     )
@@ -148,12 +163,12 @@ function buildInput(
     choices = [];
     for (const [idx, row] of form.rows.entries()) {
       const record: Record<string, string> = {};
-      for (const { key, value } of row.choices) {
+      for (const { key, hint } of row.choices) {
         const k = key.trim();
         if (!k) return { error: t("adminQuestions.errorChoiceKeyEmpty", { n: idx + 1 }) };
         if (k in record)
           return { error: t("adminQuestions.errorChoiceKeyDup", { n: idx + 1, key: k }) };
-        record[k] = value;
+        record[k] = hint;
       }
       choices.push(record);
     }
@@ -176,6 +191,12 @@ function buildInput(
     ...(form.kind === "audio_mc" ? { choicesAudios: form.rows.map((r) => r.choicesAudio) } : {}),
     instructions,
     ...(choices !== undefined && { choices }),
+    ...(form.kind !== "audio" && {
+      optionAudios: form.rows.map((row) =>
+        Object.fromEntries(row.choices.map((choice) => [choice.key.trim(), choice.audio])),
+      ),
+      maxOptionPlays: form.maxOptionPlays,
+    }),
     ...(correctAnswers !== undefined && { correctAnswers }),
     ...(images !== undefined && { images }),
   };
@@ -195,6 +216,12 @@ export default function AdminQuestions() {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
+  const [uploadCount, setUploadCount] = useState(0);
+  const activeUploads = useRef(0);
+  const handleUploadingChange = useCallback((uploading: boolean) => {
+    activeUploads.current += uploading ? 1 : -1;
+    setUploadCount(activeUploads.current);
+  }, []);
 
   const isDirty = editing !== null && JSON.stringify(form) !== initialFormJson;
 
@@ -278,7 +305,7 @@ export default function AdminQuestions() {
         ...prev,
         rows: prev.rows.map((r, i) =>
           i === rowIndex
-            ? { ...r, choices: [...r.choices, { key: nextDefaultKey, value: "" }] }
+            ? { ...r, choices: [...r.choices, { key: nextDefaultKey, hint: "", audio: "" }] }
             : r,
         ),
       };
@@ -310,6 +337,7 @@ export default function AdminQuestions() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (saving || activeUploads.current > 0) return;
     setError(null);
 
     const { input, error: buildError } = buildInput(form, t);
@@ -430,7 +458,7 @@ export default function AdminQuestions() {
               </DialogTitle>
             </DialogHeader>
 
-            <form onSubmit={handleSave} className="flex min-h-0 flex-1 flex-col gap-4">
+            <form noValidate onSubmit={handleSave} className="flex min-h-0 flex-1 flex-col gap-4">
               <DialogBody className="space-y-5">
                 <div className="border border-gray-200 rounded-md">
                   <Button
@@ -489,7 +517,11 @@ export default function AdminQuestions() {
                                         ...row,
                                         choices: row.choices.length
                                           ? row.choices
-                                          : DEFAULT_CHOICE_KEYS.map((key) => ({ key, value: "" })),
+                                          : DEFAULT_CHOICE_KEYS.map((key) => ({
+                                              key,
+                                              hint: "",
+                                              audio: "",
+                                            })),
                                       })),
                                     }
                                   : {}),
@@ -505,6 +537,27 @@ export default function AdminQuestions() {
                           </select>
                         </div>
                       </div>
+
+                      {form.kind !== "audio" && (
+                        <div>
+                          <label
+                            htmlFor="max-option-plays"
+                            className="mb-1 block text-sm font-medium text-gray-700"
+                          >
+                            {t("adminQuestions.maxOptionPlays")}
+                          </label>
+                          <input
+                            id="max-option-plays"
+                            type="number"
+                            min={1}
+                            max={20}
+                            step={1}
+                            value={form.maxOptionPlays || ""}
+                            onChange={(e) => updateForm("maxOptionPlays", Number(e.target.value))}
+                            className={INPUT_CLASSES}
+                          />
+                        </div>
+                      )}
 
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -537,8 +590,8 @@ export default function AdminQuestions() {
                         <textarea
                           value={form.instructionText}
                           onChange={(e) => updateForm("instructionText", e.target.value)}
-                          className={INPUT_CLASSES}
-                          rows={3}
+                          className={`${INPUT_CLASSES} resize-none`}
+                          rows={5}
                         />
                       </div>
 
@@ -551,7 +604,7 @@ export default function AdminQuestions() {
                           sectionId={form.id || "instructions"}
                           value={form.instructionAudio}
                           onChange={(p) => updateForm("instructionAudio", p)}
-                          placeholder="e.g. instructions/section-0.mp3"
+                          onUploadingChange={handleUploadingChange}
                         />
                       </div>
 
@@ -630,8 +683,8 @@ export default function AdminQuestions() {
                               <textarea
                                 value={row.question}
                                 onChange={(e) => updateRow(rowIdx, { question: e.target.value })}
-                                className={INPUT_CLASSES}
-                                rows={2}
+                                className={`${INPUT_CLASSES} resize-none`}
+                                rows={3}
                               />
                             </div>
                           )}
@@ -645,21 +698,10 @@ export default function AdminQuestions() {
                               sectionId={form.id}
                               value={row.audio}
                               onChange={(p) => updateRow(rowIdx, { audio: p })}
-                              placeholder="e.g. section-0/q1.mp3"
+                              onUploadingChange={handleUploadingChange}
                             />
                           </div>
 
-                          {form.kind === "audio_mc" && (
-                            <div>
-                              <label>{t("question.choicesAudio")}</label>
-                              <AssetUploader
-                                kind="audio"
-                                sectionId={form.id}
-                                value={row.choicesAudio}
-                                onChange={(p) => updateRow(rowIdx, { choicesAudio: p })}
-                              />
-                            </div>
-                          )}
                           {form.imagesEnabled && (
                             <div>
                               <label className="block text-xs font-medium text-gray-600 mb-1">
@@ -670,6 +712,7 @@ export default function AdminQuestions() {
                                 sectionId={form.id}
                                 value={row.image}
                                 onChange={(p) => updateRow(rowIdx, { image: p })}
+                                onUploadingChange={handleUploadingChange}
                               />
                             </div>
                           )}
@@ -691,36 +734,56 @@ export default function AdminQuestions() {
                               </div>
                               <div className="space-y-1">
                                 {row.choices.map((choice, choiceIdx) => (
-                                  <div key={choiceIdx} className="flex items-center gap-2">
-                                    <input
-                                      type="text"
-                                      value={choice.key}
-                                      onChange={(e) =>
-                                        updateChoice(rowIdx, choiceIdx, { key: e.target.value })
-                                      }
-                                      className={`${SMALL_INPUT_CLASSES} w-16 font-medium`}
-                                      placeholder={t("adminQuestions.choiceKey")}
-                                    />
-                                    <input
-                                      type="text"
-                                      value={choice.value}
-                                      onChange={(e) =>
-                                        updateChoice(rowIdx, choiceIdx, { value: e.target.value })
-                                      }
-                                      className={`${SMALL_INPUT_CLASSES} min-w-0 flex-1`}
-                                      placeholder={t("adminQuestions.choiceValue")}
-                                    />
-                                    <Button
-                                      variant="destructive"
-                                      size="icon-sm"
-                                      type="button"
-                                      onClick={() => removeChoice(rowIdx, choiceIdx)}
-                                      aria-label={t("adminQuestions.removeChoice", {
-                                        label: choice.key || choiceIdx + 1,
+                                  <div
+                                    key={choiceIdx}
+                                    className="flex flex-col gap-2 rounded-md border p-3"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <input
+                                        type="text"
+                                        aria-label={t("adminQuestions.choiceKey")}
+                                        value={choice.key}
+                                        onChange={(e) =>
+                                          updateChoice(rowIdx, choiceIdx, { key: e.target.value })
+                                        }
+                                        className={`${SMALL_INPUT_CLASSES} w-16 font-medium`}
+                                        placeholder={t("adminQuestions.choiceKey")}
+                                      />
+                                      <Button
+                                        variant="destructive"
+                                        size="icon-sm"
+                                        type="button"
+                                        onClick={() => removeChoice(rowIdx, choiceIdx)}
+                                        aria-label={t("adminQuestions.removeChoice", {
+                                          label: choice.key || choiceIdx + 1,
+                                        })}
+                                      >
+                                        ✕
+                                      </Button>
+                                    </div>
+                                    <label className="block text-xs font-medium text-gray-600">
+                                      {t("adminQuestions.choiceHint")}
+                                      <input
+                                        type="text"
+                                        value={choice.hint}
+                                        onChange={(e) =>
+                                          updateChoice(rowIdx, choiceIdx, { hint: e.target.value })
+                                        }
+                                        className={`${INPUT_CLASSES} mt-1 w-full`}
+                                      />
+                                    </label>
+                                    <AssetUploader
+                                      kind="audio"
+                                      label={t("adminQuestions.optionAudio", {
+                                        key: choice.key || choiceIdx + 1,
                                       })}
-                                    >
-                                      ✕
-                                    </Button>
+                                      sectionId={`${form.id}/q${rowIdx + 1}/option-${encodeURIComponent(choice.key || String(choiceIdx + 1))}`}
+                                      value={choice.audio}
+                                      onChange={(audio) =>
+                                        updateChoice(rowIdx, choiceIdx, { audio })
+                                      }
+                                      onUploadingChange={handleUploadingChange}
+                                    />
                                   </div>
                                 ))}
                                 {row.choices.length === 0 && (
@@ -798,8 +861,8 @@ export default function AdminQuestions() {
                 <Button
                   type="submit"
                   variant="default"
-                  disabled={saving}
-                  aria-busy={saving}
+                  disabled={saving || uploadCount > 0}
+                  aria-busy={saving || uploadCount > 0}
                   className="min-w-24"
                 >
                   {saving ? t("common.saving") : t("common.save")}

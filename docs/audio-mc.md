@@ -2,16 +2,18 @@
 
 Admins can choose `audio_mc` when creating or editing any section. The intended
 sections s02/s05 (stored section IDs `1` and `4`) can be configured individually. Each
-question requires question and choices audio clips (which may use the same file),
-at least two labeled options with stable keys, and a correct key. Choosing the hybrid type enables the
-required option/key fields.
+question requires at least two options with stable keys and a correct key.
+Audio uploads are optional when saving: sections can have no recordings or only
+some option recordings while content is being prepared. Choosing the hybrid type
+enables the required option/key fields.
 
 The tester can record a spontaneous response or directly offer MC choices. Offering
-choices retains any recording and transcript. The button toggles the choices and
-their audio player; collapsing returns to audio-only submission, records assistance
+choices retains any recording and transcript. The button toggles the options and
+their audio players; collapsing returns to audio-only submission, records assistance
 as not offered, and omits the MC answer. Recording is available with choices open or closed.
 Assisted submission requires an option. Skip stores a null MC response
-while retaining initial evidence. Option labels display their actual configured keys.
+while retaining initial evidence. Only the configured option keys are displayed;
+students hear the answer content through each option's recording.
 Only a manual 0–5 grade awards points; MC correctness never assigns a score.
 
 ## Configuration
@@ -22,6 +24,66 @@ use the current section configuration maintained in Admin Questions.
 MC options use their configured string keys, such as `A`, `B`, or `D`, for display
 and submission. Ordinary MC grading compares the submitted key with the configured
 correct key; hybrid questions continue to use one manual 0–5 grade.
+
+Admin Questions uploads a recording per option to the existing question-audio
+asset area. `optionAudios` maps option keys to asset paths for each question;
+`choices` maps option keys to optional admin hints. These hints can be edited and
+displayed only in Admin Questions; assessment and grading show option keys without
+hint text. Existing values are preserved. Existing sections need
+their individual recordings configured before students can listen. Missing audio
+is reported explicitly without displaying the answer text. Legacy `choicesAudios`
+is retained in stored sections but no longer played during assessment.
+
+`AssetUploader` offers a file picker and a preview. It generates a unique storage
+filename for each selection, retaining the selected file's extension. Replacing
+an asset uploads a new file and updates the editor's path, so the previous saved
+file stays available while the edit is pending. The filename is handled internally.
+Remove clears the editor's file selection while retaining the stored asset.
+
+`maxOptionPlays` is a section-level integer from 1 to 20, defaulting to **2**.
+Every new start counts, including starting again after Stop or interruption by
+another player. Each start plays from the beginning; option players have no seek
+or pause/resume shortcut. Once exhausted, the student can still select the option.
+The frontend checks this limit and calls native `audio.play()` immediately when
+Play is pressed. Playback does not wait for a backend request. A successful start
+increments the local count; a failed start leaves the count unchanged. Counts are
+cached in browser storage so hiding choices or reloading preserves the allowance.
+The section's limit comes from the question configuration already loaded by the app.
+
+`get-option-audio-playback` loads stored counts in the background and merges them
+with local counts without reducing plays recorded meanwhile. A failed read does
+not disable playback. `update-option-audio-playback` records successful starts
+asynchronously. Both endpoints retain owner/admin access and question/option
+validation. The backend stores reported plays without enforcing the playback limit;
+the frontend is responsible for that check. A delayed save can finish after answer
+submission or assessment completion. Listening alone creates no answer and advances
+no progress. Grading displays counts and XLSX adds `q1_plays_A`, etc.
+
+## Playback IDs and counting
+
+After native playback starts successfully, `McOptions` creates a `playbackId` UUID
+and sends it with the assessment ID, section, question, and option key. This ID
+identifies an audible play for background-save retries. A retry reuses the same ID,
+so a lost response cannot cause the server to count that play twice.
+
+`optionPlaybackIds` is stored on the section's student response document as
+`question index -> option key -> UUID[]`. For example, question 0 with options A
+and B starts as `{ "0": { "A": [], "B": [] } }`. `initialOptionPlaybackIds` builds
+these empty lists. An empty list records zero plays; an absent tracking field on a
+historical response means the count is unknown. Response DTOs, grading, and exports
+expose each list's length through `optionPlayCounts`.
+
+A failed background save shows Retry and keeps its event ID in memory for the
+current options component. Playback and answer submission stay available while
+saves are pending or failing. Retry sends unsaved events again and refreshes stored
+counts. The local count continues to enforce the limit during an outage. Once a
+recording starts, it counts even when the student stops early. Failed audio starts
+produce no event and need no cancellation or refund.
+
+`updateOptionAudioPlayback` uses a Firestore transaction to add the event ID once
+and preserve existing answers, grades, and other questions' counts. Answer saving
+shares the response lookup so both flows retain older documents with generated IDs.
+Submission initializes unplayed options to zero while retaining recorded plays.
 
 ## Responses and recording lifecycle
 
@@ -72,6 +134,11 @@ Use Chrome or Edge with microphone and Cantonese recognition support in an expli
 isolated test setup. Local web development otherwise uses cloud Auth and Storage.
 
 - Configure/reload s02 and s05 with nonsequential option keys and separate or shared audio clips.
+- Upload individual option recordings. Play one twice and confirm a third start
+  is blocked while selecting it remains possible. Verify another option still
+  has its own allowance, and that reload, assistance toggling, and another tab
+  preserve counts. Delay or fail playback-count requests and confirm audio starts
+  immediately, the frontend limit still applies, and Retry saves each play once.
 - Submit spontaneous-only audio; offer choices after recording; offer choices directly;
   select an incorrect option; and skip an assisted question after recording.
 - Expand and collapse choices, record with choices visible, and confirm collapsed

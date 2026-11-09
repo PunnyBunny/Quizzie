@@ -9,6 +9,7 @@ import {
   useTranscriptText,
 } from "../providers/RecordingSessionProvider.tsx";
 import { AudioPlayer } from "../components/AudioPlayer";
+import { McOptions } from "../components/McOptions";
 import { useCallable } from "../lib/firebase-hooks.ts";
 import { storage } from "../lib/firebase.ts";
 import { ref as storageRef, uploadBytes } from "firebase/storage";
@@ -117,10 +118,6 @@ function AssessmentQuestionInner() {
       : 0;
 
   const [assistanceOffered, setAssistanceOffered] = useState(false);
-  const choicesAudioPlayer = useRef<HTMLAudioElement>(null);
-  const choicesAudio = useStorageUrl(
-    question.choicesAudio ? audioStoragePath(question.choicesAudio) : null,
-  );
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
   // Recording session hooks
@@ -390,7 +387,7 @@ function AssessmentQuestionInner() {
       />
 
       <main className="w-full max-w-3xl flex flex-col p-4 sm:p-6">
-        <form className="flex flex-col gap-6" onSubmit={onSubmit}>
+        <form noValidate className="flex flex-col gap-6" onSubmit={onSubmit}>
           {submitError && (
             <Alert variant="destructive">
               <AlertDescription>{submitError}</AlertDescription>
@@ -432,10 +429,9 @@ function AssessmentQuestionInner() {
                 <Button
                   variant="outline"
                   type="button"
-                  disabled={saving}
+                  disabled={busy}
                   aria-expanded={assistanceOffered}
                   onClick={() => {
-                    if (assistanceOffered) choicesAudioPlayer.current?.pause();
                     setAssistanceOffered((offered) => !offered);
                   }}
                 >
@@ -451,43 +447,17 @@ function AssessmentQuestionInner() {
                       : undefined
                   }
                 >
-                  {question.kind === "audio_mc" && (
-                    <div className="space-y-3">
-                      {choicesAudio.error && (
-                        <Alert variant="destructive">
-                          <AlertDescription>{t("question.choicesAudioError")}</AlertDescription>
-                        </Alert>
-                      )}
-                      {choicesAudio.loading && <p>{t("common.loading")}</p>}
-                      {choicesAudio.url && (
-                        <AudioPlayer
-                          ref={choicesAudioPlayer}
-                          src={choicesAudio.url}
-                          label={t("audio.assistance")}
-                        />
-                      )}
-                    </div>
-                  )}
-                  <div className="flex flex-col gap-3">
-                    {(question.choices ?? []).map((choice, idx) => (
-                      <label
-                        key={question.choiceKeys[idx]}
-                        className="flex items-center gap-3 p-3 bg-white rounded-md border-2 hover:border-primary/60 cursor-pointer"
-                      >
-                        <input
-                          type="radio"
-                          name="choice"
-                          disabled={saving}
-                          checked={selectedIndex === idx}
-                          onChange={() => setSelectedIndex(idx)}
-                          className="h-4 w-4 accent-primary"
-                        />
-                        <span>
-                          {question.choiceKeys[idx]}. {choice}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
+                  <McOptions
+                    assessmentId={id}
+                    section={sectionIndex}
+                    question={questionIndex}
+                    keys={question.choiceKeys}
+                    audios={question.optionAudios}
+                    maxPlays={question.maxOptionPlays}
+                    selectedIndex={selectedIndex}
+                    onSelect={setSelectedIndex}
+                    disabled={busy}
+                  />
                 </div>
               )}
             </section>

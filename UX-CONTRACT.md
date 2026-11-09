@@ -91,8 +91,44 @@ empty archives when an authenticated environment is available.
 
 ## Audio playback
 
+Question asset uploads use `AssetUploader` with a file picker and the shared media
+preview. A selected file receives a unique generated filename. A replacement is
+uploaded separately and its path updates the editor only after upload succeeds;
+failed uploads retain the previous value and show an inline error. The previous
+saved asset stays available while an edit is pending. No filename entry is required.
+Remove clears the form value and preview, retaining the stored file; saving the
+editor applies that removal to the question.
+Question sections can be saved with missing question or option recordings while
+audio is being prepared. MC questions still require at least two options and a
+valid correct key. Each option's optional admin hint is stored in `choices` and
+displayed only in Admin Questions. Grading shows option keys without hint text.
+Missing recordings remain explicit in the assessment UI.
+Admin Questions disables Save while any uploader is active, including instruction,
+question, option, and image uploads. It waits for all concurrent uploads and their
+URL lookups to finish; success updates the file path before enabling Save, and
+failure enables Save with the previous path retained. Form submission also checks
+the active uploads so Enter cannot save an unfinished upload.
+
 The shared `AudioPlayer` uses a native audio element with app-owned controls at every playback location.
-Question, assistance, instruction, recording, and upload previews use the simple
+MC option recordings use its `option` variant through `McOptions` for both ordinary
+MC and assisted hybrid questions. Play and answer selection are separate controls;
+only option keys are shown. The default allowance is two starts per option per
+assessment. Admin Questions can set a section's limit from 1 to 20. Stop ends the
+current listening; starting again counts another play and restarts from the beginning.
+There is no seeking or uncounted resume/replay. Exhaustion leaves selection available.
+The frontend checks the allowance and starts native audio immediately. A successful
+start increments a locally cached count and is saved in the background; failed
+starts produce no count. Recording event IDs make background-save retries idempotent.
+Stored counts load in the background and merge with newer local counts without
+reducing them. Playback and answer submission remain available while count requests
+are pending or failing. The backend records events without enforcing the play limit,
+including late events saved after submission. Grading and XLSX expose the counts.
+Missing option recordings show an error and never reveal the stored label as a
+fallback. Legacy shared choices clips remain stored but are no longer offered during
+assessment. API contracts are declared in `packages/contracts/submissions.d.ts`;
+ownership uses `getAssessmentWithAuth`.
+
+Question, instruction, recording, and upload previews use the simple
 variant without seeking or hidden seek shortcuts. Grading uses the grading variant
 with seeking and ten-second jumps. Both expose localized play/pause and Replay.
 Grading downloads recordings as blobs only when their section is opened. Each

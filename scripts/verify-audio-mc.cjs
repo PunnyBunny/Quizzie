@@ -867,7 +867,7 @@ async function questionProviderChecks() {
   await new Promise(setImmediate);
   const question = render().props.value[0].questions[0];
   assert.deepEqual(Array.from(question.choiceKeys), ["B", "D"]);
-  assert.deepEqual(Array.from(question.choices), ["first", "second"]);
+  assert.equal(question.choices, undefined, "assessment models exclude admin hints");
 }
 async function uiChecks() {
   function questionUI(
@@ -921,6 +921,8 @@ async function uiChecks() {
             image: null,
             audio: "q.mp3",
             choicesAudio: "c.mp3",
+            optionAudios: { B: "b.mp3", D: "d.mp3" },
+            maxOptionPlays: 2,
             choices: ["first", "second"],
             choiceKeys: ["B", "D"],
           }),
@@ -965,6 +967,7 @@ async function uiChecks() {
         ...componentStubs([
           "Alert",
           "AssessmentHeader",
+          "McOptions",
           "AudioPlayer",
           "Button",
           "Dialog",
@@ -1003,8 +1006,8 @@ async function uiChecks() {
       offer: () => findButton("question.offerMc").props.onClick(),
       select: (index) =>
         nodes(render())
-          .filter((node) => node.type === "input" && node.props.name === "choice")
-          [index].props.onChange(),
+          .find((node) => node.type === "McOptions")
+          .props.onSelect(index),
       submit: () =>
         nodes(render())
           .find((node) => node.type === "form")
@@ -1033,7 +1036,8 @@ async function uiChecks() {
   ui.select(1);
   assert(
     nodes(ui.render()).some(
-      (node) => node.type === "span" && node.props.children.join("") === "D. second",
+      (node) =>
+        node.type === "McOptions" && node.props.keys[1] === "D" && node.props.audios.D === "d.mp3",
     ),
   );
   ui.failNextUpload();
@@ -1062,7 +1066,8 @@ async function uiChecks() {
   mc.select(1);
   assert(
     nodes(mc.render()).some(
-      (node) => node.type === "span" && node.props.children.join("") === "D. second",
+      (node) =>
+        node.type === "McOptions" && node.props.keys[1] === "D" && node.props.audios.D === "d.mp3",
     ),
   );
   await mc.submit();
@@ -1076,11 +1081,11 @@ async function uiChecks() {
   toggled.select(1);
   assert.equal(toggled.button("question.hideMc").props.disabled, false);
   assert.equal(toggled.button("question.startRecording").props.disabled, false);
-  nodes(toggled.render()).find(
-    (node) => node.type === "AudioPlayer" && node.props.ref,
-  ).props.ref.current = toggled.choicesPlayer;
   toggled.button("question.hideMc").props.onClick();
-  assert.equal(toggled.choicesPlayer.paused, true);
+  assert.equal(
+    nodes(toggled.render()).some((node) => node.type === "McOptions"),
+    false,
+  );
   assert.equal(toggled.button("question.offerMc").props["aria-expanded"], false);
   assert.equal(nodes(toggled.render()).filter((node) => node.type === "input").length, 0);
   assert.equal(nodes(toggled.render()).filter((node) => node.type === "AudioPlayer").length, 2);
@@ -1090,14 +1095,13 @@ async function uiChecks() {
   assert(toggled.calls.at(-1).data.gsUri);
   assert.equal(toggled.calls.at(-1).data.transcript, "initial words");
   toggled.offer();
-  assert.equal(nodes(toggled.render()).filter((node) => node.type === "AudioPlayer").length, 3);
   assert.equal(
-    nodes(toggled.render()).filter((node) => node.type === "input")[1].props.checked,
-    true,
+    nodes(toggled.render()).find((node) => node.type === "McOptions").props.selectedIndex,
+    1,
   );
   await toggled.button("question.startRecording").props.onClick();
   assert.equal(toggled.nextDisabled(), true);
-  assert.equal(toggled.button("question.hideMc").props.disabled, false);
+  assert.equal(toggled.button("question.hideMc").props.disabled, true);
   toggled.select(0);
   toggled.button("question.hideMc").props.onClick();
   toggled.offer();
@@ -1249,6 +1253,14 @@ async function uiChecks() {
     .props.onClick();
   assert.equal(nodes(renderGrade()).filter(isGradeButton).length, 6);
   assert.equal(nodes(renderGrade()).filter((node) => node.type === "AudioPlayer").length, 0);
+  assert(
+    nodes(renderGrade()).every((node) =>
+      node.props.children.every(
+        (child) => typeof child !== "string" || !/first|second/.test(child),
+      ),
+    ),
+    "hybrid grading excludes selected and correct option hints",
+  );
 
   const oldMc = { type: "mc", studentResponses: { 0: "D", 1: "D" } };
   const oldAudio = {
@@ -1307,8 +1319,8 @@ async function uiChecks() {
     assert.equal(hasText("question.mcOffered"), false);
     if (kind === "mc") {
       assert.equal(hasText("gradeAssessment.noAnswer"), response?.type !== "mc");
-      assert.equal(hasText("first"), true);
-      assert.equal(hasText("second"), true);
+      assert.equal(hasText("first"), false, "grading excludes admin hints");
+      assert.equal(hasText("second"), false, "grading excludes admin hints");
     } else if (!hasRecording) {
       assert.equal(hasText("gradeAssessment.noRecording"), true);
     }
@@ -1399,6 +1411,15 @@ async function adminQuestionsChecks(app) {
   );
   kindSelect().props.onChange({ target: { value: "audio_mc" } });
   button("adminQuestions.addQuestion").props.onClick();
+  const hintInputs = () =>
+    render()
+      .filter(
+        (node) =>
+          node.type === "label" && node.props.children.includes("adminQuestions.choiceHint"),
+      )
+      .map((node) => nodes(node).find((child) => child.type === "input"));
+  assert.equal(hintInputs().length, 4);
+  hintInputs()[1].props.onChange({ target: { value: "Admin-only hint" } });
   await submit();
   assert.equal(saved.length, 0);
   assert(
@@ -1410,24 +1431,34 @@ async function adminQuestionsChecks(app) {
   );
   const uploaders = render().filter((node) => node.type === "AssetUploader");
   uploaders[1].props.onChange("s8/question.mp3");
-  uploaders[2].props.onChange("s8/choices.mp3");
-  for (let index = 0; index < 4; index++) {
-    render()
-      .filter(
-        (node) => node.type === "input" && node.props.placeholder === "adminQuestions.choiceValue",
-      )
-      [index].props.onChange({ target: { value: `Option ${index + 1}` } });
+  for (const [index, uploader] of uploaders.filter((node) => node.props.label).entries()) {
+    uploader.props.onChange(`s8/option-${index + 1}.mp3`);
   }
   render()
     .find((node) => node.type === "input" && node.props.placeholder === "e.g. A")
     .props.onChange({ target: { value: "B" } });
+  const saveButton = () => render().find((node) => isButton(node) && node.props.type === "submit");
+  const submitBeforeUpload = render().find((node) => node.type === "form").props.onSubmit;
+  uploaders[0].props.onUploadingChange(true);
+  uploaders[2].props.onUploadingChange(true);
+  assert.equal(saveButton().props.disabled, true, "Save waits for concurrent editor uploads");
+  assert.equal(saveButton().props["aria-busy"], true);
+  await submitBeforeUpload({ preventDefault() {} });
+  assert.equal(saved.length, 0, "Enter cannot save, even before the upload state rerenders");
+  uploaders[0].props.onUploadingChange(false);
+  assert.equal(saveButton().props.disabled, true, "one completed upload cannot enable Save early");
+  await submit();
+  assert.equal(saved.length, 0);
+  uploaders[2].props.onUploadingChange(false);
+  assert.equal(saveButton().props.disabled, false, "Save enables after the last upload finishes");
   await submit();
   assert.equal(saved.length, 1);
   const stored = app.documents.get("questions/s8");
   assert.equal(stored.kind, "audio_mc");
   assert.equal(stored.audios[0], "s8/question.mp3");
-  assert.equal(stored.choicesAudios[0], "s8/choices.mp3");
-  assert.equal(stored.choices[0].B, "Option 2");
+  assert.equal(stored.optionAudios[0].B, "s8/option-2.mp3");
+  assert.equal(stored.choices[0].B, "Admin-only hint");
+  assert.equal(stored.maxOptionPlays, 2);
   assert.equal(stored.correctAnswers[0], "B");
   render()
     .filter((node) => isButton(node) && node.props.children.includes("common.edit"))
@@ -1437,15 +1468,24 @@ async function adminQuestionsChecks(app) {
     .find((node) => isButton(node) && "aria-expanded" in node.props)
     .props.onClick();
   assert.equal(kindSelect().props.value, "audio_mc");
+  assert.equal(hintInputs()[1].props.value, "Admin-only hint", "saved hints remain editable");
   assert.equal(
-    render().filter((node) => node.type === "AssetUploader")[2].props.value,
-    "s8/choices.mp3",
+    render().filter((node) => node.type === "AssetUploader" && node.props.label)[1].props.value,
+    "s8/option-2.mp3",
   );
   assert.equal(
     render().find((node) => node.type === "input" && node.props.placeholder === "e.g. A").props
       .value,
     "B",
   );
+  for (const uploader of render().filter((node) => node.type === "AssetUploader"))
+    uploader.props.onChange("");
+  await submit();
+  assert.equal(saved.length, 2, "the editor saves a section without recordings");
+  const withoutAudio = app.documents.get("questions/s8");
+  assert.equal(withoutAudio.audios[0], "");
+  assert.equal(withoutAudio.optionAudios[0].B, "");
+  assert.equal(withoutAudio.correctAnswers[0], "B");
 }
 async function archiveHookChecks() {
   const hooks = hookRuntime();
@@ -2252,7 +2292,702 @@ async function newAssessmentDemographicsChecks(validFirst = false) {
   assert.equal(select().props["aria-invalid"], true);
 }
 
+async function optionPlaybackChecks() {
+  const app = backend();
+  const config = {
+    title: "Audio options",
+    kind: "mc",
+    length: 2,
+    goal: "",
+    questions: ["Q1", "Q2"],
+    audios: [],
+    choices: [
+      { B: "", D: "" },
+      { B: "", D: "" },
+    ],
+    optionAudios: [
+      { B: "b.mp3", D: "d.mp3" },
+      { B: "b2.mp3", D: "d2.mp3" },
+    ],
+    correctAnswers: ["B", "D"],
+    instructions: { text: "", audio: "" },
+  };
+  await app.call("/admin/save-question-section", { id: "0", ...config }, "admin", {
+    isAdmin: true,
+  });
+  await app.call(
+    "/admin/save-question-section",
+    { id: "1", ...config, kind: "audio_mc", maxOptionPlays: 3 },
+    "admin",
+    { isAdmin: true },
+  );
+  app.documents.set("assessments/plays", {
+    name: "Test",
+    grade: "S1",
+    creatorEmail: "owner",
+    createdAt: app.timestamp,
+    currentSection: 0,
+    currentQuestion: 0,
+    finished: false,
+  });
+  const address = { assessmentId: "plays", section: 0, question: 0 };
+  const first = { ...address, optionKey: "B", playbackId: crypto.randomUUID() };
+  const read = () => app.call("/get-option-audio-playback", address);
+  assert.equal((await read()).maxPlays, 2);
+  assert.deepEqual(Object.keys((await read()).counts), []);
+  await assert.rejects(
+    app.call("/update-option-audio-playback", first, "other"),
+    (e) => e.statusCode === 403,
+  );
+  await assert.rejects(
+    app.call("/get-option-audio-playback", address, "other"),
+    (e) => e.statusCode === 403,
+  );
+  for (const invalid of [
+    { ...first, optionKey: "A" },
+    { ...first, optionKey: "toString" },
+    { ...first, playbackId: "bad" },
+    { ...first, section: 99 },
+    { ...first, question: 99 },
+  ])
+    await assert.rejects(
+      app.call("/update-option-audio-playback", invalid),
+      (e) => e.statusCode === 400,
+    );
+  app.failNextCommit();
+  await assert.rejects(app.call("/update-option-audio-playback", first));
+  assert.equal((await read()).counts.B, undefined);
+  assert.equal((await app.call("/update-option-audio-playback", first)).counts.B, 1);
+  assert.equal(
+    (await app.call("/update-option-audio-playback", first)).counts.B,
+    1,
+    "lost response retry is idempotent",
+  );
+  assert.equal(
+    app.documents.get("assessments/plays").currentQuestion,
+    0,
+    "listening does not advance progress",
+  );
+  assert.equal(
+    Object.keys(app.documents.get("studentResponses/plays-0").studentResponses).length,
+    0,
+  );
+  const second = { ...first, playbackId: crypto.randomUUID() };
+  assert.equal((await app.call("/update-option-audio-playback", second)).counts.B, 2);
+  assert.equal(
+    (await app.call("/update-option-audio-playback", { ...first, playbackId: crypto.randomUUID() }))
+      .counts.B,
+    3,
+    "the backend records plays without enforcing the frontend limit",
+  );
+  assert.equal((await read()).counts.B, 3, "reloading retains the count");
+  assert.equal(
+    (
+      await app.call("/update-option-audio-playback", {
+        ...first,
+        optionKey: "D",
+        playbackId: crypto.randomUUID(),
+      })
+    ).counts.D,
+    1,
+    "each option has its own limit",
+  );
+  await app.call("/submit-mc-answer", { ...address, answer: null });
+  assert.equal((await read()).counts.B, 3, "skipping retains counts");
+  const late = { ...first, optionKey: "D", playbackId: crypto.randomUUID() };
+  assert.equal(
+    (await app.call("/update-option-audio-playback", late)).counts.D,
+    2,
+    "background saves can finish after the answer is submitted",
+  );
+  const saved = await app.call("/get-assessment-student-responses", { assessmentId: "plays" });
+  assert.equal(saved.studentResponsesBySection[0].optionPlayCounts[0].B, 3);
+  assert.equal(
+    saved.studentResponsesBySection[0].optionPlaybackIds,
+    undefined,
+    "internal request IDs stay private",
+  );
+  const exportData = {
+    assessments: [saved.assessment],
+    responses: Object.values(saved.studentResponsesBySection),
+    sections: saved.sections,
+    subtasks: [],
+    exportedAtIsoTimestamp: new Date(0).toISOString(),
+  };
+  const workbook = app
+    .load("apps/web/src/lib/assessment-export.ts")
+    .buildAssessmentWorkbook(exportData);
+  const sheet = workbook.find((sheet) => sheet.headers.includes("q1_plays_B"));
+  assert.equal(sheet.rows[0][sheet.headers.indexOf("q1_plays_B")], 3);
+  assert.equal(sheet.rows[0][sheet.headers.indexOf("q1_plays_D")], 2);
+  assert.equal(
+    sheet.rows[0][sheet.headers.indexOf("q2_plays_B")],
+    null,
+    "untracked counts are unknown",
+  );
+  const hybrid = { ...first, section: 1, playbackId: crypto.randomUUID() };
+  for (let i = 0; i < 3; i++) {
+    const result = await app.call("/update-option-audio-playback", {
+      ...hybrid,
+      playbackId: crypto.randomUUID(),
+    });
+    assert.equal(result.counts.B, i + 1);
+    assert.equal(result.maxPlays, 3);
+  }
+  const fourth = await app.call("/update-option-audio-playback", hybrid);
+  assert.equal(fourth.counts.B, 4);
+  assert.equal((await app.call("/update-option-audio-playback", hybrid)).counts.B, 4);
+  await app.call("/submit-audio-mc-answer", {
+    ...address,
+    section: 1,
+    gsUri: null,
+    transcript: null,
+    assistanceOffered: true,
+    selectedOption: "B",
+    skipped: false,
+  });
+  await app.call("/submit-audio-grade", { ...address, section: 1, grade: 4 });
+  const hybridData = await app.call("/get-assessment-student-responses", { assessmentId: "plays" });
+  assert.equal(hybridData.studentResponsesBySection[1].optionPlayCounts[0].B, 4);
+  assert.equal(hybridData.studentResponsesBySection[1].grades[0], 4);
+  await app.call("/submit-mc-answer", { ...address, question: 1, answer: "D" });
+  const unplayed = await app.call("/get-option-audio-playback", { ...address, question: 1 });
+  assert.equal(unplayed.counts.B, 0, "submitted but unplayed options have a known zero count");
+  assert.equal(unplayed.counts.D, 0);
+  assert.equal((await read()).counts.B, 3, "submitting another question preserves earlier counts");
+  app.documents.get("assessments/plays").finished = true;
+  assert.equal(
+    (await app.call("/update-option-audio-playback", { ...first, section: 1, question: 1 })).counts
+      .B,
+    1,
+    "a playback save can finish after the assessment is completed",
+  );
+  // Updating playback rewrites the document inside a transaction; retain all evidence.
+  app.documents.set("assessments/retained", {
+    creatorEmail: "owner",
+    createdAt: app.timestamp,
+    finished: false,
+  });
+  const legacyMc = {
+    "assessment-id": "retained",
+    section: 0,
+    type: "mc",
+    createdAt: app.timestamp,
+    studentResponses: { 1: "D" },
+    optionPlaybackIds: { 1: { D: [crypto.randomUUID()] } },
+    auditNote: "retain extra stored fields",
+  };
+  app.documents.set("studentResponses/legacy-mc-id", legacyMc);
+  const retainedRequest = { ...first, assessmentId: "retained", playbackId: crypto.randomUUID() };
+  await app.call("/update-option-audio-playback", retainedRequest);
+  const retainedMc = app.documents.get("studentResponses/legacy-mc-id");
+  assert.equal(retainedMc.studentResponses[1], "D");
+  assert.equal(retainedMc.optionPlaybackIds[1].D[0], legacyMc.optionPlaybackIds[1].D[0]);
+  assert.equal(retainedMc.createdAt, app.timestamp);
+  assert.equal(retainedMc.auditNote, legacyMc.auditNote);
+  assert.equal(
+    app.documents.has("studentResponses/retained-0"),
+    false,
+    "reuse the legacy response ID",
+  );
+  const legacyHybrid = {
+    "assessment-id": "retained",
+    section: 1,
+    type: "audio_mc",
+    createdAt: app.timestamp,
+    files: { 1: "gs://bucket/retained.webm" },
+    transcripts: { 1: "Keep these words" },
+    grades: { 1: 4 },
+    attempts: { 1: { assistanceOffered: true, selectedOption: "D", skipped: false } },
+  };
+  app.documents.set("studentResponses/legacy-hybrid-id", legacyHybrid);
+  await app.call("/update-option-audio-playback", { ...retainedRequest, section: 1 });
+  const retainedHybrid = app.documents.get("studentResponses/legacy-hybrid-id");
+  for (const field of ["files", "transcripts", "grades", "attempts"])
+    assert.equal(JSON.stringify(retainedHybrid[field]), JSON.stringify(legacyHybrid[field]));
+  assert.equal(retainedHybrid.createdAt, app.timestamp);
+  assert.equal(app.documents.has("studentResponses/retained-1"), false);
+  const schema = app.load(
+    "apps/functions/src/types/zod/routes/questions.ts",
+  ).AdminSaveQuestionSectionSchema;
+  for (const invalid of [
+    { ...config, maxOptionPlays: 0 },
+    { ...config, maxOptionPlays: 1.5 },
+    { ...config, maxOptionPlays: 21 },
+    { ...config, optionAudios: [{ missing: "missing.mp3" }] },
+  ])
+    assert.equal(schema.safeParse({ id: "0", ...invalid }).success, false);
+  for (const kind of ["mc", "audio_mc"]) {
+    for (const optionAudios of [undefined, [], [{}], [{ B: "" }], [{ B: "b.mp3" }]]) {
+      const draft = { id: "draft", ...config, kind, audios: ["", ""], optionAudios };
+      assert.equal(
+        schema.safeParse(draft).success,
+        true,
+        `${kind} accepts missing or partial recordings`,
+      );
+      await app.call("/admin/save-question-section", draft, "admin", { isAdmin: true });
+      assert.equal(app.documents.get("questions/draft").kind, kind);
+      assert.equal(app.documents.get("questions/draft").audios[0], "");
+    }
+  }
+  console.log(
+    "PASS: optional audio, background playback events, duplicate-save protection, ownership, late saves, retained evidence, grading, and export.",
+  );
+}
+
+async function optionPlayerChecks() {
+  const hooks = hookRuntime();
+  hooks.React.useImperativeHandle = () => {};
+  const { AudioPlayer } = sourceLoader(
+    {
+      react: hooks.React,
+      "lucide-react": Object.fromEntries(
+        ["ChevronsLeft", "ChevronsRight", "Pause", "Play", "RotateCcw", "Square"].map((name) => [
+          name,
+          name,
+        ]),
+      ),
+      [path.join(root, "apps/web/src/hooks/useTranslation.ts")]: {
+        useTranslation: () => ({ t: (key) => key }),
+      },
+      ...componentStubs(["Button"]),
+    },
+    { DOMException },
+  )("apps/web/src/components/AudioPlayer.tsx");
+  let count = 0,
+    starts = 0,
+    failed = false;
+  const listeners = new Map();
+  const audio = {
+    paused: true,
+    ended: false,
+    readyState: 1,
+    currentTime: 0,
+    duration: 4,
+    addEventListener: (name, handler) => listeners.set(name, handler),
+    removeEventListener: (name) => listeners.delete(name),
+    load() {},
+    removeAttribute() {},
+    pause() {
+      this.paused = true;
+      listeners.get("pause")?.();
+    },
+    async play() {
+      if (failed) {
+        failed = false;
+        throw new DOMException("Unavailable", "NotSupportedError");
+      }
+      starts++;
+      this.paused = false;
+      this.ended = false;
+      listeners.get("play")?.();
+      listeners.get("playing")?.();
+    },
+  };
+  const render = () =>
+    hooks.render(() => {
+      const element = AudioPlayer({
+        src: "asset:option",
+        label: "Option B",
+        variant: "option",
+        playCount: count,
+        maxPlays: 2,
+        onPlay: () => {
+          count++;
+        },
+      });
+      return element.type(element.props);
+    });
+  const button = () => nodes(render()).find((node) => isButton(node));
+  const flush = () => new Promise(setImmediate);
+  nodes(render()).find((node) => node.type === "audio").props.ref.current = audio;
+  const cleanups = hooks.effects.map((effect) => effect()).filter(Boolean);
+  assert.equal(
+    nodes(render()).some((node) => node.type === "input" && node.props.type === "range"),
+    false,
+  );
+  assert.equal(
+    nodes(render()).filter(isButton).length,
+    1,
+    "limited playback has no seek or uncounted replay control",
+  );
+  failed = true;
+  button().props.onClick();
+  await flush();
+  assert.equal(count, 0, "a failed start does not consume a play");
+  button().props.onClick();
+  assert.equal(starts, 1, "native audio starts synchronously in the click handler");
+  button().props.onClick();
+  await flush();
+  assert.equal(starts, 1);
+  assert.equal(count, 1);
+  audio.currentTime = 2;
+  button().props.onClick();
+  await flush(); // Stop midway.
+  assert.equal(count, 1);
+  button().props.onClick();
+  await flush();
+  assert.equal(audio.currentTime, 0, "a new play restarts from the beginning");
+  assert.equal(count, 2);
+  assert.equal(starts, 2);
+  audio.pause();
+  assert.equal(button().props.disabled, true, "third playback is disabled");
+  button().props.onClick();
+  await flush();
+  assert.equal(starts, 2);
+  cleanups.forEach((cleanup) => cleanup());
+  assert.equal(audio.paused, true);
+  console.log(
+    "PASS: limited player failed starts, duplicate clicks, stop/restart counting, exhaustion, and cleanup.",
+  );
+}
+
+async function mcOptionsChecks() {
+  const cache = new Map(),
+    requests = [],
+    serverCounts = { B: 0, D: 0 };
+  const storedPlays = new Set();
+  let pendingRead,
+    finishRead,
+    failSave = false,
+    loseResponse = false;
+  const pendingSaves = [];
+  const storage = {
+    getItem: (key) => cache.get(key) ?? null,
+    setItem: (key, value) => cache.set(key, value),
+  };
+  const makeOptions = () => {
+    const hooks = hookRuntime();
+    const key = (relative) => path.join(root, `apps/web/src/${relative}`);
+    const Component = sourceLoader(
+      {
+        react: hooks.React,
+        [key("lib/firebase-hooks.ts")]: {
+          useCallable: (name) => [
+            async (input) => {
+              if (name === "api/get-option-audio-playback") {
+                if (pendingRead) await pendingRead;
+                return { data: { counts: { ...serverCounts }, maxPlays: 2 } };
+              }
+              requests.push(input);
+              await new Promise((resolve) => pendingSaves.push(resolve));
+              if (failSave) {
+                failSave = false;
+                throw new Error("Offline");
+              }
+              if (!storedPlays.has(input.playbackId)) {
+                storedPlays.add(input.playbackId);
+                serverCounts[input.optionKey]++;
+              }
+              if (loseResponse) {
+                loseResponse = false;
+                throw new Error("Lost response");
+              }
+              return { data: { counts: { ...serverCounts }, maxPlays: 2 } };
+            },
+            false,
+          ],
+        },
+        [key("hooks/useTranslation.ts")]: { useTranslation: () => ({ t: (key) => key }) },
+        [key("hooks/useStorageUrl.ts")]: {
+          useStorageUrl: () => ({ url: "asset:option", loading: false, error: null }),
+        },
+        ...componentStubs(["AudioPlayer", "Alert", "Button"]),
+      },
+      { localStorage: storage },
+    )("apps/web/src/components/McOptions.tsx").McOptions;
+    const props = {
+      assessmentId: "test",
+      section: 0,
+      question: 0,
+      keys: ["B", "D"],
+      audios: { B: "b.mp3", D: "d.mp3" },
+      maxPlays: 2,
+      selectedIndex: null,
+      onSelect() {},
+      disabled: false,
+    };
+    const render = () => nodes(hooks.render(() => Component(props)));
+    const recordings = () =>
+      render().filter(
+        (node) => typeof node.type === "function" && node.type.name === "OptionRecording",
+      );
+    const retry = () =>
+      render()
+        .find((node) => isButton(node) && node.props.children.includes("common.retry"))
+        .props.onClick();
+    render();
+    const cleanups = hooks.effects.map((effect) => effect()).filter(Boolean);
+    return { render, recordings, retry, cleanup: () => cleanups.forEach((cleanup) => cleanup()) };
+  };
+  const flush = () => new Promise(setImmediate);
+  const finishSaves = () => pendingSaves.splice(0).forEach((resolve) => resolve());
+  pendingRead = new Promise((resolve) => {
+    finishRead = resolve;
+  });
+  const first = makeOptions();
+  assert.equal(
+    first.recordings()[0].props.disabled,
+    false,
+    "loading backend counts never blocks playback",
+  );
+  first.recordings()[0].props.onPlayed();
+  assert.equal(
+    first.recordings()[0].props.count,
+    1,
+    "count updates before the background response",
+  );
+  assert.equal(first.recordings()[1].props.disabled, false);
+  const element = first.recordings()[0];
+  const player = nodes(element.type(element.props)).find((node) => node.type === "AudioPlayer");
+  assert.equal(player.props.onBeforePlay, undefined);
+  assert.equal(player.props.maxPlays, 2);
+  first.recordings()[0].props.onPlayed();
+  assert.equal(first.recordings()[0].props.count, 2);
+  assert.equal(requests.length, 2);
+  assert(requests.every((request) => !("action" in request)));
+  finishRead();
+  await flush();
+  pendingRead = null;
+  assert.equal(first.recordings()[0].props.count, 2, "a stale read cannot lower local counts");
+  first.cleanup();
+  const remounted = makeOptions();
+  assert.equal(
+    remounted.recordings()[0].props.count,
+    2,
+    "frontend counts survive collapse and remount",
+  );
+  finishSaves();
+  await flush();
+  assert.equal(serverCounts.B, 2);
+  loseResponse = true;
+  remounted.recordings()[1].props.onPlayed();
+  const lostId = requests.at(-1).playbackId;
+  finishSaves();
+  await flush();
+  assert.equal(serverCounts.D, 1);
+  assert.equal(
+    remounted.recordings()[1].props.count,
+    1,
+    "a failed save never refunds an audible play",
+  );
+  assert.equal(
+    remounted.recordings()[1].props.disabled,
+    false,
+    "a save failure does not block remaining plays",
+  );
+  remounted.retry();
+  assert.equal(requests.at(-1).playbackId, lostId, "save Retry reuses the event ID");
+  finishSaves();
+  await flush();
+  assert.equal(serverCounts.D, 1, "lost response retries cannot duplicate a play");
+  failSave = true;
+  remounted.recordings()[1].props.onPlayed();
+  finishSaves();
+  await flush();
+  assert.equal(remounted.recordings()[1].props.count, 2);
+  remounted.retry();
+  finishSaves();
+  await flush();
+  assert.equal(serverCounts.D, 2);
+  remounted.cleanup();
+  console.log(
+    "PASS: immediate local playback counts, nonblocking background saves, cached allowances, stale reads, failed saves, and idempotent Retry.",
+  );
+}
+
+async function assetUploaderChecks() {
+  const hooks = hookRuntime();
+  const key = (relative) => path.join(root, `apps/web/src/${relative}`);
+  const files = new Map([["question-assets/audios/legacy/old.mp3", "original recording"]]);
+  const changes = [],
+    invalidated = [],
+    uploadStates = [];
+  let failUpload = false,
+    finishUpload,
+    uploadWait,
+    finishDownload,
+    downloadWait;
+  const props = {
+    kind: "audio",
+    value: "legacy/old.mp3",
+    sectionId: "section-0/q1",
+    label: "Option B recording",
+    onUploadingChange: (uploading) => uploadStates.push({ uploading, path: props.value }),
+    onChange: (value) => {
+      changes.push(value);
+      props.value = value;
+    },
+  };
+  const Component = sourceLoader(
+    {
+      react: hooks.React,
+      "firebase/storage": {
+        ref: (_, fullPath) => ({ fullPath }),
+        uploadBytes: async (ref, file) => {
+          if (uploadWait) await uploadWait;
+          if (failUpload) {
+            failUpload = false;
+            throw new Error("Upload failed");
+          }
+          files.set(ref.fullPath, file);
+          return { ref };
+        },
+        getDownloadURL: async (ref) => {
+          if (downloadWait) await downloadWait;
+          return `https://assets.example.test/${ref.fullPath}`;
+        },
+      },
+      [key("lib/firebase.ts")]: { storage: {} },
+      [key("hooks/useStorageUrl.ts")]: {
+        useStorageUrl: (storagePath) => ({
+          url: storagePath ? `preview:${storagePath}` : null,
+          error: null,
+        }),
+        invalidateStorageUrl: (storagePath) => invalidated.push(storagePath),
+      },
+      [key("hooks/useTranslation.ts")]: { useTranslation: () => ({ t: (key) => key }) },
+      [key("lib/errors.ts")]: { toUserMessage: (error) => error.message },
+      ...componentStubs(["AudioPlayer", "Alert", "Button"]),
+    },
+    { console: { error() {} } },
+  )("apps/web/src/components/AssetUploader.tsx").AssetUploader;
+  const render = () => nodes(hooks.render(() => Component(props)));
+  const picker = () => render().find((node) => node.type === "input" && node.props.type === "file");
+  const uploadButton = () =>
+    render().find(
+      (node) =>
+        isButton(node) &&
+        node.props.children.includes(props.value ? "asset.replaceFile" : "asset.uploadFile"),
+    );
+  const flush = () => new Promise(setImmediate);
+  let pickerOpens = 0;
+  picker().props.ref.current = {
+    value: "selected file",
+    click: () => {
+      pickerOpens++;
+    },
+  };
+  hooks.effects.forEach((effect) => effect());
+  assert.equal(
+    render().filter((node) => node.type === "input").length,
+    1,
+    "upload has only a file picker",
+  );
+  assert.equal(picker().props.accept, "audio/*");
+  assert.equal(picker().props["aria-label"], props.label);
+  assert.equal(picker().props.hidden, true, "the native picker is behind the visible button");
+  assert.equal(uploadButton().props.type, "button", "file selection does not submit the editor");
+  uploadButton().props.onClick();
+  assert.equal(pickerOpens, 1, "the shared button opens the file picker");
+  const file = { name: "answer.MP3", type: "audio/mpeg" };
+  uploadWait = new Promise((resolve) => {
+    finishUpload = resolve;
+  });
+  downloadWait = new Promise((resolve) => {
+    finishDownload = resolve;
+  });
+  picker().props.onChange({ target: { files: [file] } });
+  assert.deepEqual(
+    uploadStates.map((state) => state.uploading),
+    [true],
+  );
+  assert.equal(picker().props.disabled, true);
+  assert.equal(uploadButton().props.disabled, true);
+  assert.equal(uploadButton().props["aria-busy"], true);
+  finishUpload();
+  await flush();
+  uploadWait = null;
+  assert.equal(uploadButton().props.disabled, true, "upload remains active during URL lookup");
+  assert.deepEqual(
+    uploadStates.map((state) => state.uploading),
+    [true],
+  );
+  assert.equal(changes.length, 0);
+  finishDownload();
+  await flush();
+  downloadWait = null;
+  assert.deepEqual(
+    uploadStates.map((state) => state.uploading),
+    [true, false],
+  );
+  assert.equal(
+    uploadStates.at(-1).path,
+    props.value,
+    "the form receives the path before upload ends",
+  );
+  assert.equal(picker().props.disabled, false);
+  assert.equal(uploadButton().props.disabled, false);
+  const firstPath = props.value;
+  assert.match(firstPath, /^section-0\/q1\/.+\.mp3$/);
+  assert.equal(files.get(`question-assets/audios/${firstPath}`), file);
+  assert.equal(files.get("question-assets/audios/legacy/old.mp3"), "original recording");
+  picker().props.onChange({ target: { files: [file] } });
+  await flush();
+  const replacementPath = props.value;
+  assert.notEqual(
+    replacementPath,
+    firstPath,
+    "replacing the same filename gets a new storage path",
+  );
+  assert.equal(
+    files.get(`question-assets/audios/${firstPath}`),
+    file,
+    "the previous saved file is retained",
+  );
+  failUpload = true;
+  picker().props.onChange({ target: { files: [file] } });
+  await flush();
+  assert.equal(props.value, replacementPath, "failed upload keeps the previous value");
+  assert.equal(changes.length, 2);
+  assert.equal(
+    uploadStates.at(-1).uploading,
+    false,
+    "failed uploads release the editor's Save guard",
+  );
+  assert.equal(uploadStates.at(-1).path, replacementPath);
+  assert.equal(picker().props.disabled, false);
+  assert(
+    render().some(
+      (node) => node.type === "AlertDescription" && node.props.children.includes("Upload failed"),
+    ),
+  );
+  props.kind = "image";
+  props.label = "Question image";
+  const image = { name: "question.PNG", type: "image/png" };
+  picker().props.onChange({ target: { files: [image] } });
+  await flush();
+  assert.equal(picker().props.accept, "image/*");
+  assert.match(props.value, /\.png$/);
+  assert.equal(files.get(`question-assets/images/${props.value}`), image);
+  assert.equal(render().find((node) => node.type === "img").props.alt, "Question image");
+  assert.equal(invalidated.length, 3);
+  const savedImagePath = props.value;
+  render()
+    .find((node) => isButton(node) && node.props.children.includes("common.remove"))
+    .props.onClick();
+  assert.equal(props.value, "");
+  uploadButton().props.onClick();
+  assert.equal(pickerOpens, 2, "the empty uploader offers Upload file again");
+  assert.equal(
+    render().some((node) => node.type === "img"),
+    false,
+  );
+  assert.equal(
+    files.get(`question-assets/images/${savedImagePath}`),
+    image,
+    "clearing the editor keeps the stored file",
+  );
+  console.log(
+    "PASS: file-picker-only uploads, automatic unique names, replacement retention, failure recovery, and audio/image previews.",
+  );
+}
+
 async function main() {
+  await assetUploaderChecks();
+  await mcOptionsChecks();
+  await optionPlaybackChecks();
+  await optionPlayerChecks();
   assessmentSelectChecks();
   await newAssessmentDemographicsChecks();
   await newAssessmentDemographicsChecks(true);

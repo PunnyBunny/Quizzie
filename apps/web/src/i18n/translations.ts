@@ -8,6 +8,20 @@ export const LANGUAGES: { code: Language; label: string }[] = [
 type Dict = Record<string, string>;
 
 const en: Dict = {
+  "audio.stop": "Stop",
+  "question.option": "Option {{key}}",
+  "question.optionPlayCount": "{{count}} / {{max}} plays",
+  "question.optionLimitReached": "Play limit reached. You can still select this option.",
+  "question.optionInstructions":
+    "Listen to each option, then select your answer. Each option can be played up to {{max}} times.",
+  "question.optionPlaybackError":
+    "Could not sync playback counts. Check your connection and retry.",
+  "question.optionAudioMissing": "Option recording unavailable. Ask the assessor for help.",
+  "adminQuestions.optionAudio": "Recording for option {{key}}",
+  "adminQuestions.maxOptionPlays": "Maximum plays per option",
+  "adminQuestions.invalidPlayLimit":
+    "Enter a whole number from 1 to 20 for the maximum plays per option.",
+  "gradeAssessment.optionPlays": "Option {{key}}: {{count}} plays",
   "audio.play": "Play",
   "audio.pause": "Pause",
   "audio.replay": "Replay",
@@ -38,7 +52,7 @@ const en: Dict = {
   "archive.loadMore": "Load more",
 
   "adminQuestions.hybridInvalid":
-    "Each hybrid question needs at least two labeled options, and a matching correct key.",
+    "Each MC question needs at least two options and a matching correct key.",
   "question.choicesAudioError": "Could not load choices audio. Please reload and try again.",
   "recording.unsupported": "Recording requires a supported Chrome or Edge browser.",
   "recording.captureFailed": "Recording failed. Check microphone permission and try again.",
@@ -446,19 +460,35 @@ const en: Dict = {
   "adminQuestions.image": "Image (blank = null)",
   "adminQuestions.addChoice": "+ Add choice",
   "adminQuestions.choiceKey": "Key",
-  "adminQuestions.choiceValue": "Value",
+  "adminQuestions.choiceHint": "Admin hint (optional; shown only here)",
   "adminQuestions.removeChoice": "Remove choice {{label}}",
   "adminQuestions.noChoices": "No choices.",
   "adminQuestions.correctAnswer": "Correct answer",
   "adminQuestions.questionPager": "Question {{current}} of {{total}}",
 
   // Asset uploader
+  "asset.uploadFile": "Upload file",
+  "asset.replaceFile": "Replace file",
+  "asset.audioFile": "Audio file",
+  "asset.imageFile": "Image file",
+  "asset.imagePreview": "Image preview",
   "asset.uploading": "Uploading…",
   "asset.errorUpload": "Could not upload file.",
-  "asset.noFile": "No file uploaded at this path yet.",
+  "asset.noFile": "This file is unavailable. Choose a replacement.",
 };
 
 const zh: Dict = {
+  "audio.stop": "停止",
+  "question.option": "選項 {{key}}",
+  "question.optionPlayCount": "已播放 {{count}} / {{max}} 次",
+  "question.optionLimitReached": "已達播放次數上限，你仍可選擇此選項。",
+  "question.optionInstructions": "聆聽各選項後選擇答案。每個選項最多可播放 {{max}} 次。",
+  "question.optionPlaybackError": "無法同步播放次數，請檢查網絡連線後重試。",
+  "question.optionAudioMissing": "選項錄音無法使用，請向評估員求助。",
+  "adminQuestions.optionAudio": "選項 {{key}} 的錄音",
+  "adminQuestions.maxOptionPlays": "每個選項的播放次數上限",
+  "adminQuestions.invalidPlayLimit": "請輸入 1 至 20 之間的整數作為每個選項的播放次數上限。",
+  "gradeAssessment.optionPlays": "選項 {{key}}：播放了 {{count}} 次",
   "audio.play": "播放",
   "audio.pause": "暫停",
   "audio.replay": "重新播放",
@@ -486,7 +516,7 @@ const zh: Dict = {
   "archive.open": "查看已封存評估",
   "archive.loadMore": "載入更多",
 
-  "adminQuestions.hybridInvalid": "每題混合題須有至少兩個附標籤的選項，以及對應的正確答案鍵。",
+  "adminQuestions.hybridInvalid": "每題選擇題須有至少兩個選項，以及對應的正確答案鍵。",
   "question.choicesAudioError": "無法載入選項音訊，請重新載入後再試。",
   "recording.unsupported": "錄音需要使用支援此功能的 Chrome 或 Edge 瀏覽器。",
   "recording.captureFailed": "錄音失敗，請檢查麥克風權限後再試。",
@@ -886,16 +916,21 @@ const zh: Dict = {
   "adminQuestions.image": "圖片 (留空 = null)",
   "adminQuestions.addChoice": "+ 新增選項",
   "adminQuestions.choiceKey": "代號",
-  "adminQuestions.choiceValue": "內容",
+  "adminQuestions.choiceHint": "管理員提示（選填，僅在此顯示）",
   "adminQuestions.removeChoice": "移除選項 {{label}}",
   "adminQuestions.noChoices": "沒有選項。",
   "adminQuestions.correctAnswer": "正確答案",
   "adminQuestions.questionPager": "第 {{current}} / {{total}} 題",
 
   // Asset uploader
+  "asset.uploadFile": "上載檔案",
+  "asset.replaceFile": "更換檔案",
+  "asset.audioFile": "音訊檔案",
+  "asset.imageFile": "圖片檔案",
+  "asset.imagePreview": "圖片預覽",
   "asset.uploading": "上載中…",
   "asset.errorUpload": "無法上載檔案。",
-  "asset.noFile": "此路徑尚未上載任何檔案。",
+  "asset.noFile": "此檔案無法使用，請選擇其他檔案。",
 };
 
 export const TRANSLATIONS: Record<Language, Dict> = {

@@ -1,14 +1,19 @@
 import { useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
 import type { Ref } from "react";
-import { ChevronsLeft, ChevronsRight, Pause, Play, RotateCcw } from "lucide-react";
+import { ChevronsLeft, ChevronsRight, Pause, Play, RotateCcw, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "../hooks/useTranslation";
 
 interface AudioPlayerProps {
   src: string;
   label: string;
-  variant?: "simple" | "grading";
+  variant?: "simple" | "grading" | "option";
   ref?: Ref<HTMLAudioElement>;
+  disabled?: boolean;
+  playCount?: number;
+  maxPlays?: number;
+  /** Runs after native playback starts; background persistence must not delay audio. */
+  onPlay?: () => void;
 }
 
 function formatTime(seconds: number) {
@@ -26,15 +31,27 @@ export function AudioPlayer(props: AudioPlayerProps) {
   return <AudioPlayerSource key={props.src} {...props} />;
 }
 
-function AudioPlayerSource({ src, label, variant = "simple", ref }: AudioPlayerProps) {
+function AudioPlayerSource({
+  src,
+  label,
+  variant = "simple",
+  ref,
+  disabled = false,
+  playCount = 0,
+  maxPlays = 2,
+  onPlay,
+}: AudioPlayerProps) {
   const { t } = useTranslation();
   const audioRef = useRef<HTMLAudioElement>(null);
   const active = useRef(false);
+  const starting = useRef(false);
+  const [startingPlayback, setStartingPlayback] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState<number | null>(null);
   const grading = variant === "grading";
+  const option = variant === "option";
   const canSeek = duration !== null && duration > 0;
 
   useLayoutEffect(() => {
@@ -83,14 +100,21 @@ function AudioPlayerSource({ src, label, variant = "simple", ref }: AudioPlayerP
 
   const play = async () => {
     const audio = audioRef.current;
-    if (!audio) return;
-    if (audio.error) audio.load();
+    if (!audio || starting.current || disabled || (option && playCount >= maxPlays)) return;
+    starting.current = true;
+    setStartingPlayback(true);
     try {
+      if (audio.error) audio.load();
+      if (option && audio.readyState > 0) audio.currentTime = 0;
       await audio.play();
+      onPlay?.();
     } catch (error) {
       if (active.current && !(error instanceof DOMException && error.name === "AbortError")) {
         setStatus("error");
       }
+    } finally {
+      starting.current = false;
+      if (active.current) setStartingPlayback(false);
     }
   };
 
@@ -150,14 +174,27 @@ function AudioPlayerSource({ src, label, variant = "simple", ref }: AudioPlayerP
           <Button
             type="button"
             size="icon-lg"
-            aria-label={t(playing ? "audio.pause" : "audio.play")}
-            title={t(playing ? "audio.pause" : "audio.play")}
+            aria-label={t(playing ? (option ? "audio.stop" : "audio.pause") : "audio.play")}
+            title={t(playing ? (option ? "audio.stop" : "audio.pause") : "audio.play")}
+            disabled={
+              startingPlayback || (!playing && (disabled || (option && playCount >= maxPlays)))
+            }
+            aria-busy={startingPlayback}
             onClick={() => {
+              if (starting.current) return;
               if (audioRef.current?.paused === false) audioRef.current.pause();
               else void play();
             }}
           >
-            {playing ? <Pause aria-hidden="true" /> : <Play aria-hidden="true" />}
+            {playing ? (
+              option ? (
+                <Square aria-hidden="true" />
+              ) : (
+                <Pause aria-hidden="true" />
+              )
+            ) : (
+              <Play aria-hidden="true" />
+            )}
           </Button>
           {grading && (
             <Button
@@ -172,17 +209,30 @@ function AudioPlayerSource({ src, label, variant = "simple", ref }: AudioPlayerP
               <ChevronsRight aria-hidden="true" />
             </Button>
           )}
-          <Button type="button" variant="ghost" onClick={replay}>
-            <RotateCcw aria-hidden="true" />
-            {t("audio.replay")}
-          </Button>
+          {!option && (
+            <Button type="button" variant="ghost" onClick={replay}>
+              <RotateCcw aria-hidden="true" />
+              {t("audio.replay")}
+            </Button>
+          )}
+          {option && (
+            <span className="text-sm text-muted-foreground tabular-nums">
+              {t("question.optionPlayCount", { count: playCount, max: maxPlays })}
+            </span>
+          )}
         </div>
       </div>
       <p
         role="status"
         className={`min-h-5 px-3 text-xs ${status === "error" ? "text-destructive" : "text-muted-foreground"}`}
       >
-        {status === "loading" ? t("common.loading") : status === "error" ? t("audio.error") : ""}
+        {startingPlayback || status === "loading"
+          ? t("common.loading")
+          : status === "error"
+            ? t("audio.error")
+            : option && playCount >= maxPlays && !playing
+              ? t("question.optionLimitReached")
+              : ""}
       </p>
     </div>
   );

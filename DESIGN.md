@@ -154,3 +154,20 @@ fits its play/pause and labeled Replay controls; the grading variant adds a seek
 elapsed/total time, and ten-second backward/forward controls. Controls use the
 existing semantic colors, radius, and Lucide icons. Feedback reserves a line below
 the player so loading and errors do not move its controls.
+
+MC options use the shared player's `option` variant beside a separate native radio
+label containing only the option key. Optional `choices` text is an admin hint
+displayed only in Admin Questions, never during assessment or grading. The option
+variant has Play/Stop and a count, with no seek or standalone Replay control.
+Starting again restarts the clip and consumes another play. The frontend checks
+the limit; playback starts immediately and its count saves in the background.
+Exhausting the limit
+disables playback while leaving answer selection available. The existing white
+option cards, primary focus color, and localized feedback remain canonical.
+
+`AssetUploader` owns the file picker, upload feedback, and media preview used by
+Admin Questions. A shared outline Button labeled Upload file or Replace file opens
+the hidden native file picker. It stays visible and disabled while uploading.
+Users select a file; the component generates its storage filename
+and keeps the path in form state. Replacing a file creates a new asset so pending
+edits preserve the previous saved file. Storage paths have no editable text field.
