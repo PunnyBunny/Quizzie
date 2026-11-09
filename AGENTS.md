@@ -64,6 +64,14 @@ and manually exercise the affected UI/API flow when feasible. Report any existin
 failures separately from failures introduced by the change. Documentation-only
 changes do not require application builds.
 
+Run `node scripts/verify-recording-duration.cjs` for recording finalization and
+cleanup checks. Add `--browser` for a real Chromium MediaRecorder/metadata/seek
+check; `VACA_BROWSER_TOOLS` can select an external directory containing Playwright
+in `node_modules`, and `VACA_BROWSER_EXECUTABLE` can select a Chromium executable.
+Run `node scripts/verify-webm-repair.cjs` for real-media migration checks against
+fake Storage. It requires `ffmpeg` and `ffprobe` on PATH or `FFMPEG_PATH` and
+`FFPROBE_PATH`. These checks do not write cloud data.
+
 For contract changes, run the contracts type-check and lint, both application builds
 and lints, and the regression script. Both apps resolve `@vaca/contracts` through npm
 workspaces without a package path alias. Confirm compiled Functions JavaScript has no
@@ -123,6 +131,13 @@ Firestore or Storage.
   `question-assets/audios` and `question-assets/images`; browser path helpers live
   in `src/lib/asset-paths.ts`. Storage rules distinguish question assets from
   assessment files.
+- New WebM recordings are finalized with decoded duration before preview/upload;
+  failure preserves the original evidence with a warning. Grading caches downloaded
+  blob URLs per assessment and reads native duration metadata. `storage.cors.json`
+  records the allowed browser origins for signed-URL downloads. The resumable
+  `scripts/repair-webm-recordings.cjs` maintenance tool repairs existing referenced
+  Storage files, with dry-run as default and explicit `--apply` for cloud writes;
+  see `docs/webm-recordings.md`. It does not modify Firestore records.
 - Update shared contracts, local request schemas, DTO conversions, and frontend
   consumers together when changing payloads. Browser code must not import Functions
   source, including type-only imports; use `@vaca/contracts` for shared types.

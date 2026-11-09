@@ -88,3 +88,38 @@ regression script verifies archive authorization, filtering, legacy documents,
 validation, repeated updates, and retention without cloud writes. Browser checks
 cover both languages, keyboard operation, mobile layout, success, failure, and
 empty archives when an authenticated environment is available.
+
+## Audio playback
+
+The shared `AudioPlayer` uses a native audio element with app-owned controls at every playback location.
+Question, assistance, instruction, recording, and upload previews use the simple
+variant without seeking or hidden seek shortcuts. Grading uses the grading variant
+with seeking and ten-second jumps. Both expose localized play/pause and Replay.
+Grading downloads recordings as blobs only when their section is opened. Each
+recording has its own loading or error state; questions, grades, transcripts, and
+other recordings remain usable. Completed blob URLs stay cached for the assessment
+page's lifetime. Switching away ignores unfinished results; downloads can finish
+in the background and have their own 60-second fetch timeout. Each uncached
+section load or Retry fetches fresh signed URLs; Retry keeps successful downloads.
+The hook owns blob URLs and revokes them when leaving the assessment. Storage CORS
+allows the deployed app and the documented local origins in `storage.cors.json`.
+The player owns its native audio element and reads duration from `loadedmetadata`;
+it does not probe media duration by seeking or wait for browser buffering ranges.
+Finalized recordings expose duration before Play once metadata has loaded.
+Grades and transcript drafts are preserved through loading, failure, and retry.
+Playback never autostarts on mount or source replacement. A replacement source
+starts fresh; language changes preserve playback. Replay returns the current clip
+to the beginning and leaves it paused. Loading/buffering and recoverable playback
+failures appear inline; Play retries a media failure. Unmounting pauses audio, including hidden assistance,
+closed instruction dialogs, replaced upload previews, and route changes. Cleanup
+remains safe under React Strict Mode.
+
+Assessment recording retains its existing capture guard: starting recording pauses
+all players, playback during recording is paused immediately, and starting one
+assessment player pauses the others. Media providers and blob URL ownership remain
+unchanged. After capture stops, WebM recordings are decoded to measure duration and
+their container metadata is finalized before preview or upload. The finalizing
+state covers this work as well as transcription completion. MP4 and WebM files
+with valid duration metadata pass through. A repair failure preserves the original
+audio with a localized warning; stale completions cannot replace a new recording.
+See `docs/webm-recordings.md` for the existing-recording repair and rollout procedure.

@@ -1,3 +1,4 @@
+import { AudioPlayer } from "./AudioPlayer";
 import { useEffect, useRef, useState } from "react";
 import { getDownloadURL, ref as storageRef, uploadBytes } from "firebase/storage";
 import { storage } from "../lib/firebase";
@@ -105,7 +106,7 @@ export function AssetUploader({
               className="max-h-32 rounded-sm border border-gray-200"
             />
           ) : (
-            <audio controls src={previewUrl} className="w-full" />
+            <AudioPlayer src={previewUrl} label={t("audio.preview")} />
           )}
         </div>
       )}

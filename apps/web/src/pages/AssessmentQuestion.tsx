@@ -8,8 +8,7 @@ import {
   useRecordingState,
   useTranscriptText,
 } from "../providers/RecordingSessionProvider.tsx";
-import H5AudioPlayer, { RHAP_UI } from "react-h5-audio-player";
-import "react-h5-audio-player/lib/styles.css";
+import { AudioPlayer } from "../components/AudioPlayer";
 import { useCallable } from "../lib/firebase-hooks.ts";
 import { storage } from "../lib/firebase.ts";
 import { ref as storageRef, uploadBytes } from "firebase/storage";
@@ -410,9 +409,7 @@ function AssessmentQuestionInner() {
                     />
                   )}
                   {question.audio != null && questionAudio.url && (
-                    <audio controls src={questionAudio.url} className="w-full">
-                      {t("question.audioFallback")}
-                    </audio>
+                    <AudioPlayer src={questionAudio.url} label={t("audio.question")} />
                   )}
                 </section>
               )}
@@ -463,11 +460,10 @@ function AssessmentQuestionInner() {
                       )}
                       {choicesAudio.loading && <p>{t("common.loading")}</p>}
                       {choicesAudio.url && (
-                        <audio
+                        <AudioPlayer
                           ref={choicesAudioPlayer}
-                          controls
                           src={choicesAudio.url}
-                          className="w-full"
+                          label={t("audio.assistance")}
                         />
                       )}
                     </div>
@@ -560,12 +556,7 @@ function AssessmentQuestionInner() {
                     <h3 className="font-medium text-gray-700 mb-2">
                       {t("question.yourRecording")}
                     </h3>
-                    <H5AudioPlayer
-                      src={audioBlobUrl}
-                      showSkipControls
-                      customProgressBarSection={[]}
-                      customControlsSection={[<div />, RHAP_UI.MAIN_CONTROLS, <div />]}
-                    />
+                    <AudioPlayer src={audioBlobUrl} label={t("question.yourRecording")} />
                   </div>
                 )}
               </div>

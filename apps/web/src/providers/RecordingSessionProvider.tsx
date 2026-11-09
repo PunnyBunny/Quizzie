@@ -8,6 +8,7 @@ import React, {
   useState,
 } from "react";
 import { useTranslation } from "../hooks/useTranslation";
+import { finalizeRecording } from "../lib/finalize-recording";
 
 type RecordingStatus = "idle" | "starting" | "recording" | "finalizing" | "error";
 interface RecordingIssue {
@@ -203,17 +204,36 @@ export function RecordingSessionProvider({ children }: { children: React.ReactNo
       };
       recorder.onstop = () => {
         if (sessionRef.current !== session) return;
-        if (chunks.length) {
-          const blob = new Blob(chunks, { type: recorder.mimeType });
-          setAudioBlob(blob);
-          if (urlRef.current) URL.revokeObjectURL(urlRef.current);
-          urlRef.current = URL.createObjectURL(blob);
-          setAudioBlobUrl(urlRef.current);
-        }
+        const original = chunks.length ? new Blob(chunks, { type: recorder.mimeType }) : null;
         chunks.length = 0;
-        session.recorderDone = true;
         if (!session.stopping) stopSession(session);
-        settle(session);
+        session.stream?.getTracks().forEach((track) => track.stop());
+        const finish = async () => {
+          let blob = original;
+          if (blob) {
+            try {
+              blob = await finalizeRecording(blob);
+            } catch {
+              if (sessionRef.current !== session) return;
+              // Metadata repair must never discard captured student evidence.
+              setIssue((current) =>
+                current?.severity === "error"
+                  ? current
+                  : { key: "recording.durationFailed", severity: "warning" },
+              );
+            }
+          }
+          if (sessionRef.current !== session) return;
+          if (blob) {
+            setAudioBlob(blob);
+            if (urlRef.current) URL.revokeObjectURL(urlRef.current);
+            urlRef.current = URL.createObjectURL(blob);
+            setAudioBlobUrl(urlRef.current);
+          }
+          session.recorderDone = true;
+          settle(session);
+        };
+        void finish();
       };
       recorder.onerror = () => {
         if (sessionRef.current !== session) return;

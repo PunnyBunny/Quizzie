@@ -8,6 +8,17 @@ export const LANGUAGES: { code: Language; label: string }[] = [
 type Dict = Record<string, string>;
 
 const en: Dict = {
+  "audio.play": "Play",
+  "audio.pause": "Pause",
+  "audio.replay": "Replay",
+  "audio.rewind": "Back 10 seconds",
+  "audio.forward": "Forward 10 seconds",
+  "audio.seek": "Playback position",
+  "audio.question": "Question audio",
+  "audio.assistance": "Answer choices audio",
+  "audio.preview": "Audio preview",
+  "audio.error": "Could not play this audio. Press Play to try again.",
+
   "archive.title": "Archived assessments",
   "archive.adminTitle": "All archived assessments",
   "archive.subtitle":
@@ -34,6 +45,7 @@ const en: Dict = {
   "recording.transcriptionTimeout":
     "Transcription stopped responding. The recording and available transcript have been retained.",
   "recording.transcriptionFailed": "Live transcription failed. Audio recording can continue.",
+  "recording.durationFailed": "The recording was kept, but its duration could not be prepared.",
   "recording.noSpeech": "No speech detected by live transcription. Audio recording can continue.",
   "question.finalizing": "Finalizing recording…",
   "question.starting": "Waiting for microphone…",
@@ -183,6 +195,8 @@ const en: Dict = {
   // Grade Assessment (single)
   "gradeAssessment.title": "Grade Assessment",
   "gradeAssessment.loading": "Loading assessment...",
+  "gradeAssessment.loadingAudio": "Loading recording...",
+  "gradeAssessment.errorAudio": "Could not load this recording. Please try again.",
   "gradeAssessment.errorQuestions": "Could not load questions.",
   "gradeAssessment.errorAssessment": "Could not load assessment.",
   "gradeAssessment.errorSaveGrade": "Could not save grade.",
@@ -445,6 +459,17 @@ const en: Dict = {
 };
 
 const zh: Dict = {
+  "audio.play": "播放",
+  "audio.pause": "暫停",
+  "audio.replay": "重新播放",
+  "audio.rewind": "倒退 10 秒",
+  "audio.forward": "快進 10 秒",
+  "audio.seek": "播放位置",
+  "audio.question": "題目音訊",
+  "audio.assistance": "選項音訊",
+  "audio.preview": "音訊預覽",
+  "audio.error": "無法播放此音訊。請按播放重試。",
+
   "archive.title": "已封存評估",
   "archive.adminTitle": "所有已封存評估",
   "archive.subtitle": "解除封存後，評估將返回原有列表。答案、分數及錄音均會保留。",
@@ -467,6 +492,7 @@ const zh: Dict = {
   "recording.captureFailed": "錄音失敗，請檢查麥克風權限後再試。",
   "recording.transcriptionTimeout": "轉錄服務沒有回應。已保留錄音及現有轉錄文字。",
   "recording.transcriptionFailed": "即時轉錄失敗，音訊錄音可繼續。",
+  "recording.durationFailed": "錄音已保留，但未能處理錄音時長。",
   "recording.noSpeech": "即時轉錄未偵測到語音，音訊錄音可繼續。",
   "question.finalizing": "正在完成錄音…",
   "question.starting": "正在等待麥克風…",
@@ -613,6 +639,8 @@ const zh: Dict = {
   // Grade Assessment (single)
   "gradeAssessment.title": "評分評估",
   "gradeAssessment.loading": "載入評估中...",
+  "gradeAssessment.loadingAudio": "載入錄音中...",
+  "gradeAssessment.errorAudio": "無法載入此錄音，請重試。",
   "gradeAssessment.errorQuestions": "無法載入題目。",
   "gradeAssessment.errorAssessment": "無法載入評估。",
   "gradeAssessment.errorSaveGrade": "無法儲存評分。",

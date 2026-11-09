@@ -304,6 +304,333 @@ function hookRuntime() {
     effects,
   };
 }
+async function gradingAudioChecks() {
+  const requests = [],
+    timeouts = [];
+  const audioBlob = new Blob(["recording bytes"], { type: "audio/webm" });
+  let mode = "success",
+    bodyReads = 0,
+    finishBody;
+  const waitForAbort = (signal) =>
+    new Promise((_, reject) => {
+      signal.throwIfAborted();
+      signal.addEventListener("abort", () => reject(signal.reason), { once: true });
+    });
+  const { downloadGradingAudio } = sourceLoader(
+    {
+      react: {},
+      [path.join(root, "apps/web/src/lib/firebase-hooks.ts")]: {},
+    },
+    {
+      AbortSignal: {
+        timeout: (milliseconds) => {
+          assert.equal(milliseconds, 60_000);
+          const controller = new AbortController();
+          timeouts.push(controller);
+          return controller.signal;
+        },
+      },
+      DOMException,
+      fetch: async (url, { signal }) => {
+        signal.throwIfAborted();
+        requests.push({ url, signal });
+        if (mode === "network-error") throw new TypeError("Network unavailable");
+        if (mode === "pending-headers") return waitForAbort(signal);
+        return {
+          ok: mode !== "http-error",
+          status: mode === "http-error" ? 403 : 200,
+          blob: async () => {
+            bodyReads++;
+            if (mode === "pending-body") return waitForAbort(signal);
+            if (mode === "body-race") {
+              return new Promise((resolve) => {
+                finishBody = () => resolve(audioBlob);
+              });
+            }
+            return mode === "empty" ? new Blob([]) : audioBlob;
+          },
+        };
+      },
+    },
+  )("apps/web/src/hooks/useGradingAudio.ts");
+  const download = () => downloadGradingAudio("signed-recording-url");
+  assert.equal(await download(), audioBlob);
+  assert.equal(requests[0].url, "signed-recording-url");
+  mode = "http-error";
+  const readsBeforeError = bodyReads;
+  await assert.rejects(download());
+  assert.equal(
+    bodyReads,
+    readsBeforeError,
+    "An expired URL response must not become an audio blob",
+  );
+  mode = "empty";
+  await assert.rejects(download(), /empty/i);
+  mode = "network-error";
+  await assert.rejects(download(), /Network unavailable/);
+  for (const phase of ["pending-headers", "pending-body"]) {
+    mode = phase;
+    const timedOut = download();
+    await new Promise(setImmediate);
+    timeouts.at(-1).abort(new DOMException("Download timed out", "TimeoutError"));
+    await assert.rejects(timedOut, { name: "TimeoutError" });
+    assert.equal(requests.at(-1).signal.aborted, true);
+  }
+  mode = "body-race";
+  const raced = download();
+  await new Promise(setImmediate);
+  timeouts.at(-1).abort(new DOMException("Download timed out", "TimeoutError"));
+  finishBody();
+  await assert.rejects(raced, { name: "TimeoutError" });
+  mode = "pending-body";
+  const first = download();
+  const second = download();
+  await new Promise(setImmediate);
+  timeouts.at(-2).abort(new DOMException("Download timed out", "TimeoutError"));
+  await assert.rejects(first, { name: "TimeoutError" });
+  assert.equal(requests.at(-1).signal.aborted, false, "Each download owns its timeout");
+  timeouts.at(-1).abort(new DOMException("Download timed out", "TimeoutError"));
+  await assert.rejects(second, { name: "TimeoutError" });
+  console.log(
+    "PASS: blob downloads, HTTP/network/empty failures, and fetch timeout during headers/body.",
+  );
+}
+async function gradingSectionChecks() {
+  const hooks = hookRuntime();
+  // Commit effects when dependencies change, including cleanup before the next effect.
+  // This catches accidental reloads caused by per-recording state updates.
+  const effects = [],
+    pendingEffects = [];
+  let effectIndex = 0;
+  hooks.React.useMemo = (calculate, dependencies) => {
+    const memo = hooks.React.useRef();
+    if (
+      !memo.current ||
+      dependencies.some((value, index) => !Object.is(value, memo.current.dependencies[index]))
+    ) {
+      memo.current = { value: calculate(), dependencies };
+    }
+    return memo.current.value;
+  };
+  hooks.React.useEffect = (callback, dependencies) => {
+    const index = effectIndex++;
+    const previous = effects[index];
+    if (
+      !previous ||
+      !dependencies ||
+      dependencies.some((value, i) => !Object.is(value, previous.dependencies[i]))
+    ) {
+      pendingEffects.push(() => {
+        previous?.cleanup?.();
+        effects[index] = { dependencies, cleanup: callback() };
+      });
+    }
+  };
+  let sectionIndex = 0,
+    refreshes = 0,
+    failResponses = false,
+    missingUrl = false,
+    responseWait;
+  const data = {
+    sections: [
+      { kind: "mc", length: 1 },
+      { kind: "audio", length: 2 },
+      { kind: "audio_mc", length: 2 },
+      { kind: "audio", length: 1 },
+    ],
+    studentResponsesBySection: {
+      0: { type: "mc" },
+      1: { type: "audio", files: { 0: "one", 1: "two" } },
+      2: { type: "audio_mc", files: { 0: "three", 1: "four" } },
+      3: { type: "audio", files: { 0: "five" } },
+    },
+  };
+  const loads = [],
+    created = [],
+    revoked = [];
+  const key = (relative) => path.join(root, `apps/web/src/${relative}`);
+  const fetchResponses = async () => {
+    const refresh = ++refreshes;
+    if (failResponses) throw new Error("URL refresh failed");
+    if (responseWait) await responseWait;
+    return {
+      data: {
+        ...data,
+        studentResponsesBySection: Object.fromEntries(
+          Object.entries(data.studentResponsesBySection).map(([section, response]) => [
+            section,
+            response.type === "mc"
+              ? response
+              : {
+                  ...response,
+                  files: Object.fromEntries(
+                    Object.entries(response.files).map(([question, url]) => [
+                      question,
+                      missingUrl && section === "2" && question === "1"
+                        ? null
+                        : `${url}-fresh-${refresh}`,
+                    ]),
+                  ),
+                },
+          ]),
+        ),
+      },
+    };
+  };
+  const { useGradingAudio } = sourceLoader(
+    {
+      react: hooks.React,
+      [key("lib/firebase-hooks.ts")]: { useCallable: () => [fetchResponses, false] },
+    },
+    {
+      AbortSignal: { timeout: () => new AbortController().signal },
+      fetch: (url) =>
+        new Promise((resolve, reject) => {
+          loads.push({
+            url,
+            finish: () =>
+              resolve({ ok: true, blob: async () => new Blob([url], { type: "audio/webm" }) }),
+            fail: () => reject(new Error("Download failed")),
+          });
+        }),
+      URL: {
+        createObjectURL: (blob) => {
+          const url = `blob:recording-${created.length + 1}`;
+          created.push({ url, blob });
+          return url;
+        },
+        revokeObjectURL: (url) => revoked.push(url),
+      },
+    },
+  )("apps/web/src/hooks/useGradingAudio.ts");
+  const render = () => {
+    effectIndex = 0;
+    const result = hooks.render(() => useGradingAudio("test", data, sectionIndex));
+    pendingEffects.splice(0).forEach((effect) => effect());
+    return result;
+  };
+  const flush = async () => {
+    await new Promise(setImmediate);
+    return render();
+  };
+  assert.equal(Object.keys(render().recordings).length, 0);
+  await flush();
+  assert.equal(loads.length, 0, "MC sections need no downloads");
+  sectionIndex = 1;
+  render();
+  await flush();
+  assert.deepEqual(
+    loads.map(({ url }) => url),
+    ["one-fresh-1", "two-fresh-1"],
+  );
+  loads[0].finish();
+  let state = await flush();
+  assert.equal(state.recordings["1:0"].status, "ready");
+  assert.equal(state.recordings["1:1"], undefined, "The other recording can still be loading");
+  const firstUrl = state.recordings["1:0"].url;
+  loads[1].fail();
+  state = await flush();
+  assert.equal(state.recordings["1:1"].status, "failed");
+  assert.equal(state.recordings["1:0"].url, firstUrl, "One failure preserves successful audio");
+  state.retry();
+  render();
+  state = await flush();
+  assert.equal(loads.length, 3, "Retry downloads only the uncached recording");
+  assert.equal(loads[2].url, "two-fresh-2");
+  assert.equal(state.recordings["1:1"], undefined, "Retry clears the failed state while loading");
+  loads[2].finish();
+  state = await flush();
+  assert.equal(state.recordings["1:1"].status, "ready");
+  const secondUrl = state.recordings["1:1"].url;
+  sectionIndex = 0;
+  render();
+  sectionIndex = 1;
+  state = render();
+  await flush();
+  assert.equal(refreshes, 2, "Cached sections do not refresh links or download again");
+  assert.equal(state.recordings["1:0"].url, firstUrl);
+  assert.equal(state.recordings["1:1"].url, secondUrl);
+  assert.equal(revoked.length, 0, "Switching sections keeps cached blobs alive");
+
+  sectionIndex = 2;
+  render();
+  await flush();
+  assert.equal(loads.length, 5);
+  loads[3].finish();
+  state = await flush();
+  const thirdUrl = state.recordings["2:0"].url;
+  sectionIndex = 1;
+  render();
+  const objectsBeforeStale = created.length;
+  loads[4].finish(); // The background download finishes after switching sections.
+  state = await flush();
+  assert.equal(state.recordings["2:1"], undefined);
+  assert.equal(created.length, objectsBeforeStale, "Ignored completion cannot leak a blob URL");
+  assert.equal(state.recordings["2:0"].url, thirdUrl);
+
+  missingUrl = true;
+  sectionIndex = 2;
+  render();
+  state = await flush();
+  assert.equal(state.recordings["2:1"].status, "failed", "Missing fresh URLs are local failures");
+  assert.equal(state.recordings["2:0"].url, thirdUrl);
+  assert.equal(loads.length, 5);
+  missingUrl = false;
+  state.retry();
+  render();
+  await flush();
+  assert.equal(loads.length, 6);
+  assert.equal(loads[5].url, "four-fresh-5");
+  loads[5].finish();
+  state = await flush();
+  assert.equal(state.recordings["2:1"].status, "ready");
+
+  failResponses = true;
+  sectionIndex = 3;
+  render();
+  state = await flush();
+  assert.equal(state.recordings["3:0"].status, "failed");
+  assert.equal(state.recordings["1:0"].url, firstUrl);
+  failResponses = false;
+  let finishRefresh;
+  responseWait = new Promise((resolve) => {
+    finishRefresh = resolve;
+  });
+  state.retry();
+  render();
+  await flush();
+  sectionIndex = 0;
+  render();
+  finishRefresh();
+  responseWait = undefined;
+  await flush();
+  assert.equal(loads.length, 6, "A URL refresh completed after leaving must not start downloads");
+  sectionIndex = 3;
+  render();
+  state = await flush();
+  assert.equal(loads.length, 7);
+  state.retry();
+  render();
+  await flush();
+  assert.equal(loads.length, 8);
+  loads[6].finish();
+  state = await flush();
+  assert.equal(state.recordings["3:0"], undefined, "Retry ignores the previous download result");
+  assert.equal(created.length, 4, "Stale retry results never create object URLs");
+  effects.forEach(({ cleanup }) => cleanup?.());
+  assert.deepEqual([...revoked].sort(), created.map(({ url }) => url).sort());
+  assert.equal(
+    new Set(revoked).size,
+    revoked.length,
+    "Every cached object URL is released exactly once",
+  );
+  loads[7].finish();
+  await new Promise(setImmediate);
+  assert.equal(created.length, 4, "Unmounted downloads never publish an object URL");
+  console.log(
+    "PASS: section-only blob loading, independent failures, fresh retries, caching, stale completion, and URL cleanup.",
+  );
+}
 async function recordingChecks() {
   const hooks = hookRuntime();
   let recorder,
@@ -362,6 +689,9 @@ async function recordingChecks() {
       [path.join(root, "apps/web/src/hooks/useTranslation.ts")]: {
         useTranslation: () => ({ t: (key) => key }),
       },
+      [path.join(root, "apps/web/src/lib/finalize-recording.ts")]: {
+        finalizeRecording: async (blob) => blob,
+      },
     },
     {
       window: { SpeechRecognition: Recognition },
@@ -402,6 +732,8 @@ async function recordingChecks() {
     results: [{ 0: { transcript: "final words" }, isFinal: true }],
   });
   recognition.onend();
+  assert.equal(value().status, "finalizing", "Metadata finalization also gates readiness");
+  await new Promise(setImmediate);
   assert.equal(value().status, "idle");
   assert.equal(value().transcript, "final words ");
   assert(value().audioBlob);
@@ -419,6 +751,7 @@ async function recordingChecks() {
   recorder.ondataavailable({ data: new Blob(["audio despite transcription failure"]) });
   recorder.onstop();
   recognition.onend();
+  await new Promise(setImmediate);
   assert.equal(await value().audioBlob.text(), "audio despite transcription failure");
   assert.equal(value().errorSeverity, "warning");
   await value().startRecording();
@@ -433,6 +766,7 @@ async function recordingChecks() {
   assert.equal(value().status, "finalizing");
   recorder.ondataavailable({ data: new Blob(["retained after error"]) });
   recorder.onstop();
+  await new Promise(setImmediate);
   assert.equal(await value().audioBlob.text(), "retained after error");
   assert.equal(value().status, "idle");
   const staleRecorder = recorder,
@@ -466,6 +800,7 @@ async function recordingChecks() {
   recorder.ondataavailable({ data: new Blob(["timeout retained"]) });
   recorder.onstop();
   timers.filter((timer) => !timer.cancelled).forEach((timer) => timer.fn());
+  await new Promise(setImmediate);
   assert.equal(value().status, "idle");
   assert.equal(await value().audioBlob.text(), "timeout retained");
   assert.equal(value().error, "recording.transcriptionTimeout");
@@ -481,6 +816,7 @@ async function recordingChecks() {
   assert.equal(value().status, "finalizing");
   recorder.ondataavailable({ data: new Blob(["startup evidence"]) });
   recorder.onstop();
+  await new Promise(setImmediate);
   assert.equal(await value().audioBlob.text(), "startup evidence");
   value().resetAudio();
   assert.equal(value().audioBlob, null);
@@ -565,8 +901,6 @@ async function uiChecks() {
           useParams: () => ({ id: "test", section: "1", question: "0" }),
           useNavigate: () => (destination) => navigations.push(destination),
         },
-        "react-h5-audio-player": { RHAP_UI: {}, default: "playback" },
-        "react-h5-audio-player/lib/styles.css": {},
         "firebase/storage": {
           ref: (_, objectPath) => objectPath,
           uploadBytes: async (objectPath, value) => {
@@ -631,6 +965,7 @@ async function uiChecks() {
         ...componentStubs([
           "Alert",
           "AssessmentHeader",
+          "AudioPlayer",
           "Button",
           "Dialog",
           "SectionInstructionBody",
@@ -742,20 +1077,20 @@ async function uiChecks() {
   assert.equal(toggled.button("question.hideMc").props.disabled, false);
   assert.equal(toggled.button("question.startRecording").props.disabled, false);
   nodes(toggled.render()).find(
-    (node) => node.type === "audio" && node.props.ref,
+    (node) => node.type === "AudioPlayer" && node.props.ref,
   ).props.ref.current = toggled.choicesPlayer;
   toggled.button("question.hideMc").props.onClick();
   assert.equal(toggled.choicesPlayer.paused, true);
   assert.equal(toggled.button("question.offerMc").props["aria-expanded"], false);
   assert.equal(nodes(toggled.render()).filter((node) => node.type === "input").length, 0);
-  assert.equal(nodes(toggled.render()).filter((node) => node.type === "audio").length, 1);
+  assert.equal(nodes(toggled.render()).filter((node) => node.type === "AudioPlayer").length, 2);
   await toggled.submit();
   assert.equal(toggled.calls.at(-1).data.assistanceOffered, false);
   assert.equal(toggled.calls.at(-1).data.selectedOption, null);
   assert(toggled.calls.at(-1).data.gsUri);
   assert.equal(toggled.calls.at(-1).data.transcript, "initial words");
   toggled.offer();
-  assert.equal(nodes(toggled.render()).filter((node) => node.type === "audio").length, 2);
+  assert.equal(nodes(toggled.render()).filter((node) => node.type === "AudioPlayer").length, 3);
   assert.equal(
     nodes(toggled.render()).filter((node) => node.type === "input")[1].props.checked,
     true,
@@ -838,6 +1173,8 @@ async function uiChecks() {
     },
   };
   const key = (relative) => path.join(root, `apps/web/src/${relative}`);
+  let audioState = "ready";
+  let audioRetries = 0;
   const grade = sourceLoader({
     react: hooks.React,
     "react-router-dom": {
@@ -847,15 +1184,46 @@ async function uiChecks() {
     [key("lib/firebase-hooks.ts")]: { useCallable: () => [async () => ({ data }), false] },
     [key("lib/errors.ts")]: { toUserMessage: (error) => error.message },
     [key("hooks/useTranslation.ts")]: { useTranslation: () => ({ t: (key) => key }) },
+    [key("hooks/useGradingAudio.ts")]: {
+      useGradingAudio: (_id, responseData, sectionIndex) => {
+        const response = responseData?.studentResponsesBySection[sectionIndex];
+        const recordings = Object.fromEntries(
+          Object.entries(response?.files ?? {})
+            .filter(([, url]) => url)
+            .map(([question]) => [
+              `${sectionIndex}:${question}`,
+              audioState === "ready"
+                ? { status: "ready", url: `blob:section-${sectionIndex}-question-${question}` }
+                : audioState === "failed"
+                  ? { status: "failed" }
+                  : undefined,
+            ]),
+        );
+        return {
+          recordings,
+          retry: () => {
+            audioRetries++;
+            audioState = "ready";
+          },
+        };
+      },
+    },
     [key("components/ScoreModal.tsx")]: { default: "score" },
-    ...componentStubs(["PageHeader", "Button", "Alert", "Tooltip"]),
+    ...componentStubs(["PageHeader", "Button", "Alert", "Tooltip", "AudioPlayer"]),
     [key("components/icons.tsx")]: { CheckIcon: "check", SpinnerIcon: "spinner", XIcon: "cross" },
   })("apps/web/src/pages/GradeAssessment.tsx").default;
-  const renderGrade = () => hooks.render(() => grade());
+  const renderGrade = () =>
+    hooks.render(() => {
+      const page = grade();
+      return page.type(page.props);
+    });
   renderGrade();
-  for (const effect of hooks.effects) effect();
-  await Promise.resolve();
-  await Promise.resolve();
+  assert(
+    nodes(renderGrade()).some((node) => node.props.children.includes("gradeAssessment.loading")),
+  );
+  assert(!nodes(renderGrade()).some((node) => node.type === "PageHeader"));
+  const cleanups = hooks.effects.map((effect) => effect());
+  await new Promise(setImmediate);
   assert(
     nodes(renderGrade()).some(
       (node) => node.type === "span" && node.props.children.includes("1/3"),
@@ -880,7 +1248,7 @@ async function uiChecks() {
     .find((node) => isButton(node) && node.props.children[0]?.props?.children?.includes("Hybrid"))
     .props.onClick();
   assert.equal(nodes(renderGrade()).filter(isGradeButton).length, 6);
-  assert.equal(nodes(renderGrade()).filter((node) => node.type === "audio").length, 0);
+  assert.equal(nodes(renderGrade()).filter((node) => node.type === "AudioPlayer").length, 0);
 
   const oldMc = { type: "mc", studentResponses: { 0: "D", 1: "D" } };
   const oldAudio = {
@@ -915,9 +1283,8 @@ async function uiChecks() {
       correctAnswers: ["D", "D"],
     });
     if (response) data.studentResponsesBySection[sectionIdx] = response;
-    for (const effect of hooks.effects) effect();
-    await Promise.resolve();
-    await Promise.resolve();
+    cleanups.push(...hooks.effects.map((effect) => effect()));
+    await new Promise(setImmediate);
     const tab = nodes(renderGrade()).find(
       (node) => isButton(node) && node.props.children[0]?.props?.children?.includes(title),
     );
@@ -927,8 +1294,16 @@ async function uiChecks() {
     const hasText = (text) => sectionNodes.some((node) => node.props.children.includes(text));
     assert.equal(hasText("Current question"), true);
     assert.equal(hasText("Removed question"), false);
-    assert.equal(sectionNodes.filter((node) => node.type === "audio").length, hasRecording ? 1 : 0);
+    assert.equal(
+      sectionNodes.filter((node) => node.type === "AudioPlayer").length,
+      hasRecording ? 1 : 0,
+    );
     assert.equal(sectionNodes.filter(isGradeButton).length, hasRecording ? 6 : 0);
+    if (hasRecording) {
+      const player = sectionNodes.find((node) => node.type === "AudioPlayer");
+      assert.equal(player.props.src, `blob:section-${sectionIdx}-question-0`);
+      assert.equal(player.props.preloadedAudio, undefined);
+    }
     assert.equal(hasText("question.mcOffered"), false);
     if (kind === "mc") {
       assert.equal(hasText("gradeAssessment.noAnswer"), response?.type !== "mc");
@@ -938,6 +1313,36 @@ async function uiChecks() {
       assert.equal(hasText("gradeAssessment.noRecording"), true);
     }
   }
+  cleanups.forEach((cleanup) => cleanup());
+  audioState = "loading";
+  assert(nodes(renderGrade()).some((node) => node.type === "PageHeader"));
+  assert(
+    nodes(renderGrade()).some((node) =>
+      node.props.children.includes("gradeAssessment.loadingAudio"),
+    ),
+  );
+  assert.equal(nodes(renderGrade()).filter((node) => node.type === "AudioPlayer").length, 0);
+  assert.equal(
+    nodes(renderGrade()).filter(isGradeButton).length,
+    6,
+    "Downloads do not hide grading controls",
+  );
+  assert(nodes(renderGrade()).some((node) => node.props.children.includes("Existing transcript")));
+  audioState = "failed";
+  assert(
+    nodes(renderGrade()).some((node) => node.props.children.includes("gradeAssessment.errorAudio")),
+  );
+  assert.equal(
+    nodes(renderGrade()).filter(isGradeButton).length,
+    6,
+    "Download failures do not hide grading controls",
+  );
+  assert(nodes(renderGrade()).some((node) => node.props.children.includes("Existing transcript")));
+  nodes(renderGrade())
+    .find((node) => isButton(node) && node.props.children.includes("common.retry"))
+    .props.onClick();
+  assert.equal(audioRetries, 1);
+  assert(nodes(renderGrade()).some((node) => node.type === "PageHeader"));
 }
 async function adminQuestionsChecks(app) {
   const hooks = hookRuntime(),
@@ -1413,7 +1818,14 @@ async function assessmentExportChecks() {
       { sectionIndex: 1, questionIndex: 0 },
       { sectionIndex: 2, questionIndex: 0 },
     ],
-    norms: { S1: null, S2: { min: 0, max: 11, n: 40, mean: 5, stdDev: 2 }, S3: null, S4: null, S5: null, S6: null },
+    norms: {
+      S1: null,
+      S2: { min: 0, max: 11, n: 40, mean: 5, stdDev: 2 },
+      S3: null,
+      S4: null,
+      S5: null,
+      S6: null,
+    },
     createdAt: app.timestamp,
     updatedAt: app.timestamp,
   };
@@ -2224,6 +2636,8 @@ async function main() {
   await archiveChecks();
   await archiveHookChecks();
   await recordingChecks();
+  await gradingAudioChecks();
+  await gradingSectionChecks();
   await questionProviderChecks();
   await uiChecks();
   await adminQuestionsChecks(app);

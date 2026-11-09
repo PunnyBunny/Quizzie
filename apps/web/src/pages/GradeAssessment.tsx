@@ -1,3 +1,4 @@
+import { AudioPlayer } from "../components/AudioPlayer";
 import { useLocation, useParams } from "react-router-dom";
 import { useCallable } from "../lib/firebase-hooks.ts";
 import { toUserMessage } from "../lib/errors.ts";
@@ -5,13 +6,14 @@ import { useEffect, useState } from "react";
 import ScoreModal from "../components/ScoreModal";
 import { PageHeader } from "../components/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertAction, AlertDescription } from "@/components/ui/alert";
 import { Tooltip } from "../components/Tooltip";
 import { CheckIcon, SpinnerIcon, XIcon } from "../components/icons";
 import { INPUT_CLASSES } from "../lib/ui";
 import type { GetAssessmentStudentResponsesOutput, QuestionSectionDto } from "@vaca/contracts";
 import { getQuestionScore } from "../lib/scoring";
 import { useTranslation } from "../hooks/useTranslation";
+import { useGradingAudio } from "../hooks/useGradingAudio";
 
 /**
  * Mirrors the server-side cap in `UpdateAudioTranscriptSchema`
@@ -21,15 +23,16 @@ import { useTranslation } from "../hooks/useTranslation";
 const TRANSCRIPT_MAX_LENGTH = 5000;
 
 export default function GradeAssessment() {
-  const { t } = useTranslation();
   const { id = "" } = useParams<{ id: string }>();
+  if (!id) throw new Error("Assessment ID not provided");
+  return <GradeAssessmentContent key={id} id={id} />;
+}
+
+function GradeAssessmentContent({ id }: { id: string }) {
+  const { t } = useTranslation();
   const location = useLocation();
 
-  if (!id) throw new Error("Assessment ID not provided");
-
-  const [getAssessmentStudentResponses, fetching] = useCallable(
-    "api/get-assessment-student-responses",
-  );
+  const [getAssessmentStudentResponses] = useCallable("api/get-assessment-student-responses");
 
   const [submitAudioGrade, submitting] = useCallable("api/submit-audio-grade");
 
@@ -42,8 +45,11 @@ export default function GradeAssessment() {
   const [localAudioGrades, setLocalAudioGrades] = useState<Record<string, Record<string, number>>>(
     {},
   );
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<{ error: unknown } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [gradeError, setGradeError] = useState<string | null>(null);
+  const sectionAudio = useGradingAudio(id, studentResponseData, activeSectionIdx);
 
   // Transcripts as last persisted, keyed [sectionIdx][questionIdx]
   const [savedTranscripts, setSavedTranscripts] = useState<Record<string, Record<string, string>>>(
@@ -56,8 +62,12 @@ export default function GradeAssessment() {
   const [savedTranscriptKey, setSavedTranscriptKey] = useState<string | null>(null);
 
   useEffect(() => {
+    let isStale = false;
+    setLoading(true);
+    setLoadError(null);
     void getAssessmentStudentResponses({ assessmentId: id })
       .then((httpResponse) => {
+        if (isStale) return;
         setStudentResponseData(httpResponse.data);
         setQuizQuestions(httpResponse.data.sections);
 
@@ -79,14 +89,24 @@ export default function GradeAssessment() {
         }
         setLocalAudioGrades(initialAudioGrades);
         setSavedTranscripts(initialTranscripts);
+        setLoading(false);
       })
-      .catch((err) => setLoadError(toUserMessage(err, t("gradeAssessment.errorAssessment"))));
-  }, [id, getAssessmentStudentResponses, t]);
+      .catch((err) => {
+        if (isStale) return;
+        setLoadError({ error: err });
+        setLoading(false);
+      });
+    return () => {
+      isStale = true;
+    };
+  }, [id, getAssessmentStudentResponses, loadAttempt]);
 
-  if (fetching) {
+  if (loading) {
     return (
       <div className="p-4 sm:p-6 flex justify-center">
-        <div className="text-gray-500">{t("gradeAssessment.loading")}</div>
+        <div role="status" className="text-gray-500">
+          {t("gradeAssessment.loading")}
+        </div>
       </div>
     );
   }
@@ -95,7 +115,14 @@ export default function GradeAssessment() {
     return (
       <div className="p-4 sm:p-6">
         <Alert variant="destructive">
-          <AlertDescription>{loadError}</AlertDescription>
+          <AlertDescription>
+            {toUserMessage(loadError.error, t("gradeAssessment.errorAssessment"))}
+          </AlertDescription>
+          <AlertAction>
+            <Button variant="outline" onClick={() => setLoadAttempt((attempt) => attempt + 1)}>
+              {t("common.retry")}
+            </Button>
+          </AlertAction>
         </Alert>
       </div>
     );
@@ -415,6 +442,7 @@ export default function GradeAssessment() {
             <div className="divide-y divide-gray-100">
               {Array.from({ length: currentQuizSection.length }).map((_, questionIdx) => {
                 const fileUrl = audioStudentResponse?.files[questionIdx.toString()];
+                const recording = sectionAudio.recordings[`${activeSectionIdx}:${questionIdx}`];
                 const attempt =
                   audioStudentResponse?.type === "audio_mc"
                     ? audioStudentResponse.attempts[questionIdx]
@@ -478,9 +506,28 @@ export default function GradeAssessment() {
                                 <label className="text-sm font-medium text-gray-700 mb-1 block">
                                   {t("gradeAssessment.studentRecording")}
                                 </label>
-                                <audio controls src={fileUrl} className="w-full">
-                                  {t("gradeAssessment.audioFallback")}
-                                </audio>
+                                {recording?.status === "ready" ? (
+                                  <AudioPlayer
+                                    src={recording.url}
+                                    label={t("gradeAssessment.studentRecording")}
+                                    variant="grading"
+                                  />
+                                ) : recording?.status === "failed" ? (
+                                  <Alert variant="destructive">
+                                    <AlertDescription>
+                                      {t("gradeAssessment.errorAudio")}
+                                    </AlertDescription>
+                                    <AlertAction>
+                                      <Button variant="outline" onClick={sectionAudio.retry}>
+                                        {t("common.retry")}
+                                      </Button>
+                                    </AlertAction>
+                                  </Alert>
+                                ) : (
+                                  <p role="status" className="text-sm text-muted-foreground">
+                                    {t("gradeAssessment.loadingAudio")}
+                                  </p>
+                                )}
                               </div>
                             ) : (
                               <p className="text-sm text-gray-400 italic">

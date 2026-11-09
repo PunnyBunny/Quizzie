@@ -146,3 +146,11 @@ Reuse shared loading, error, and success treatments. Archive controls retain the
 geometry while saving and expose busy state. Feedback uses an accessible live
 region. Keyboard focus remains visible. The preset adds no new motion behavior.
 See UX-CONTRACT.md for archive behavior and verification.
+
+## Audio playback
+
+`AudioPlayer` owns audio playback throughout the app. Its default simple variant
+fits its play/pause and labeled Replay controls; the grading variant adds a seek bar,
+elapsed/total time, and ten-second backward/forward controls. Controls use the
+existing semantic colors, radius, and Lucide icons. Feedback reserves a line below
+the player so loading and errors do not move its controls.
