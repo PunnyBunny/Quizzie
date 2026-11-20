@@ -17,7 +17,8 @@ export const questionSections = new BaseCollection<QuestionSectionDoc>(
 export function toQuestionSectionDto(
   doc: FirebaseFirestore.QueryDocumentSnapshot<QuestionSectionDoc>,
 ): QuestionSectionDto {
-  return { id: doc.id, ...doc.data() };
+  const data = doc.data();
+  return { id: doc.id, ...data, optionAudios: data.optionAudios ?? [] };
 }
 
 export async function getQuestionSections(): Promise<QuestionSectionDto[]> {

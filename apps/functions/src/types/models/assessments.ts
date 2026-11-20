@@ -1,4 +1,9 @@
-import type { AssessmentDto, Gender, LanguageEntryDto } from "@vaca/contracts";
+import type {
+  AssessmentDto,
+  Gender,
+  LanguageEntryDto,
+  SpecialEducationalNeeds,
+} from "@vaca/contracts";
 import { FieldValue } from "../../firebase";
 import type { Timestamp } from "firebase-admin/firestore";
 import { ForbiddenError, NotFoundError } from "../../middleware/error";
@@ -12,6 +17,7 @@ export interface AssessmentDoc {
   name: string;
   birthDate: string; // ISO date string
   gender: Gender;
+  specialEducationalNeeds: SpecialEducationalNeeds;
   grade: string;
   school: string;
   motherTongue: LanguageEntryDto;
@@ -49,6 +55,7 @@ export function toAssessmentDto(
     name: data.name,
     birthDate: data.birthDate,
     gender: data.gender,
+    specialEducationalNeeds: data.specialEducationalNeeds,
     grade: data.grade,
     school: data.school,
     motherTongue: data.motherTongue,

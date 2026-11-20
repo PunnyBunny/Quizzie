@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Gender, Language, LanguageEntryDto } from "@vaca/contracts";
+import type { Gender, Language, LanguageEntryDto, SpecialEducationalNeeds } from "@vaca/contracts";
 
 export const LanguageSchema = z.enum([
   "cantonese",
@@ -7,6 +7,11 @@ export const LanguageSchema = z.enum([
   "english",
   "other",
 ]) satisfies z.ZodType<Language>;
+export const SpecialEducationalNeedsSchema = z.enum([
+  "none",
+  "autism_spectrum_disorder",
+  "developmental_language_disorder",
+]) satisfies z.ZodType<SpecialEducationalNeeds>;
 export const GenderSchema = z.enum(["male", "female"]) satisfies z.ZodType<Gender>;
 
 export const LanguageEntrySchema = z.object({

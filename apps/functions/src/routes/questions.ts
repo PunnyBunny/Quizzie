@@ -45,6 +45,8 @@ router.post(
       audios,
       choicesAudios,
       choices,
+      optionAudios,
+      maxOptionPlays,
       correctAnswers,
       images,
       instructions,
@@ -61,6 +63,8 @@ router.post(
     };
     if (choicesAudios !== undefined) data.choicesAudios = choicesAudios;
     if (choices !== undefined) data.choices = choices;
+    if (optionAudios !== undefined) data.optionAudios = optionAudios;
+    if (maxOptionPlays !== undefined) data.maxOptionPlays = maxOptionPlays;
     if (correctAnswers !== undefined) data.correctAnswers = correctAnswers;
     if (images !== undefined) data.images = images;
 

@@ -8,8 +8,8 @@ import {
   useRecordingState,
   useTranscriptText,
 } from "../providers/RecordingSessionProvider.tsx";
-import H5AudioPlayer, { RHAP_UI } from "react-h5-audio-player";
-import "react-h5-audio-player/lib/styles.css";
+import { AudioPlayer } from "../components/AudioPlayer";
+import { McOptions } from "../components/McOptions";
 import { useCallable } from "../lib/firebase-hooks.ts";
 import { storage } from "../lib/firebase.ts";
 import { ref as storageRef, uploadBytes } from "firebase/storage";
@@ -118,10 +118,6 @@ function AssessmentQuestionInner() {
       : 0;
 
   const [assistanceOffered, setAssistanceOffered] = useState(false);
-  const choicesAudioPlayer = useRef<HTMLAudioElement>(null);
-  const choicesAudio = useStorageUrl(
-    question.choicesAudio ? audioStoragePath(question.choicesAudio) : null,
-  );
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
   // Recording session hooks
@@ -391,7 +387,7 @@ function AssessmentQuestionInner() {
       />
 
       <main className="w-full max-w-3xl flex flex-col p-4 sm:p-6">
-        <form className="flex flex-col gap-6" onSubmit={onSubmit}>
+        <form noValidate className="flex flex-col gap-6" onSubmit={onSubmit}>
           {submitError && (
             <Alert variant="destructive">
               <AlertDescription>{submitError}</AlertDescription>
@@ -410,9 +406,7 @@ function AssessmentQuestionInner() {
                     />
                   )}
                   {question.audio != null && questionAudio.url && (
-                    <audio controls src={questionAudio.url} className="w-full">
-                      {t("question.audioFallback")}
-                    </audio>
+                    <AudioPlayer src={questionAudio.url} label={t("audio.question")} />
                   )}
                 </section>
               )}
@@ -435,10 +429,9 @@ function AssessmentQuestionInner() {
                 <Button
                   variant="outline"
                   type="button"
-                  disabled={saving}
+                  disabled={busy}
                   aria-expanded={assistanceOffered}
                   onClick={() => {
-                    if (assistanceOffered) choicesAudioPlayer.current?.pause();
                     setAssistanceOffered((offered) => !offered);
                   }}
                 >
@@ -454,44 +447,17 @@ function AssessmentQuestionInner() {
                       : undefined
                   }
                 >
-                  {question.kind === "audio_mc" && (
-                    <div className="space-y-3">
-                      {choicesAudio.error && (
-                        <Alert variant="destructive">
-                          <AlertDescription>{t("question.choicesAudioError")}</AlertDescription>
-                        </Alert>
-                      )}
-                      {choicesAudio.loading && <p>{t("common.loading")}</p>}
-                      {choicesAudio.url && (
-                        <audio
-                          ref={choicesAudioPlayer}
-                          controls
-                          src={choicesAudio.url}
-                          className="w-full"
-                        />
-                      )}
-                    </div>
-                  )}
-                  <div className="flex flex-col gap-3">
-                    {(question.choices ?? []).map((choice, idx) => (
-                      <label
-                        key={question.choiceKeys[idx]}
-                        className="flex items-center gap-3 p-3 bg-white rounded-md border-2 hover:border-primary/60 cursor-pointer"
-                      >
-                        <input
-                          type="radio"
-                          name="choice"
-                          disabled={saving}
-                          checked={selectedIndex === idx}
-                          onChange={() => setSelectedIndex(idx)}
-                          className="h-4 w-4 accent-primary"
-                        />
-                        <span>
-                          {question.choiceKeys[idx]}. {choice}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
+                  <McOptions
+                    assessmentId={id}
+                    section={sectionIndex}
+                    question={questionIndex}
+                    keys={question.choiceKeys}
+                    audios={question.optionAudios}
+                    maxPlays={question.maxOptionPlays}
+                    selectedIndex={selectedIndex}
+                    onSelect={setSelectedIndex}
+                    disabled={busy}
+                  />
                 </div>
               )}
             </section>
@@ -560,12 +526,7 @@ function AssessmentQuestionInner() {
                     <h3 className="font-medium text-gray-700 mb-2">
                       {t("question.yourRecording")}
                     </h3>
-                    <H5AudioPlayer
-                      src={audioBlobUrl}
-                      showSkipControls
-                      customProgressBarSection={[]}
-                      customControlsSection={[<div />, RHAP_UI.MAIN_CONTROLS, <div />]}
-                    />
+                    <AudioPlayer src={audioBlobUrl} label={t("question.yourRecording")} />
                   </div>
                 )}
               </div>

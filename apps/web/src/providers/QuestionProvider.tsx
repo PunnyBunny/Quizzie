@@ -9,7 +9,8 @@ export interface Question {
   choicesAudio: string | null;
   choiceKeys: string[];
   question: string | null;
-  choices: string[] | null;
+  optionAudios: Record<string, string>;
+  maxOptionPlays: number;
   correctAnswer: string | null;
   image: string | null;
   audio: string;
@@ -33,20 +34,21 @@ function transformSections(apiSections: QuestionSectionDto[]): Section[] {
       audios,
       choices,
       choicesAudios,
+      optionAudios,
+      maxOptionPlays,
       images,
       instructions,
     }) => {
       const section: Section = { title, goal, instruction: instructions, questions: [] };
       section.questions = Array.from({ length }).map((_, i) => {
-        const choiceEntries = Object.entries(choices?.[i] ?? {}).sort(([a], [b]) =>
-          a.localeCompare(b),
-        );
+        const choiceKeys = Object.keys(choices?.[i] ?? {}).sort((a, b) => a.localeCompare(b));
         return {
           kind: kind === "audio" || kind === "mc" || kind === "audio_mc" ? kind : "mc",
           question: questions?.[i] ?? null,
-          choices: choiceEntries.map(([, label]) => label),
-          choiceKeys: choiceEntries.map(([key]) => key),
+          choiceKeys,
           choicesAudio: choicesAudios?.[i] ?? null,
+          optionAudios: optionAudios?.[i] ?? {},
+          maxOptionPlays: maxOptionPlays ?? 2,
           correctAnswer: null,
           image: images?.[i] ?? null,
           audio: audios?.[i] ?? "",

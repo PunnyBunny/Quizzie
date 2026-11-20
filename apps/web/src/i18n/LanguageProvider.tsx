@@ -1,6 +1,7 @@
 import { createContext, useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { LANGUAGES, TRANSLATIONS, type Language } from "./translations";
+import { storageKeys } from "../lib/storage-keys";
 
 export interface LanguageContextValue {
   language: Language;
@@ -8,14 +9,13 @@ export interface LanguageContextValue {
   t: (key: string, vars?: Record<string, string | number>) => string;
 }
 
-const STORAGE_KEY = "quizzie.language";
 const DEFAULT_LANGUAGE: Language = "en";
 
 export const LanguageContext = createContext<LanguageContextValue | null>(null);
 
 function detectInitialLanguage(): Language {
   if (typeof window === "undefined") return DEFAULT_LANGUAGE;
-  const stored = window.localStorage.getItem(STORAGE_KEY);
+  const stored = window.localStorage.getItem(storageKeys.language);
   if (stored && LANGUAGES.some((l) => l.code === stored)) {
     return stored as Language;
   }
@@ -36,7 +36,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem(STORAGE_KEY, language);
+      window.localStorage.setItem(storageKeys.language, language);
     } catch {
       // ignore storage errors
     }

@@ -16,6 +16,7 @@ export interface BaseStudentResponseDto {
 export interface McStudentResponseDto extends BaseStudentResponseDto {
   type: "mc";
   studentResponses: Record<string, string | null>;
+  optionPlayCounts?: Record<string, Record<string, number>>;
 }
 
 // Files contain stored gs:// URIs in exports and signed playback URLs in grading responses.
@@ -29,7 +30,31 @@ export interface AudioStudentResponseDto extends BaseStudentResponseDto {
 export interface AudioMcStudentResponseDto extends Omit<AudioStudentResponseDto, "type"> {
   type: "audio_mc";
   attempts: Record<string, AudioMcAttemptDto>;
+  optionPlayCounts?: Record<string, Record<string, number>>;
 }
+
+export interface GetOptionAudioPlaybackInput {
+  assessmentId: string;
+  section: number;
+  question: number;
+}
+
+export interface GetOptionAudioPlaybackOutput {
+  /** Successful playback starts per option key. */
+  counts: Record<string, number>;
+  maxPlays: number;
+}
+
+export interface UpdateOptionAudioPlaybackInput extends GetOptionAudioPlaybackInput {
+  optionKey: string;
+  /**
+   * Client-generated UUID for one successful playback start.
+   * Reuse it when retrying the background save to avoid counting the play twice.
+   */
+  playbackId: string;
+}
+
+export type UpdateOptionAudioPlaybackOutput = GetOptionAudioPlaybackOutput;
 
 export type StudentResponseDto =
   | McStudentResponseDto

@@ -16,6 +16,7 @@ in `types/zod/routes/assessments.ts` define accepted archive requests.
 | Dialogs          | shadcn Dialog                               | Controlled dismissal; shared scrolling body with visible title/actions, localized close labels, and focus return. |
 | Buttons          | shadcn Button + ButtonLink + ArchiveButton  | Shared variant recipe; ghost archive actions, stable busy geometry, duplicate-submit protection, visible focus.   |
 | Admin filtering  | AdminViewAssessments                        | Existing native selects; operating-system popup appearance is accepted.                                           |
+| Demographics     | shadcn Input + AssessmentSelect             | Authored popup; delayed aria-invalid state, linked errors, and localized clearing placeholders.                   |
 | Navigation       | App route guards + PageHeader               | User archive is owner-scoped; admin archive requires admin claims.                                                |
 | Excel export     | AdminViewAssessments + assessment-export.ts | Admin-only complete dataset; shared score helpers, guarded retries, and a localized download action.              |
 
@@ -87,3 +88,74 @@ regression script verifies archive authorization, filtering, legacy documents,
 validation, repeated updates, and retention without cloud writes. Browser checks
 cover both languages, keyboard operation, mobile layout, success, failure, and
 empty archives when an authenticated environment is available.
+
+## Audio playback
+
+Question asset uploads use `AssetUploader` with a file picker and the shared media
+preview. A selected file receives a unique generated filename. A replacement is
+uploaded separately and its path updates the editor only after upload succeeds;
+failed uploads retain the previous value and show an inline error. The previous
+saved asset stays available while an edit is pending. No filename entry is required.
+Remove clears the form value and preview, retaining the stored file; saving the
+editor applies that removal to the question.
+Question sections can be saved with missing question or option recordings while
+audio is being prepared. MC questions still require at least two options and a
+valid correct key. Each option's optional admin hint is stored in `choices` and
+displayed only in Admin Questions. Grading shows option keys without hint text.
+Missing recordings remain explicit in the assessment UI.
+Admin Questions disables Save while any uploader is active, including instruction,
+question, option, and image uploads. It waits for all concurrent uploads and their
+URL lookups to finish; success updates the file path before enabling Save, and
+failure enables Save with the previous path retained. Form submission also checks
+the active uploads so Enter cannot save an unfinished upload.
+
+The shared `AudioPlayer` uses a native audio element with app-owned controls at every playback location.
+MC option recordings use its `option` variant through `McOptions` for both ordinary
+MC and assisted hybrid questions. Play and answer selection are separate controls;
+only option keys are shown. The default allowance is two starts per option per
+assessment. Admin Questions can set a section's limit from 1 to 20. Stop ends the
+current listening; starting again counts another play and restarts from the beginning.
+There is no seeking or uncounted resume/replay. Exhaustion leaves selection available.
+The frontend checks the allowance and starts native audio immediately. A successful
+start increments a locally cached count and is saved in the background; failed
+starts produce no count. Recording event IDs make background-save retries idempotent.
+Stored counts load in the background and merge with newer local counts without
+reducing them. Playback and answer submission remain available while count requests
+are pending or failing. The backend records events without enforcing the play limit,
+including late events saved after submission. Grading and XLSX expose the counts.
+Missing option recordings show an error and never reveal the stored label as a
+fallback. Legacy shared choices clips remain stored but are no longer offered during
+assessment. API contracts are declared in `packages/contracts/submissions.d.ts`;
+ownership uses `getAssessmentWithAuth`.
+
+Question, instruction, recording, and upload previews use the simple
+variant without seeking or hidden seek shortcuts. Grading uses the grading variant
+with seeking and ten-second jumps. Both expose localized play/pause and Replay.
+Grading downloads recordings as blobs only when their section is opened. Each
+recording has its own loading or error state; questions, grades, transcripts, and
+other recordings remain usable. Completed blob URLs stay cached for the assessment
+page's lifetime. Switching away ignores unfinished results; downloads can finish
+in the background and have their own 60-second fetch timeout. Each uncached
+section load or Retry fetches fresh signed URLs; Retry keeps successful downloads.
+The hook owns blob URLs and revokes them when leaving the assessment. Storage CORS
+allows the deployed app and the documented local origins in `storage.cors.json`.
+The player owns its native audio element and reads duration from `loadedmetadata`;
+it does not probe media duration by seeking or wait for browser buffering ranges.
+Finalized recordings expose duration before Play once metadata has loaded.
+Grades and transcript drafts are preserved through loading, failure, and retry.
+Playback never autostarts on mount or source replacement. A replacement source
+starts fresh; language changes preserve playback. Replay returns the current clip
+to the beginning and leaves it paused. Loading/buffering and recoverable playback
+failures appear inline; Play retries a media failure. Unmounting pauses audio, including hidden assistance,
+closed instruction dialogs, replaced upload previews, and route changes. Cleanup
+remains safe under React Strict Mode.
+
+Assessment recording retains its existing capture guard: starting recording pauses
+all players, playback during recording is paused immediately, and starting one
+assessment player pauses the others. Media providers and blob URL ownership remain
+unchanged. After capture stops, WebM recordings are decoded to measure duration and
+their container metadata is finalized before preview or upload. The finalizing
+state covers this work as well as transcription completion. MP4 and WebM files
+with valid duration metadata pass through. A repair failure preserves the original
+audio with a localized warning; stale completions cannot replace a new recording.
+See `docs/webm-recordings.md` for the existing-recording repair and rollout procedure.

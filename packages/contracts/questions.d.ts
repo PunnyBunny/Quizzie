@@ -12,7 +12,12 @@ export interface QuestionSectionDto {
   questions: string[] | null;
   audios: string[];
   choicesAudios?: string[];
+  /** Stable option keys mapped to optional admin hints, displayed only in Admin Questions. */
   choices?: Record<string, string>[];
+  /** Audio asset paths by question and stable option key. */
+  optionAudios?: Record<string, string>[];
+  /** Maximum starts per option for one assessment. Defaults to 2. */
+  maxOptionPlays?: number;
   correctAnswers?: string[];
   images?: (string | null)[];
   instructions: SectionInstructionDto;

@@ -4,21 +4,95 @@ import type {
   SubmitAudioAnswerInput,
   SubmitAudioMcAnswerInput,
   SubmitMcAnswerInput,
+  GetOptionAudioPlaybackInput,
+  GetOptionAudioPlaybackOutput,
+  UpdateOptionAudioPlaybackInput,
+  UpdateOptionAudioPlaybackOutput,
+  QuestionSectionDto,
 } from "@vaca/contracts";
 import { validate } from "../middleware/validation";
 import { ApiError } from "../middleware/error";
 import { admin, FieldValue } from "../firebase";
 import { getAssessmentWithAuth } from "../types/models/assessments";
 import { getQuestionSections, getConfiguredQuestion } from "../types/models/questions";
-import { saveStudentAnswer } from "../types/models/student-responses";
+import {
+  findStudentResponseRef,
+  getOptionPlayCounts,
+  saveStudentAnswer,
+} from "../types/models/student-responses";
+import {
+  DEFAULT_MAX_OPTION_PLAYS,
+  initialOptionPlaybackIds,
+  updateOptionAudioPlayback,
+} from "../types/models/option-playbacks";
 import {
   SubmitMcAnswerSchema,
   SubmitAudioAnswerSchema,
   SubmitAudioMcAnswerSchema,
+  GetOptionAudioPlaybackSchema,
+  UpdateOptionAudioPlaybackSchema,
 } from "../types/zod/routes/submissions";
 import type { FirebaseFunctionRequest, FirebaseFunctionResponse } from "../utils/express";
 
 export const router = express.Router();
+async function getAuthorizedOptionAudioSection(
+  input: GetOptionAudioPlaybackInput,
+  res: FirebaseFunctionResponse<GetOptionAudioPlaybackOutput>,
+): Promise<QuestionSectionDto> {
+  await getAssessmentWithAuth(
+    input.assessmentId,
+    res.locals.callerEmail,
+    res.locals.callerClaims?.isAdmin === true,
+  );
+  const sections = await getQuestionSections();
+  const kind = sections[input.section]?.kind;
+  if (kind !== "mc" && kind !== "audio_mc")
+    throw new ApiError("Invalid question or response type", 400);
+  return getConfiguredQuestion(sections, input.section, input.question, kind);
+}
+router.post(
+  "/get-option-audio-playback",
+  validate(GetOptionAudioPlaybackSchema),
+  async (
+    req: FirebaseFunctionRequest<GetOptionAudioPlaybackInput>,
+    res: FirebaseFunctionResponse<GetOptionAudioPlaybackOutput>,
+  ) => {
+    const input = req.body.data;
+    const section = await getAuthorizedOptionAudioSection(input, res);
+    const ref = await findStudentResponseRef(input.assessmentId, input.section);
+    const response = ref ? (await ref.get()).data() : undefined;
+    res.status(200).json({
+      data: {
+        counts: getOptionPlayCounts(response)[input.question] ?? {},
+        maxPlays: section.maxOptionPlays ?? DEFAULT_MAX_OPTION_PLAYS,
+      },
+    });
+  },
+);
+router.post(
+  "/update-option-audio-playback",
+  validate(UpdateOptionAudioPlaybackSchema),
+  async (
+    req: FirebaseFunctionRequest<UpdateOptionAudioPlaybackInput>,
+    res: FirebaseFunctionResponse<UpdateOptionAudioPlaybackOutput>,
+  ) => {
+    const input = req.body.data;
+    const section = await getAuthorizedOptionAudioSection(input, res);
+    if (
+      !Object.prototype.hasOwnProperty.call(
+        section.choices?.[input.question] ?? {},
+        input.optionKey,
+      ) ||
+      !Object.prototype.hasOwnProperty.call(
+        section.optionAudios?.[input.question] ?? {},
+        input.optionKey,
+      ) ||
+      !section.optionAudios?.[input.question]?.[input.optionKey]?.trim()
+    )
+      throw new ApiError("Option recording not configured", 400);
+    res.status(200).json({ data: await updateOptionAudioPlayback(input, section) });
+  },
+);
 async function configuration(
   input: SubmitMcAnswerInput | SubmitAudioAnswerInput,
   kind: "mc" | "audio" | "audio_mc",
@@ -78,6 +152,7 @@ router.post(
         type: "mc",
         createdAt: FieldValue.serverTimestamp(),
         studentResponses: { [input.question]: input.answer },
+        ...initialOptionPlaybackIds(config, input.question),
       },
       progress,
     );
@@ -135,6 +210,7 @@ router.post(
         "assessment-id": input.assessmentId,
         section: input.section,
         type: "audio_mc",
+        ...initialOptionPlaybackIds(config, input.question),
         createdAt: FieldValue.serverTimestamp(),
         files: { [input.question]: input.gsUri },
         transcripts: { [input.question]: input.transcript },

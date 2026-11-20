@@ -20,6 +20,10 @@ the browser builds the `.xlsx` download without changing stored data.
   `q1_transcript`, `q1_choice`, `q1_help`, etc. Choices are blank when none were
   selected; help uses `1`/`0`, or is blank when no attempt was stored. Skipped
   and unanswered MC questions are blank. Scores stay in the summary sheets.
+  MC and audio MC questions with option recordings or playback history also add
+  `q1_plays_A`, `q1_plays_B`, etc., using each configured or historical option key.
+  These are numeric counts, including zero for unplayed options in tracked
+  questions; historical/unanswered questions without tracking stay blank.
   No recording/Storage links are exported.
 - **Subtasks**: one row per assessment and subtask, linked by `id`. Columns include
   `subtask`, `subtask_name`, `score`, `max_score`, `scored`, `ungraded`, `norm_group`,
@@ -49,7 +53,8 @@ first and is the only frozen column on assessment sheets; ID remains in column B
 The Questions guide has no frozen columns. The XLSX writer loads only when exporting.
 
 Scores use the same helpers and current configuration as the score dialog.
-Totals sum available scores; `scored` and `ungraded` identify partial results.
+Norm groups match the student form directly (S1–S6); each form has independent
+subtask norms. Totals sum available scores; `scored` and `ungraded` identify partial results.
 Ungraded counts follow the score dialog's audio-only definition. Z-scores are
 blank when norms are absent or standard deviation is not positive. Plain audio
 responses do not store a separate skipped flag, so that field remains blank.
@@ -57,3 +62,5 @@ responses do not store a separate skipped flag, so that field remains blank.
 The export timestamp records when the server finished loading the data; reads
 are not a database transaction. Empty datasets still produce headers and the
 current Questions guide. New sections/items/languages may add sheets or columns.
+
+The Demographics sheet includes `special_needs`, containing one of `none`, `autism_spectrum_disorder`, or `developmental_language_disorder`.

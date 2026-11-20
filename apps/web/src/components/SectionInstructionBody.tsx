@@ -1,3 +1,4 @@
+import { AudioPlayer } from "./AudioPlayer";
 import type { SectionInstructionDto } from "@vaca/contracts";
 import { useStorageUrl } from "../hooks/useStorageUrl.ts";
 import { audioStoragePath } from "../lib/asset-paths.ts";
@@ -14,11 +15,7 @@ export function SectionInstructionBody({ instruction }: SectionInstructionBodyPr
 
   return (
     <div className="flex flex-col gap-4">
-      {audio.url && (
-        <audio controls src={audio.url} className="w-full">
-          {t("instruction.audioFallback")}
-        </audio>
-      )}
+      {audio.url && <AudioPlayer src={audio.url} label={t("instruction.title")} />}
       <div className="prose max-w-none text-gray-800">
         <p className="text-base sm:text-lg md:text-xl leading-relaxed sm:leading-8 whitespace-pre-line">
           {text}

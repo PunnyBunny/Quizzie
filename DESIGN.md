@@ -64,6 +64,13 @@ the application does not yet offer a complete dark-mode interface.
 The application `Button` module re-exports `src/components/ui/button.tsx`, using
 the shadcn Base UI primitive.
 
+Demographics uses the shadcn Nova `Input` and authored `Select` primitives in
+`src/components/ui`. Their preset sizing, borders, focus rings, popups, and
+`aria-invalid` styling are canonical; the page adds layout constraints only.
+`AssessmentSelect` supplies localized option labels and maps the empty form value
+to Base UI's `null` selection. Validation becomes visible after an invalid submit,
+then updates as values change. SEN remains the final demographic field.
+
 Use orange `default` for the main action, `outline` for secondary actions,
 `secondary` for selected section controls, `ghost` for utilities, and
 `destructive` for removal or stopping recording. Selected grade and question
@@ -139,3 +146,28 @@ Reuse shared loading, error, and success treatments. Archive controls retain the
 geometry while saving and expose busy state. Feedback uses an accessible live
 region. Keyboard focus remains visible. The preset adds no new motion behavior.
 See UX-CONTRACT.md for archive behavior and verification.
+
+## Audio playback
+
+`AudioPlayer` owns audio playback throughout the app. Its default simple variant
+fits its play/pause and labeled Replay controls; the grading variant adds a seek bar,
+elapsed/total time, and ten-second backward/forward controls. Controls use the
+existing semantic colors, radius, and Lucide icons. Feedback reserves a line below
+the player so loading and errors do not move its controls.
+
+MC options use the shared player's `option` variant beside a separate native radio
+label containing only the option key. Optional `choices` text is an admin hint
+displayed only in Admin Questions, never during assessment or grading. The option
+variant has Play/Stop and a count, with no seek or standalone Replay control.
+Starting again restarts the clip and consumes another play. The frontend checks
+the limit; playback starts immediately and its count saves in the background.
+Exhausting the limit
+disables playback while leaving answer selection available. The existing white
+option cards, primary focus color, and localized feedback remain canonical.
+
+`AssetUploader` owns the file picker, upload feedback, and media preview used by
+Admin Questions. A shared outline Button labeled Upload file or Replace file opens
+the hidden native file picker. It stays visible and disabled while uploading.
+Users select a file; the component generates its storage filename
+and keeps the path in form state. Replacing a file creates a new asset so pending
+edits preserve the previous saved file. Storage paths have no editable text field.

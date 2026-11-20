@@ -2,19 +2,19 @@
  * Shared scoring utilities used by ScoreModal and GradeAssessment.
  */
 
-import type { QuestionSectionDto, StudentResponseDto } from "@vaca/contracts";
+import type { QuestionSectionDto, StudentResponseDto, SubtaskDto } from "@vaca/contracts";
 
-export type NormGrade = "S1" | "S3" | "S5";
+export type NormGrade = keyof SubtaskDto["norms"];
 
 /**
  * Map a student grade string to the corresponding norm group.
- * Grades 1–2 → S1, 3–4 → S3, 5+ → S5.
+ * Each form S1–S6 uses its own normative data.
  */
 export function getNormGrade(grade: string): NormGrade {
   const num = parseInt(grade.replace(/\D/g, ""));
-  if (isNaN(num) || num <= 2) return "S1";
-  if (num <= 4) return "S3";
-  return "S5";
+  if (isNaN(num) || num <= 1) return "S1";
+  if (num >= 6) return "S6";
+  return `S${num}` as NormGrade;
 }
 
 /** Max score for one question: MC = 1, audio = 5 */

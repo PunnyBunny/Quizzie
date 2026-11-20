@@ -5,12 +5,18 @@ import type {
   GetAssessmentsInput,
   SetAssessmentArchivedInput,
 } from "@vaca/contracts";
-import { DocumentIdSchema, GenderSchema, LanguageEntrySchema } from "../common";
+import {
+  DocumentIdSchema,
+  GenderSchema,
+  LanguageEntrySchema,
+  SpecialEducationalNeedsSchema,
+} from "../common";
 
 export const CreateAssessmentSchema = z.object({
   name: z.string().trim(),
   birthDate: z.string().trim(), // ISO date string
   gender: GenderSchema,
+  specialEducationalNeeds: SpecialEducationalNeedsSchema,
   grade: z.string().trim(),
   school: z.string().trim(),
   motherTongue: LanguageEntrySchema,

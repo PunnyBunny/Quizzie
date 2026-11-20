@@ -1,10 +1,11 @@
-import type { Gender, LanguageEntryDto } from "./common";
+import type { Gender, LanguageEntryDto, SpecialEducationalNeeds } from "./common";
 
 export interface AssessmentDto {
   id: string;
   name: string;
   birthDate: string;
   gender: Gender;
+  specialEducationalNeeds: SpecialEducationalNeeds;
   grade: string;
   school: string;
   motherTongue: LanguageEntryDto;
@@ -21,6 +22,7 @@ export interface CreateAssessmentInput {
   name: string;
   birthDate: string;
   gender: Gender;
+  specialEducationalNeeds: SpecialEducationalNeeds;
   grade: string;
   school: string;
   motherTongue: LanguageEntryDto;
