@@ -190,7 +190,11 @@ export function buildAssessmentWorkbook(data: AdminExportAssessmentsOutput): Exp
     const fields = [...new Set(kinds.flatMap((kind) => SECTION_FIELDS[kind]))];
     const optionKeys = new Map(
       questions.map((q) => {
-        const keys = new Set(Object.keys(section?.optionAudios?.[q] ?? {}));
+        const keys = new Set(
+          section?.kind !== "audio" && section?.mcOptionFormat === "audio_option"
+            ? Object.keys(section.optionAudios?.[q] ?? {})
+            : [],
+        );
         for (const response of data.responses) {
           if (response.section === sectionIndex && response.type !== "audio")
             Object.keys(response.optionPlayCounts?.[q] ?? {}).forEach((key) => keys.add(key));

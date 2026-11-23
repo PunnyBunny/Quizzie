@@ -1,19 +1,20 @@
-# Audio-first questions with optional MC
+# Recorded answers with optional MC
 
 Admins can choose `audio_mc` when creating or editing any section. The intended
 sections s02/s05 (stored section IDs `1` and `4`) can be configured individually. Each
 question requires at least two options with stable keys and a correct key.
 Audio uploads are optional when saving: sections can have no recordings or only
 some option recordings while content is being prepared. Choosing the hybrid type
-enables the required option/key fields.
+enables the required option/key fields. The `audio_mc` kind describes the answer
+and assistance flow, independently of whether the MC options use text or audio.
 
 The tester can record a spontaneous response or directly offer MC choices. Offering
-choices retains any recording and transcript. The button toggles the options and
-their audio players; collapsing returns to audio-only submission, records assistance
+choices retains any recording and transcript. The button toggles the configured
+text or audio options; collapsing returns to audio-only submission, records assistance
 as not offered, and omits the MC answer. Recording is available with choices open or closed.
 Assisted submission requires an option. Skip stores a null MC response
-while retaining initial evidence. Only the configured option keys are displayed;
-students hear the answer content through each option's recording.
+while retaining initial evidence. Text options show their configured keys and option
+text; audio options show keys with individual recordings and no hint text.
 Only a manual 0–5 grade awards points; MC correctness never assigns a score.
 
 ## Configuration
@@ -21,26 +22,44 @@ Only a manual 0–5 grade awards points; MC correctness never assigns a score.
 Assessment playback, submission validation, grading, totals, subtasks, and z-scores
 use the current section configuration maintained in Admin Questions.
 
-MC options use their configured string keys, such as `A`, `B`, or `D`, for display
-and submission. Ordinary MC grading compares the submitted key with the configured
+MC options use their configured string keys, such as `A`, `B`, or `D`, for submission.
+Ordinary MC grading compares the submitted key with the configured
 correct key; hybrid questions continue to use one manual 0–5 grade.
 
-Admin Questions uploads a recording per option to the existing question-audio
-asset area. `optionAudios` maps option keys to asset paths for each question;
-`choices` maps option keys to optional admin hints. These hints can be edited and
-displayed only in Admin Questions; assessment and grading show option keys without
-hint text. Existing values are preserved. Existing sections need
-their individual recordings configured before students can listen. Missing audio
-is reported explicitly without displaying the answer text. Legacy `choicesAudios`
-is retained in stored sections but no longer played during assessment.
+Admin Questions offers a section-level **MC option format** choice for `mc` and
+`audio_mc`: **Text** (`text_option`) or **Audio** (`audio_option`). New sections default to Text. Existing sections
+without `mcOptionFormat` also use Text. Plain `audio` sections have no option format.
+This choice does not change answer keys, scoring, timing, recording, or assistance.
+
+`choices` maps stable option keys to strings. In Text mode the editor labels them
+**Option text**; every option requires nonblank text, displayed to students and in
+grading. Text options mount no playback hook/player, request no option audio assets
+or counts, and log no playback events. In Audio mode the same strings are optional
+**Admin hints**, shown in Admin Questions and grading. Markers see available option
+text for both formats, including hybrid selected and correct answers. The editor reveals individual
+recording uploaders and the section play limit. Both modes require at least two
+unique nonblank keys and a matching correct key; Audio hints and recordings remain
+optional when saving.
+
+`optionAudios` maps option keys to asset paths in the existing question-audio area.
+Switching format preserves both choice strings and option recordings, plus the
+play limit, through saving and reopening. It never deletes uploaded assets.
+Audio mode needs individual recordings before students can listen; missing audio
+is reported without revealing hint text. Legacy `choicesAudios` remains stored
+but is not played during assessment in either format.
 
 `AssetUploader` offers a file picker and a preview. It generates a unique storage
 filename for each selection, retaining the selected file's extension. Replacing
 an asset uploads a new file and updates the editor's path, so the previous saved
 file stays available while the edit is pending. The filename is handled internally.
 Remove clears the editor's file selection while retaining the stored asset.
+Save remains disabled throughout any concurrent uploads and URL lookups, even if
+the format changes to Text and hides the option uploader. Successful uploads still
+update the retained path before saving is enabled.
 
-`maxOptionPlays` is a section-level integer from 1 to 20, defaulting to **2**.
+In Audio mode, `maxOptionPlays` is a section-level integer from 1 to 20, defaulting
+to **2**. Text mode preserves the last valid limit without using or validating an
+unfinished edit to that setting.
 Every new start counts, including starting again after Stop or interruption by
 another player. Each start plays from the beginning; option players have no seek
 or pause/resume shortcut. Once exhausted, the student can still select the option.
@@ -56,12 +75,14 @@ not disable playback. `update-option-audio-playback` records successful starts
 asynchronously. Both endpoints retain owner/admin access and question/option
 validation. The backend stores reported plays without enforcing the playback limit;
 the frontend is responsible for that check. A delayed save can finish after answer
-submission or assessment completion. Listening alone creates no answer and advances
-no progress. Grading displays counts and XLSX adds `q1_plays_A`, etc.
+submission, assessment completion, or a format switch to Text. A format change
+alone must not reject an event already in flight. Listening alone creates no answer
+and advances no progress. Grading and XLSX retain historical counts in either format;
+XLSX adds `q1_plays_A`, etc., where Audio configuration or playback history warrants it.
 
 ## Playback IDs and counting
 
-After native playback starts successfully, `McOptions` creates a `playbackId` UUID
+In Audio mode, after native playback starts successfully, `McOptions` creates a `playbackId` UUID
 and sends it with the assessment ID, section, question, and option key. This ID
 identifies an audible play for background-save retries. A retry reuses the same ID,
 so a lost response cannot cause the server to count that play twice.
@@ -83,7 +104,10 @@ produce no event and need no cancellation or refund.
 `updateOptionAudioPlayback` uses a Firestore transaction to add the event ID once
 and preserve existing answers, grades, and other questions' counts. Answer saving
 shares the response lookup so both flows retain older documents with generated IDs.
-Submission initializes unplayed options to zero while retaining recorded plays.
+Audio-mode submission initializes unplayed options to zero while retaining recorded
+plays. New Text answers do not initialize `optionPlaybackIds` or zero play counts.
+Saving a Text answer preserves any existing tracking and historical counts; late
+Audio events merge without overwriting answers or grades.
 
 ## Responses and recording lifecycle
 
@@ -133,12 +157,21 @@ browser testing of media APIs.
 Use Chrome or Edge with microphone and Cantonese recognition support in an explicitly
 isolated test setup. Local web development otherwise uses cloud Auth and Storage.
 
-- Configure/reload s02 and s05 with nonsequential option keys and separate or shared audio clips.
-- Upload individual option recordings. Play one twice and confirm a third start
+- Verify new sections and existing sections without a format open in Text mode.
+  Check Text options and grading show keys plus option text, reject blank text on
+  save, and make no option-recording or playback-count requests. Confirm hybrid
+  recording and assistance still work with Text options.
+- Configure/reload s02 and s05 with nonsequential option keys. Switch Text → Audio
+  → Text → Audio and verify strings, uploaded recordings, and play limits survive
+  both toggling and save/reopening. Plain Audio sections have no format selector.
+  Toggle to Text during an upload and confirm Save waits and retains the result.
+- In Audio format, upload individual option recordings. Play one twice and confirm a third start
   is blocked while selecting it remains possible. Verify another option still
   has its own allowance, and that reload, assistance toggling, and another tab
   preserve counts. Delay or fail playback-count requests and confirm audio starts
   immediately, the frontend limit still applies, and Retry saves each play once.
+  Switch the section to Text with an event in flight and confirm it is retained
+  once, with historical counts still available in grading and XLSX.
 - Submit spontaneous-only audio; offer choices after recording; offer choices directly;
   select an incorrect option; and skip an assisted question after recording.
 - Expand and collapse choices, record with choices visible, and confirm collapsed

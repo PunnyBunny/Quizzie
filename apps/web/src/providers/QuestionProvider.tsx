@@ -6,8 +6,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export interface Question {
   kind: "audio" | "mc" | "audio_mc";
+  optionFormat: "text_option" | "audio_option";
   choicesAudio: string | null;
   choiceKeys: string[];
+  choices: Record<string, string>;
   question: string | null;
   optionAudios: Record<string, string>;
   maxOptionPlays: number;
@@ -28,6 +30,7 @@ function transformSections(apiSections: QuestionSectionDto[]): Section[] {
     ({
       title,
       kind,
+      mcOptionFormat = "text_option",
       length,
       goal,
       questions,
@@ -44,8 +47,10 @@ function transformSections(apiSections: QuestionSectionDto[]): Section[] {
         const choiceKeys = Object.keys(choices?.[i] ?? {}).sort((a, b) => a.localeCompare(b));
         return {
           kind: kind === "audio" || kind === "mc" || kind === "audio_mc" ? kind : "mc",
+          optionFormat: mcOptionFormat,
           question: questions?.[i] ?? null,
           choiceKeys,
+          choices: choices?.[i] ?? {},
           choicesAudio: choicesAudios?.[i] ?? null,
           optionAudios: optionAudios?.[i] ?? {},
           maxOptionPlays: maxOptionPlays ?? 2,

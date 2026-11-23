@@ -23,10 +23,15 @@ the browser builds the `.xlsx` download without changing stored data.
   Every question adds `q1_time_s`, `q2_time_s`, etc., containing accumulated whole
   seconds. Missing historical timing stays blank; a tracked zero stays numeric zero.
   Time-only checkpoints are included even when no answer was submitted.
-  MC and audio MC questions with option recordings or playback history also add
+  MC and audio MC questions currently using Audio format with configured option
+  recordings, or with playback history in either format, also add
   `q1_plays_A`, `q1_plays_B`, etc., using each configured or historical option key.
   These are numeric counts, including zero for unplayed options in tracked
   questions; historical/unanswered questions without tracking stay blank.
+  Text is the default option format when the section field is missing. Retained
+  recordings in a Text section do not create playback columns on their own. New
+  Text answers do not initialize playback tracking; existing counts remain exported
+  after a format switch, including late audio plays saved after that switch.
   No recording/Storage links are exported.
 - **Subtasks**: one row per assessment and subtask, linked by `id`. Columns include
   `subtask`, `subtask_name`, `score`, `max_score`, `scored`, `ungraded`, `norm_group`,

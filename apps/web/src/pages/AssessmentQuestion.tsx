@@ -501,15 +501,23 @@ function AssessmentQuestionInner() {
                   }
                 >
                   <McOptions
-                    assessmentId={id}
-                    section={sectionIndex}
-                    question={questionIndex}
                     keys={question.choiceKeys}
-                    audios={question.optionAudios}
-                    maxPlays={question.maxOptionPlays}
                     selectedIndex={selectedIndex}
                     onSelect={setSelectedIndex}
                     disabled={busy}
+                    {...(question.optionFormat === "audio_option"
+                      ? {
+                          optionFormat: question.optionFormat,
+                          assessmentId: id,
+                          section: sectionIndex,
+                          question: questionIndex,
+                          audios: question.optionAudios,
+                          maxPlays: question.maxOptionPlays,
+                        }
+                      : {
+                          optionFormat: question.optionFormat,
+                          choices: question.choices,
+                        })}
                   />
                 </div>
               )}

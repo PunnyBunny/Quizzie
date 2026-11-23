@@ -867,7 +867,9 @@ async function questionProviderChecks() {
   await new Promise(setImmediate);
   const question = render().props.value[0].questions[0];
   assert.deepEqual(Array.from(question.choiceKeys), ["B", "D"]);
-  assert.equal(question.choices, undefined, "assessment models exclude admin hints");
+  assert.equal(question.optionFormat, "text_option", "existing sections default to text");
+  assert.equal(question.choices.B, "first");
+  assert.equal(question.choices.D, "second");
 }
 async function uiChecks() {
   function questionUI(
@@ -928,7 +930,8 @@ async function uiChecks() {
             choicesAudio: "c.mp3",
             optionAudios: { B: "b.mp3", D: "d.mp3" },
             maxOptionPlays: 2,
-            choices: ["first", "second"],
+            choices: { B: "first", D: "second" },
+            optionFormat: "audio_option",
             choiceKeys: ["B", "D"],
           }),
           useSection: () => ({
@@ -1401,19 +1404,35 @@ async function uiChecks() {
       (node) => node.type === "span" && node.props.children.join("") === "D.",
     ),
   );
+  for (const optionFormat of [undefined, "text_option", "audio_option"]) {
+    data.sections[0].mcOptionFormat = optionFormat;
+    const hasOptionText = nodes(renderGrade()).some((node) =>
+      node.props.children.includes("second"),
+    );
+    assert.equal(hasOptionText, true, "MC grading always displays option text for the marker");
+  }
   nodes(renderGrade())
     .find((node) => isButton(node) && node.props.children[0]?.props?.children?.includes("Hybrid"))
     .props.onClick();
   assert.equal(nodes(renderGrade()).filter(isGradeButton).length, 6);
   assert.equal(nodes(renderGrade()).filter((node) => node.type === "AudioPlayer").length, 0);
-  assert(
-    nodes(renderGrade()).every((node) =>
-      node.props.children.every(
-        (child) => typeof child !== "string" || !/first|second/.test(child),
-      ),
-    ),
-    "hybrid grading excludes selected and correct option hints",
-  );
+  for (const optionFormat of [undefined, "text_option", "audio_option"]) {
+    data.sections[1].mcOptionFormat = optionFormat;
+    const text = nodes(renderGrade())
+      .flatMap((node) => node.props.children)
+      .filter((child) => typeof child === "string")
+      .join(" ");
+    assert.equal(
+      text.includes("first"),
+      true,
+      "hybrid grading always displays correct option text",
+    );
+    assert.equal(
+      text.includes("second"),
+      true,
+      "hybrid grading always displays selected option text",
+    );
+  }
 
   const oldMc = { type: "mc", studentResponses: { 0: "D", 1: "D" } };
   const oldAudio = {
@@ -1472,8 +1491,8 @@ async function uiChecks() {
     assert.equal(hasText("question.mcOffered"), false);
     if (kind === "mc") {
       assert.equal(hasText("gradeAssessment.noAnswer"), response?.type !== "mc");
-      assert.equal(hasText("first"), false, "grading excludes admin hints");
-      assert.equal(hasText("second"), false, "grading excludes admin hints");
+      assert.equal(hasText("first"), true, "text grading displays option text");
+      assert.equal(hasText("second"), true, "text grading displays option text");
     } else if (!hasRecording) {
       assert.equal(hasText("gradeAssessment.noRecording"), true);
     }
@@ -1547,6 +1566,11 @@ async function adminQuestionsChecks(app) {
   const button = (label) =>
     render().find((node) => isButton(node) && node.props.children.includes(label));
   const kindSelect = () => render().find((node) => node.type === "select");
+  const formatRadio = (format) =>
+    render().find(
+      (node) =>
+        node.type === "input" && node.props.name === "option-format" && node.props.value === format,
+    );
   const submit = () =>
     render()
       .find((node) => node.type === "form")
@@ -1562,7 +1586,9 @@ async function adminQuestionsChecks(app) {
   assert(
     nodes(kindSelect()).some((node) => node.type === "option" && node.props.value === "audio_mc"),
   );
+  assert.equal(formatRadio("text_option").props.checked, true, "new sections default to text");
   kindSelect().props.onChange({ target: { value: "audio_mc" } });
+  formatRadio("audio_option").props.onChange();
   button("adminQuestions.addQuestion").props.onClick();
   const hintInputs = () =>
     render()
@@ -1594,6 +1620,13 @@ async function adminQuestionsChecks(app) {
   const submitBeforeUpload = render().find((node) => node.type === "form").props.onSubmit;
   uploaders[0].props.onUploadingChange(true);
   uploaders[2].props.onUploadingChange(true);
+  formatRadio("text_option").props.onChange();
+  assert.equal(
+    saveButton().props.disabled,
+    true,
+    "switching to text cannot bypass an active option upload",
+  );
+  formatRadio("audio_option").props.onChange();
   assert.equal(saveButton().props.disabled, true, "Save waits for concurrent editor uploads");
   assert.equal(saveButton().props["aria-busy"], true);
   await submitBeforeUpload({ preventDefault() {} });
@@ -1608,6 +1641,7 @@ async function adminQuestionsChecks(app) {
   assert.equal(saved.length, 1);
   const stored = app.documents.get("questions/s8");
   assert.equal(stored.kind, "audio_mc");
+  assert.equal(stored.mcOptionFormat, "audio_option");
   assert.equal(stored.audios[0], "s8/question.mp3");
   assert.equal(stored.optionAudios[0].B, "s8/option-2.mp3");
   assert.equal(stored.choices[0].B, "Admin-only hint");
@@ -1631,10 +1665,48 @@ async function adminQuestionsChecks(app) {
       .value,
     "B",
   );
+  formatRadio("text_option").props.onChange();
+  assert.equal(
+    render().filter((node) => node.type === "AssetUploader" && node.props.label).length,
+    0,
+  );
+  await submit();
+  assert.equal(saved.length, 1, "text mode rejects blank option labels");
+  const textInputs = () =>
+    render()
+      .filter(
+        (node) =>
+          node.type === "label" && node.props.children.includes("adminQuestions.choiceText"),
+      )
+      .map((node) => nodes(node).find((child) => child.type === "input"));
+  assert.equal(textInputs()[1].props.value, "Admin-only hint", "existing hints become option text");
+  textInputs().forEach((input, index) =>
+    input.props.onChange({ target: { value: `Option text ${index}` } }),
+  );
+  await submit();
+  assert.equal(saved.length, 2);
+  const textSection = app.documents.get("questions/s8");
+  assert.equal(textSection.mcOptionFormat, "text_option");
+  assert.equal(textSection.optionAudios[0].B, "s8/option-2.mp3", "text saves retain recordings");
+  assert.equal(textSection.maxOptionPlays, 2);
+  render()
+    .filter((node) => isButton(node) && node.props.children.includes("common.edit"))
+    .at(-1)
+    .props.onClick();
+  render()
+    .find((node) => isButton(node) && "aria-expanded" in node.props)
+    .props.onClick();
+  assert.equal(formatRadio("text_option").props.checked, true);
+  formatRadio("audio_option").props.onChange();
+  assert.equal(hintInputs()[1].props.value, "Option text 1");
+  assert.equal(
+    render().filter((node) => node.type === "AssetUploader" && node.props.label)[1].props.value,
+    "s8/option-2.mp3",
+  );
   for (const uploader of render().filter((node) => node.type === "AssetUploader"))
     uploader.props.onChange("");
   await submit();
-  assert.equal(saved.length, 2, "the editor saves a section without recordings");
+  assert.equal(saved.length, 3, "the editor saves a section without recordings");
   const withoutAudio = app.documents.get("questions/s8");
   assert.equal(withoutAudio.audios[0], "");
   assert.equal(withoutAudio.optionAudios[0].B, "");
@@ -2465,6 +2537,7 @@ async function optionPlaybackChecks() {
   const config = {
     title: "Audio options",
     kind: "mc",
+    mcOptionFormat: "audio_option",
     length: 2,
     goal: "",
     questions: ["Q1", "Q2"],
@@ -2703,6 +2776,143 @@ async function optionPlaybackChecks() {
   );
 }
 
+async function mcOptionFormatChecks() {
+  const app = backend();
+  const config = {
+    id: "0",
+    title: "Format",
+    kind: "mc",
+    length: 2,
+    goal: "",
+    questions: ["Q1", "Q2"],
+    audios: [],
+    choices: [
+      { B: "First", D: "Second" },
+      { B: "First", D: "Second" },
+    ],
+    optionAudios: [
+      { B: "b.mp3", D: "d.mp3" },
+      { B: "b2.mp3", D: "d2.mp3" },
+    ],
+    correctAnswers: ["B", "D"],
+    maxOptionPlays: 3,
+    instructions: { text: "", audio: "" },
+  };
+  const save = (value) =>
+    app.call("/admin/save-question-section", value, "owner", { isAdmin: true });
+  for (const kind of ["mc", "audio_mc"]) {
+    app.documents.set("questions/0", { ...config, kind });
+    assert.equal(
+      (await app.call("/get-questions")).sections[0].mcOptionFormat,
+      "text_option",
+      "stored legacy sections default to text",
+    );
+    await save({ ...config, kind });
+    assert.equal(app.documents.get("questions/0").mcOptionFormat, "text_option");
+    await assert.rejects(
+      save({ ...config, kind, choices: [{ B: " ", D: "Second" }, config.choices[1]] }),
+      (error) => error.statusCode === 400,
+    );
+    await assert.rejects(
+      save({ ...config, kind, mcOptionFormat: "other" }),
+      (error) => error.statusCode === 400,
+    );
+    await save({
+      ...config,
+      kind,
+      mcOptionFormat: "audio_option",
+      choices: [
+        { B: "", D: "" },
+        { B: "", D: "" },
+      ],
+      optionAudios: [],
+    });
+    assert.equal(
+      app.documents.get("questions/0").mcOptionFormat,
+      "audio_option",
+      "audio can be saved before recordings or hints exist",
+    );
+    await save({ ...config, kind, mcOptionFormat: "text_option" });
+    const assessmentId = `format-${kind}`;
+    app.documents.set(`assessments/${assessmentId}`, {
+      name: "Format test",
+      grade: "S1",
+      creatorEmail: "owner",
+      createdAt: app.timestamp,
+      finished: false,
+      currentSection: 0,
+      currentQuestion: 0,
+    });
+    const address = { assessmentId, section: 0, question: 0 };
+    const submit = (question) =>
+      kind === "mc"
+        ? app.call("/submit-mc-answer", { ...address, question, answer: "B", totalSeconds: 7 })
+        : app.call("/submit-audio-mc-answer", {
+            ...address,
+            question,
+            gsUri: null,
+            transcript: null,
+            assistanceOffered: true,
+            selectedOption: "B",
+            skipped: false,
+            totalSeconds: 7,
+          });
+    await submit(0);
+    let response = app.documents.get(`studentResponses/${assessmentId}-0`);
+    assert.equal(
+      response.optionPlaybackIds,
+      undefined,
+      "text answers do not initialize playback tracking from retained assets",
+    );
+    assert.equal(response.questionTimeSeconds[0], 7);
+    await save({ ...config, kind, mcOptionFormat: "audio_option" });
+    const event = { ...address, optionKey: "B", playbackId: crypto.randomUUID() };
+    await app.call("/update-option-audio-playback", event);
+    await save({ ...config, kind, mcOptionFormat: "text_option" });
+    assert.equal(app.documents.get("questions/0").optionAudios[0].B, "b.mp3");
+    const lateEvent = { ...event, playbackId: crypto.randomUUID() };
+    await app.call("/update-option-audio-playback", lateEvent);
+    await app.call("/update-option-audio-playback", lateEvent);
+    await submit(1);
+    response = app.documents.get(`studentResponses/${assessmentId}-0`);
+    assert.equal(
+      response.optionPlaybackIds[0].B.length,
+      2,
+      "switching formats preserves historical and delayed plays, with retries deduplicated",
+    );
+    assert.equal(
+      response.optionPlaybackIds[1],
+      undefined,
+      "new text answers do not initialize zero counts",
+    );
+    const result = await app.call("/get-assessment-student-responses", { assessmentId });
+    const workbook = app.load("apps/web/src/lib/assessment-export.ts").buildAssessmentWorkbook({
+      assessments: [result.assessment],
+      sections: result.sections,
+      responses: Object.values(result.studentResponsesBySection),
+      subtasks: [],
+      exportedAtIsoTimestamp: new Date(0).toISOString(),
+    });
+    const sheet = workbook.find((item) => item.headers.includes("q1_plays_B"));
+    assert.equal(sheet.rows[0][sheet.headers.indexOf("q1_plays_B")], 2);
+    assert.equal(
+      sheet.headers.includes("q2_plays_B"),
+      false,
+      "inactive audio assets do not add text-mode playback columns",
+    );
+  }
+  await save({ ...config, images: ["old.png", null] });
+  await save(config);
+  assert.equal(
+    app.documents.get("questions/0").images,
+    undefined,
+    "disabling images still removes the saved image field",
+  );
+  console.log(
+    "PASS: legacy text defaults, format validation, optional audio, mode switches, retained recordings/counts, delayed plays, and text-mode exports.",
+  );
+}
+
 async function optionPlayerChecks() {
   const hooks = hookRuntime();
   hooks.React.useImperativeHandle = () => {};
@@ -2819,63 +3029,85 @@ async function mcOptionsChecks() {
     finishRead,
     failSave = false,
     loseResponse = false;
+  let callableUses = 0,
+    storageReads = 0;
   const pendingSaves = [];
   const storage = {
     getItem: (key) => cache.get(key) ?? null,
     setItem: (key, value) => cache.set(key, value),
   };
-  const makeOptions = () => {
+  const makeOptions = (optionFormat = "audio_option") => {
     const hooks = hookRuntime();
     const key = (relative) => path.join(root, `apps/web/src/${relative}`);
     const Component = sourceLoader(
       {
         react: hooks.React,
         [key("lib/firebase-hooks.ts")]: {
-          useCallable: (name) => [
-            async (input) => {
-              if (name === "api/get-option-audio-playback") {
-                if (pendingRead) await pendingRead;
+          useCallable: (name) => (
+            callableUses++,
+            [
+              async (input) => {
+                if (name === "api/get-option-audio-playback") {
+                  if (pendingRead) await pendingRead;
+                  return { data: { counts: { ...serverCounts }, maxPlays: 2 } };
+                }
+                requests.push(input);
+                await new Promise((resolve) => pendingSaves.push(resolve));
+                if (failSave) {
+                  failSave = false;
+                  throw new Error("Offline");
+                }
+                if (!storedPlays.has(input.playbackId)) {
+                  storedPlays.add(input.playbackId);
+                  serverCounts[input.optionKey]++;
+                }
+                if (loseResponse) {
+                  loseResponse = false;
+                  throw new Error("Lost response");
+                }
                 return { data: { counts: { ...serverCounts }, maxPlays: 2 } };
-              }
-              requests.push(input);
-              await new Promise((resolve) => pendingSaves.push(resolve));
-              if (failSave) {
-                failSave = false;
-                throw new Error("Offline");
-              }
-              if (!storedPlays.has(input.playbackId)) {
-                storedPlays.add(input.playbackId);
-                serverCounts[input.optionKey]++;
-              }
-              if (loseResponse) {
-                loseResponse = false;
-                throw new Error("Lost response");
-              }
-              return { data: { counts: { ...serverCounts }, maxPlays: 2 } };
-            },
-            false,
-          ],
+              },
+              false,
+            ]
+          ),
         },
         [key("hooks/useTranslation.ts")]: { useTranslation: () => ({ t: (key) => key }) },
         [key("hooks/useStorageUrl.ts")]: {
-          useStorageUrl: () => ({ url: "asset:option", loading: false, error: null }),
+          useStorageUrl: () => (
+            storageReads++,
+            { url: "asset:option", loading: false, error: null }
+          ),
         },
         ...componentStubs(["AudioPlayer", "Alert", "Button"]),
       },
       { localStorage: storage },
     )("apps/web/src/components/McOptions.tsx").McOptions;
     const props = {
-      assessmentId: "test",
-      section: 0,
-      question: 0,
+      optionFormat,
       keys: ["B", "D"],
-      audios: { B: "b.mp3", D: "d.mp3" },
-      maxPlays: 2,
+      ...(optionFormat === "audio_option"
+        ? {
+            assessmentId: "test",
+            section: 0,
+            question: 0,
+            audios: { B: "b.mp3", D: "d.mp3" },
+            maxPlays: 2,
+          }
+        : { choices: { B: "First option", D: "Second option" } }),
       selectedIndex: null,
-      onSelect() {},
+      onSelect(index) {
+        props.selectedIndex = index;
+      },
       disabled: false,
     };
-    const render = () => nodes(hooks.render(() => Component(props)));
+    if (optionFormat === null) delete props.optionFormat;
+    const render = () =>
+      nodes(
+        hooks.render(() => {
+          const element = Component(props);
+          return element.type(element.props);
+        }),
+      );
     const recordings = () =>
       render().filter(
         (node) => typeof node.type === "function" && node.type.name === "OptionRecording",
@@ -2886,14 +3118,48 @@ async function mcOptionsChecks() {
         .props.onClick();
     render();
     const cleanups = hooks.effects.map((effect) => effect()).filter(Boolean);
-    return { render, recordings, retry, cleanup: () => cleanups.forEach((cleanup) => cleanup()) };
+    return {
+      props,
+      render,
+      recordings,
+      retry,
+      cleanup: () => cleanups.forEach((cleanup) => cleanup()),
+    };
   };
+  for (const format of ["text_option", null]) {
+    const textOptions = makeOptions(format);
+    const tree = textOptions.render();
+    assert(tree.some((node) => node.props.children.includes("First option")));
+    assert(tree.some((node) => node.props.children.includes("Second option")));
+    assert.equal(textOptions.recordings().length, 0);
+    assert.equal(callableUses, 0, "text options never mount the playback hook");
+    assert.equal(storageReads, 0, "text options never load retained option recordings");
+    tree.find((node) => node.type === "input" && node.props.value === "D").props.onChange();
+    assert.equal(textOptions.props.selectedIndex, 1);
+    assert.equal(
+      textOptions.render().find((node) => node.type === "input" && node.props.value === "D").props
+        .checked,
+      true,
+    );
+    textOptions.props.disabled = true;
+    assert(
+      textOptions
+        .render()
+        .filter((node) => node.type === "input")
+        .every((node) => node.props.disabled),
+    );
+    textOptions.cleanup();
+  }
   const flush = () => new Promise(setImmediate);
   const finishSaves = () => pendingSaves.splice(0).forEach((resolve) => resolve());
   pendingRead = new Promise((resolve) => {
     finishRead = resolve;
   });
   const first = makeOptions();
+  assert(
+    first.render().every((node) => !node.props.children.includes("First option")),
+    "audio mode does not display admin hints",
+  );
   assert.equal(
     first.recordings()[0].props.disabled,
     false,
@@ -3352,6 +3618,7 @@ async function main() {
   await assetUploaderChecks();
   await mcOptionsChecks();
   await optionPlaybackChecks();
+  await mcOptionFormatChecks();
   await optionPlayerChecks();
   assessmentSelectChecks();
   await newAssessmentDemographicsChecks();

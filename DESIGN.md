@@ -160,15 +160,29 @@ elapsed/total time, and ten-second backward/forward controls. Controls use the
 existing semantic colors, radius, and Lucide icons. Feedback reserves a line below
 the player so loading and errors do not move its controls.
 
-MC options use the shared player's `option` variant beside a separate native radio
-label containing only the option key. Optional `choices` text is an admin hint
-displayed only in Admin Questions, never during assessment or grading. The option
-variant has Play/Stop and a count, with no seek or standalone Replay control.
+MC and hybrid sections have a section-level Text/Audio option format. Missing
+formats, including existing sections, default to Text. Text options pair the stable
+key with student-visible `choices` text during assessment and grading, without
+option players or playback-count requests. Audio options use the shared player's
+`option` variant beside a separate native radio label containing only the key;
+`choices` text is then an optional hint for admins and markers, hidden from students.
+Grading always displays available option text, including hybrid selected and correct
+answers, regardless of format. The option variant has Play/Stop
+and a count, with no seek or standalone Replay control.
 Starting again restarts the clip and consumes another play. The frontend checks
 the limit; playback starts immediately and its count saves in the background.
 Exhausting the limit
 disables playback while leaving answer selection available. The existing white
 option cards, primary focus color, and localized feedback remain canonical.
+
+Admin Questions owns the section format's native radio group, with a visible legend
+and localized explanation. It uses existing form borders, typography, and focus
+tokens. Text mode labels choice values Option text; Audio mode labels them Admin
+hint and reveals the recording uploaders and play limit. Switching formats preserves
+all values and assets, including uploads that are still finishing. Plain audio
+sections have no option-format controls. Hybrid answer/assistance behavior is
+independent of option presentation. Historical playback counts remain available
+after switching to Text.
 
 `AssetUploader` owns the file picker, upload feedback, and media preview used by
 Admin Questions. A shared outline Button labeled Upload file or Replace file opens

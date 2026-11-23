@@ -24,6 +24,7 @@ import { AssetUploader } from "../components/AssetUploader";
 import { useTranslation } from "../hooks/useTranslation";
 
 type Kind = "mc" | "audio" | "audio_mc";
+type OptionFormat = "text_option" | "audio_option";
 const KINDS: Kind[] = ["mc", "audio", "audio_mc"];
 
 const SMALL_INPUT_CLASSES =
@@ -31,8 +32,13 @@ const SMALL_INPUT_CLASSES =
 
 interface ChoicePair {
   key: string;
-  hint: string;
+  text: string;
   audio: string;
+}
+
+interface ChoiceLocation {
+  rowIndex: number;
+  choiceIndex: number;
 }
 
 interface QuestionRow {
@@ -48,6 +54,7 @@ interface FormState {
   id: string;
   title: string;
   kind: Kind;
+  optionFormat: OptionFormat;
   goal: string;
   instructionText: string;
   instructionAudio: string;
@@ -55,6 +62,7 @@ interface FormState {
   questionsNull: boolean;
   imagesEnabled: boolean;
   maxOptionPlays: number;
+  maxOptionPlaysDraft: string;
 }
 
 const DEFAULT_CHOICE_KEYS = ["A", "B", "C", "D"];
@@ -67,7 +75,7 @@ function blankRow(kind: Kind): QuestionRow {
     audio: "",
     choicesAudio: "",
     choices:
-      kind === "audio" ? [] : DEFAULT_CHOICE_KEYS.map((key) => ({ key, hint: "", audio: "" })),
+      kind === "audio" ? [] : DEFAULT_CHOICE_KEYS.map((key) => ({ key, text: "", audio: "" })),
     correctAnswer: "",
     image: "",
   };
@@ -77,6 +85,7 @@ const blankForm = (id = ""): FormState => ({
   id,
   title: "",
   kind: "mc",
+  optionFormat: "text_option",
   goal: "",
   instructionText: "",
   instructionAudio: "",
@@ -84,13 +93,14 @@ const blankForm = (id = ""): FormState => ({
   questionsNull: false,
   imagesEnabled: false,
   maxOptionPlays: 2,
+  maxOptionPlaysDraft: "2",
 });
 
 function recordToChoicePairs(
   record: Record<string, string>,
   audios: Record<string, string> = {},
 ): ChoicePair[] {
-  return Object.entries(record).map(([key, hint]) => ({ key, hint, audio: audios[key] ?? "" }));
+  return Object.entries(record).map(([key, text]) => ({ key, text, audio: audios[key] ?? "" }));
 }
 
 function sectionToForm(section: QuestionSectionDto): FormState {
@@ -112,6 +122,7 @@ function sectionToForm(section: QuestionSectionDto): FormState {
     id: section.id,
     title: section.title,
     kind: section.kind,
+    optionFormat: section.mcOptionFormat ?? "text_option",
     goal: section.goal,
     instructionText: section.instructions.text,
     instructionAudio: section.instructions.audio,
@@ -119,6 +130,7 @@ function sectionToForm(section: QuestionSectionDto): FormState {
     questionsNull: section.questions === null,
     imagesEnabled: section.images !== undefined,
     maxOptionPlays: section.maxOptionPlays ?? 2,
+    maxOptionPlaysDraft: String(section.maxOptionPlays ?? 2),
   };
 }
 
@@ -128,15 +140,16 @@ function buildInput(
 ): {
   input?: AdminSaveQuestionSectionInput;
   error?: string;
+  invalidChoiceText?: ChoiceLocation;
 } {
   const id = form.id.trim();
   if (!id) return { error: t("adminQuestions.errorIdRequired") };
 
   if (form.kind !== "audio") {
+    const maxOptionPlays = Number(form.maxOptionPlaysDraft);
     if (
-      !Number.isInteger(form.maxOptionPlays) ||
-      form.maxOptionPlays < 1 ||
-      form.maxOptionPlays > 20
+      form.optionFormat === "audio_option" &&
+      (!Number.isInteger(maxOptionPlays) || maxOptionPlays < 1 || maxOptionPlays > 20)
     )
       return { error: t("adminQuestions.invalidPlayLimit") };
     if (
@@ -163,12 +176,17 @@ function buildInput(
     choices = [];
     for (const [idx, row] of form.rows.entries()) {
       const record: Record<string, string> = {};
-      for (const { key, hint } of row.choices) {
+      for (const [choiceIndex, { key, text }] of row.choices.entries()) {
         const k = key.trim();
         if (!k) return { error: t("adminQuestions.errorChoiceKeyEmpty", { n: idx + 1 }) };
         if (k in record)
           return { error: t("adminQuestions.errorChoiceKeyDup", { n: idx + 1, key: k }) };
-        record[k] = hint;
+        if (form.optionFormat === "text_option" && !text.trim())
+          return {
+            error: t("adminQuestions.errorChoiceTextEmpty", { n: idx + 1, key: k }),
+            invalidChoiceText: { rowIndex: idx, choiceIndex },
+          };
+        record[k] = text;
       }
       choices.push(record);
     }
@@ -192,6 +210,7 @@ function buildInput(
     instructions,
     ...(choices !== undefined && { choices }),
     ...(form.kind !== "audio" && {
+      mcOptionFormat: form.optionFormat,
       optionAudios: form.rows.map((row) =>
         Object.fromEntries(row.choices.map((choice) => [choice.key.trim(), choice.audio])),
       ),
@@ -214,6 +233,8 @@ export default function AdminQuestions() {
   const [form, setForm] = useState<FormState>(blankForm());
   const [initialFormJson, setInitialFormJson] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
+  const [invalidChoiceText, setInvalidChoiceText] = useState<ChoiceLocation | null>(null);
+  const invalidChoiceTextRef = useRef<HTMLInputElement>(null);
   const [page, setPage] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
   const [uploadCount, setUploadCount] = useState(0);
@@ -235,6 +256,10 @@ export default function AdminQuestions() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (invalidChoiceText) invalidChoiceTextRef.current?.focus();
+  }, [invalidChoiceText]);
+
   const refresh = async () => {
     try {
       const res = await getQuestions();
@@ -251,6 +276,7 @@ export default function AdminQuestions() {
     setInitialFormJson(JSON.stringify(initial));
     setEditing({ isNew: true });
     setError(null);
+    setInvalidChoiceText(null);
     setPage(0);
     setShowSettings(true);
   };
@@ -261,6 +287,7 @@ export default function AdminQuestions() {
     setInitialFormJson(JSON.stringify(initial));
     setEditing({ isNew: false });
     setError(null);
+    setInvalidChoiceText(null);
     setPage(0);
     setShowSettings(false);
   };
@@ -305,7 +332,7 @@ export default function AdminQuestions() {
         ...prev,
         rows: prev.rows.map((r, i) =>
           i === rowIndex
-            ? { ...r, choices: [...r.choices, { key: nextDefaultKey, hint: "", audio: "" }] }
+            ? { ...r, choices: [...r.choices, { key: nextDefaultKey, text: "", audio: "" }] }
             : r,
         ),
       };
@@ -340,8 +367,10 @@ export default function AdminQuestions() {
     if (saving || activeUploads.current > 0) return;
     setError(null);
 
-    const { input, error: buildError } = buildInput(form, t);
+    const { input, error: buildError, invalidChoiceText: invalidChoice } = buildInput(form, t);
+    setInvalidChoiceText(invalidChoice ?? null);
     if (!input) {
+      if (invalidChoice) setPage(Math.floor(invalidChoice.rowIndex / PAGE_SIZE));
       setError(buildError ?? t("adminQuestions.errorInvalidForm"));
       return;
     }
@@ -519,7 +548,7 @@ export default function AdminQuestions() {
                                           ? row.choices
                                           : DEFAULT_CHOICE_KEYS.map((key) => ({
                                               key,
-                                              hint: "",
+                                              text: "",
                                               audio: "",
                                             })),
                                       })),
@@ -539,6 +568,35 @@ export default function AdminQuestions() {
                       </div>
 
                       {form.kind !== "audio" && (
+                        <fieldset aria-describedby="option-format-help" className="space-y-2">
+                          <legend className="text-sm font-medium text-gray-700">
+                            {t("adminQuestions.optionFormat")}
+                          </legend>
+                          <div className="flex flex-wrap gap-4">
+                            {(["text_option", "audio_option"] as const).map((format) => (
+                              <label
+                                key={format}
+                                className="flex cursor-pointer items-center gap-2 rounded-md border border-gray-300 px-3 py-2 text-sm hover:bg-gray-50 focus-within:ring-2 focus-within:ring-ring active:bg-gray-100"
+                              >
+                                <input
+                                  type="radio"
+                                  name="option-format"
+                                  value={format}
+                                  checked={form.optionFormat === format}
+                                  onChange={() => updateForm("optionFormat", format)}
+                                  className="cursor-pointer accent-primary"
+                                />
+                                {t(`adminQuestions.optionFormat.${format}`)}
+                              </label>
+                            ))}
+                          </div>
+                          <p id="option-format-help" className="text-xs text-gray-600">
+                            {t("adminQuestions.optionFormatHelp")}
+                          </p>
+                        </fieldset>
+                      )}
+
+                      {form.kind !== "audio" && form.optionFormat === "audio_option" && (
                         <div>
                           <label
                             htmlFor="max-option-plays"
@@ -552,8 +610,19 @@ export default function AdminQuestions() {
                             min={1}
                             max={20}
                             step={1}
-                            value={form.maxOptionPlays || ""}
-                            onChange={(e) => updateForm("maxOptionPlays", Number(e.target.value))}
+                            value={form.maxOptionPlaysDraft}
+                            onChange={(e) => {
+                              const draft = e.target.value;
+                              const limit = Number(draft);
+                              setForm((previous) => ({
+                                ...previous,
+                                maxOptionPlaysDraft: draft,
+                                // Keep the last valid limit if an unfinished edit is hidden in text mode.
+                                ...(Number.isInteger(limit) && limit >= 1 && limit <= 20
+                                  ? { maxOptionPlays: limit }
+                                  : {}),
+                              }));
+                            }}
                             className={INPUT_CLASSES}
                           />
                         </div>
@@ -762,28 +831,56 @@ export default function AdminQuestions() {
                                       </Button>
                                     </div>
                                     <label className="block text-xs font-medium text-gray-600">
-                                      {t("adminQuestions.choiceHint")}
+                                      {t(
+                                        form.optionFormat === "text_option"
+                                          ? "adminQuestions.choiceText"
+                                          : "adminQuestions.choiceHint",
+                                      )}
                                       <input
                                         type="text"
-                                        value={choice.hint}
+                                        value={choice.text}
+                                        required={form.optionFormat === "text_option"}
+                                        ref={
+                                          invalidChoiceText?.rowIndex === rowIdx &&
+                                          invalidChoiceText.choiceIndex === choiceIdx
+                                            ? invalidChoiceTextRef
+                                            : undefined
+                                        }
+                                        aria-invalid={
+                                          form.optionFormat === "text_option" &&
+                                          invalidChoiceText?.rowIndex === rowIdx &&
+                                          invalidChoiceText.choiceIndex === choiceIdx &&
+                                          !choice.text.trim()
+                                        }
+                                        aria-describedby={
+                                          error &&
+                                          form.optionFormat === "text_option" &&
+                                          invalidChoiceText?.rowIndex === rowIdx &&
+                                          invalidChoiceText.choiceIndex === choiceIdx &&
+                                          !choice.text.trim()
+                                            ? "question-section-error"
+                                            : undefined
+                                        }
                                         onChange={(e) =>
-                                          updateChoice(rowIdx, choiceIdx, { hint: e.target.value })
+                                          updateChoice(rowIdx, choiceIdx, { text: e.target.value })
                                         }
                                         className={`${INPUT_CLASSES} mt-1 w-full`}
                                       />
                                     </label>
-                                    <AssetUploader
-                                      kind="audio"
-                                      label={t("adminQuestions.optionAudio", {
-                                        key: choice.key || choiceIdx + 1,
-                                      })}
-                                      sectionId={`${form.id}/q${rowIdx + 1}/option-${encodeURIComponent(choice.key || String(choiceIdx + 1))}`}
-                                      value={choice.audio}
-                                      onChange={(audio) =>
-                                        updateChoice(rowIdx, choiceIdx, { audio })
-                                      }
-                                      onUploadingChange={handleUploadingChange}
-                                    />
+                                    {form.optionFormat === "audio_option" && (
+                                      <AssetUploader
+                                        kind="audio"
+                                        label={t("adminQuestions.optionAudio", {
+                                          key: choice.key || choiceIdx + 1,
+                                        })}
+                                        sectionId={`${form.id}/q${rowIdx + 1}/option-${encodeURIComponent(choice.key || String(choiceIdx + 1))}`}
+                                        value={choice.audio}
+                                        onChange={(audio) =>
+                                          updateChoice(rowIdx, choiceIdx, { audio })
+                                        }
+                                        onUploadingChange={handleUploadingChange}
+                                      />
+                                    )}
                                   </div>
                                 ))}
                                 {row.choices.length === 0 && (
@@ -849,7 +946,7 @@ export default function AdminQuestions() {
                 </div>
 
                 {error && (
-                  <Alert variant="destructive">
+                  <Alert id="question-section-error" variant="destructive">
                     <AlertDescription>{error}</AlertDescription>
                   </Alert>
                 )}
