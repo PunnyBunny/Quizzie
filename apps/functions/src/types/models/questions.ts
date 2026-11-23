@@ -18,7 +18,12 @@ export function toQuestionSectionDto(
   doc: FirebaseFirestore.QueryDocumentSnapshot<QuestionSectionDoc>,
 ): QuestionSectionDto {
   const data = doc.data();
-  return { id: doc.id, ...data, optionAudios: data.optionAudios ?? [] };
+  return {
+    id: doc.id,
+    ...data,
+    mcOptionFormat: data.mcOptionFormat ?? "text_option",
+    optionAudios: data.optionAudios ?? [],
+  };
 }
 
 export async function getQuestionSections(): Promise<QuestionSectionDto[]> {

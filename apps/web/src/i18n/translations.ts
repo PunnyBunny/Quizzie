@@ -9,7 +9,6 @@ type Dict = Record<string, string>;
 
 const en: Dict = {
   "audio.stop": "Stop",
-  "question.option": "Option {{key}}",
   "question.optionPlayCount": "{{count}} / {{max}} plays",
   "question.optionLimitReached": "Play limit reached. You can still select this option.",
   "question.optionInstructions":
@@ -18,6 +17,11 @@ const en: Dict = {
     "Could not sync playback counts. Check your connection and retry.",
   "question.optionAudioMissing": "Option recording unavailable. Ask the assessor for help.",
   "adminQuestions.optionAudio": "Recording for option {{key}}",
+  "adminQuestions.optionFormat": "MC option format",
+  "adminQuestions.optionFormat.text_option": "Text",
+  "adminQuestions.optionFormat.audio_option": "Audio",
+  "adminQuestions.optionFormatHelp":
+    "Text displays option text to students. Audio uses recordings with hints for admins and markers. Switching formats keeps option values, recordings, and play limits.",
   "adminQuestions.maxOptionPlays": "Maximum plays per option",
   "adminQuestions.invalidPlayLimit":
     "Enter a whole number from 1 to 20 for the maximum plays per option.",
@@ -435,6 +439,7 @@ const en: Dict = {
   "adminQuestions.errorIdRequired": "Section ID is required.",
   "adminQuestions.errorChoiceKeyEmpty": "Question {{n}}: choice key cannot be empty.",
   "adminQuestions.errorChoiceKeyDup": 'Question {{n}}: duplicate choice key "{{key}}".',
+  "adminQuestions.errorChoiceTextEmpty": 'Question {{n}}: enter option text for "{{key}}".',
   "adminQuestions.errorInvalidForm": "Invalid form.",
   "adminQuestions.new": "New Section",
   "adminQuestions.col.id": "ID",
@@ -470,7 +475,8 @@ const en: Dict = {
   "adminQuestions.image": "Image (blank = null)",
   "adminQuestions.addChoice": "+ Add choice",
   "adminQuestions.choiceKey": "Key",
-  "adminQuestions.choiceHint": "Admin hint (optional; shown only here)",
+  "adminQuestions.choiceText": "Option text",
+  "adminQuestions.choiceHint": "Admin hint (optional; also shown in grading)",
   "adminQuestions.removeChoice": "Remove choice {{label}}",
   "adminQuestions.noChoices": "No choices.",
   "adminQuestions.correctAnswer": "Correct answer",
@@ -489,13 +495,17 @@ const en: Dict = {
 
 const zh: Dict = {
   "audio.stop": "停止",
-  "question.option": "選項 {{key}}",
   "question.optionPlayCount": "已播放 {{count}} / {{max}} 次",
   "question.optionLimitReached": "已達播放次數上限，你仍可選擇此選項。",
   "question.optionInstructions": "聆聽各選項後選擇答案。每個選項最多可播放 {{max}} 次。",
   "question.optionPlaybackError": "無法同步播放次數，請檢查網絡連線後重試。",
   "question.optionAudioMissing": "選項錄音無法使用，請向評估員求助。",
   "adminQuestions.optionAudio": "選項 {{key}} 的錄音",
+  "adminQuestions.optionFormat": "選擇題選項格式",
+  "adminQuestions.optionFormat.text_option": "文字",
+  "adminQuestions.optionFormat.audio_option": "音訊",
+  "adminQuestions.optionFormatHelp":
+    "文字模式會向學生顯示選項文字。音訊模式使用錄音，提示供管理員及評分員查看。切換格式會保留選項內容、錄音及播放次數上限。",
   "adminQuestions.maxOptionPlays": "每個選項的播放次數上限",
   "adminQuestions.invalidPlayLimit": "請輸入 1 至 20 之間的整數作為每個選項的播放次數上限。",
   "gradeAssessment.optionPlays": "選項 {{key}}：播放了 {{count}} 次",
@@ -899,6 +909,7 @@ const zh: Dict = {
   "adminQuestions.errorIdRequired": "必須輸入章節 ID。",
   "adminQuestions.errorChoiceKeyEmpty": "第 {{n}} 題:選項代號不能為空。",
   "adminQuestions.errorChoiceKeyDup": "第 {{n}} 題:選項代號「{{key}}」重複。",
+  "adminQuestions.errorChoiceTextEmpty": "第 {{n}} 題：請輸入選項「{{key}}」的文字。",
   "adminQuestions.errorInvalidForm": "表單無效。",
   "adminQuestions.new": "新增章節",
   "adminQuestions.col.id": "ID",
@@ -934,7 +945,8 @@ const zh: Dict = {
   "adminQuestions.image": "圖片 (留空 = null)",
   "adminQuestions.addChoice": "+ 新增選項",
   "adminQuestions.choiceKey": "代號",
-  "adminQuestions.choiceHint": "管理員提示（選填，僅在此顯示）",
+  "adminQuestions.choiceText": "選項文字",
+  "adminQuestions.choiceHint": "管理員提示（選填，亦會在評分頁面顯示）",
   "adminQuestions.removeChoice": "移除選項 {{label}}",
   "adminQuestions.noChoices": "沒有選項。",
   "adminQuestions.correctAnswer": "正確答案",

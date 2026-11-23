@@ -7,16 +7,67 @@ import { audioStoragePath } from "../lib/asset-paths";
 import { useTranslation } from "../hooks/useTranslation";
 import type { GetOptionAudioPlaybackInput } from "@vaca/contracts";
 
-interface McOptionsProps extends GetOptionAudioPlaybackInput {
+interface BaseMcOptionsProps {
   keys: string[];
-  audios: Record<string, string>;
   selectedIndex: number | null;
   onSelect: (index: number) => void;
   disabled: boolean;
+}
+
+interface TextMcOptionsProps extends BaseMcOptionsProps {
+  optionFormat: "text_option";
+  choices: Record<string, string>;
+}
+
+interface AudioMcOptionsProps extends BaseMcOptionsProps, GetOptionAudioPlaybackInput {
+  optionFormat: "audio_option";
+  audios: Record<string, string>;
   maxPlays: number;
 }
 
-export function McOptions({
+type McOptionsProps = TextMcOptionsProps | AudioMcOptionsProps;
+
+export function McOptions(props: McOptionsProps) {
+  return props.optionFormat === "audio_option" ? (
+    <AudioMcOptions {...props} />
+  ) : (
+    <TextMcOptions {...props} />
+  );
+}
+
+function TextMcOptions({ keys, choices, selectedIndex, onSelect, disabled }: TextMcOptionsProps) {
+  const { t } = useTranslation();
+
+  return (
+    <fieldset className="flex flex-col gap-3">
+      <legend className="mb-3 text-sm text-muted-foreground">{t("question.alertSelect")}</legend>
+      {keys.map((key, index) => (
+        <label
+          key={key}
+          className={`flex items-start gap-3 rounded-md border-2 bg-white p-3 focus-within:border-primary ${
+            disabled ? "cursor-not-allowed" : "cursor-pointer hover:bg-gray-50"
+          }`}
+        >
+          <input
+            type="radio"
+            name="choice"
+            value={key}
+            checked={selectedIndex === index}
+            disabled={disabled}
+            onChange={() => onSelect(index)}
+            className="mt-1 h-4 w-4 shrink-0 accent-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          />
+          <span className="font-medium wrap-anywhere">{key}</span>
+          <span className="min-w-0 flex-1 whitespace-pre-wrap wrap-anywhere">
+            {Object.hasOwn(choices, key) ? choices[key] : ""}
+          </span>
+        </label>
+      ))}
+    </fieldset>
+  );
+}
+
+function AudioMcOptions({
   assessmentId,
   section,
   question,
@@ -26,7 +77,7 @@ export function McOptions({
   onSelect,
   disabled,
   maxPlays,
-}: McOptionsProps) {
+}: AudioMcOptionsProps) {
   const { t } = useTranslation();
   const { counts, error, recordPlay, retry } = useOptionAudioPlayback({
     assessmentId,
@@ -64,11 +115,11 @@ export function McOptions({
               onChange={() => onSelect(index)}
               className="h-4 w-4 accent-primary"
             />
-            {t("question.option", { key })}
+            {key}
           </label>
           <OptionRecording
             path={Object.hasOwn(audios, key) ? audios[key] : ""}
-            label={t("question.option", { key })}
+            label={key}
             count={Object.hasOwn(counts, key) ? counts[key] : 0}
             maxPlays={maxPlays}
             disabled={disabled}

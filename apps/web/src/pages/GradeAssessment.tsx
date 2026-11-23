@@ -22,6 +22,20 @@ import { useGradingAudio } from "../hooks/useGradingAudio";
  */
 const TRANSCRIPT_MAX_LENGTH = 5000;
 
+function formatOptionLabel(
+  section: QuestionSectionDto,
+  questionIndex: number,
+  key: string | null | undefined,
+): string {
+  if (key == null) return "";
+
+  const choices = section.choices?.[questionIndex];
+  if (!choices || !Object.hasOwn(choices, key)) return key;
+
+  const text = choices[key];
+  return text ? `${key}. ${text}` : key;
+}
+
 export default function GradeAssessment() {
   const { id = "" } = useParams<{ id: string }>();
   if (!id) throw new Error("Assessment ID not provided");
@@ -374,6 +388,10 @@ function GradeAssessmentContent({ id }: { id: string }) {
                 const validAnswer = hasAnswer && studentMcChoiceKey in choicesMap;
                 const isCorrect = hasAnswer && studentMcChoiceKey === correctAnswerKey;
                 const questionText = currentQuizSection.questions?.[questionIdx];
+                const optionPlayCounts = mcStudentResponse?.optionPlayCounts?.[questionIdx];
+                const otherOptionPlayCounts = Object.entries(optionPlayCounts ?? {}).filter(
+                  ([key]) => !Object.hasOwn(choicesMap, key),
+                );
 
                 return (
                   <div key={questionIdx} className="p-4">
@@ -417,15 +435,17 @@ function GradeAssessmentContent({ id }: { id: string }) {
                             return (
                               <div
                                 key={key}
-                                className={`flex items-center gap-2 p-2 rounded-md ${choiceClass}`}
+                                className={`flex flex-wrap items-center gap-2 p-2 rounded-md ${choiceClass}`}
                               >
-                                <span className="font-medium text-gray-500">{key}.</span>
-                                {mcStudentResponse?.optionPlayCounts?.[questionIdx] && (
+                                <span className="shrink-0 font-medium text-gray-500">{key}.</span>
+                                <span className="min-w-0 flex-1 whitespace-pre-wrap wrap-anywhere">
+                                  {choicesMap[key]}
+                                </span>
+                                {optionPlayCounts !== undefined && (
                                   <span className="text-xs text-muted-foreground">
                                     {t("gradeAssessment.optionPlays", {
                                       key,
-                                      count:
-                                        mcStudentResponse.optionPlayCounts[questionIdx][key] ?? 0,
+                                      count: optionPlayCounts[key] ?? 0,
                                     })}
                                   </span>
                                 )}
@@ -444,6 +464,13 @@ function GradeAssessmentContent({ id }: { id: string }) {
                             );
                           })}
                         </div>
+                        {otherOptionPlayCounts.length > 0 && (
+                          <div className="mt-2 text-sm text-muted-foreground">
+                            {otherOptionPlayCounts.map(([key, count]) => (
+                              <p key={key}>{t("gradeAssessment.optionPlays", { key, count })}</p>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -500,10 +527,22 @@ function GradeAssessmentContent({ id }: { id: string }) {
                             </p>
                             {attempt.assistanceOffered && (
                               <>
-                                <p>{attempt.selectedOption ?? t("gradeAssessment.noAnswer")}</p>
-                                <p>
+                                <p className="whitespace-pre-wrap wrap-anywhere">
+                                  {attempt.selectedOption == null
+                                    ? t("gradeAssessment.noAnswer")
+                                    : formatOptionLabel(
+                                        currentQuizSection,
+                                        questionIdx,
+                                        attempt.selectedOption,
+                                      )}
+                                </p>
+                                <p className="whitespace-pre-wrap wrap-anywhere">
                                   {t("gradeAssessment.correctAnswer")}:{" "}
-                                  {currentQuizSection.correctAnswers?.[questionIdx]}
+                                  {formatOptionLabel(
+                                    currentQuizSection,
+                                    questionIdx,
+                                    currentQuizSection.correctAnswers?.[questionIdx],
+                                  )}
                                 </p>
                               </>
                             )}

@@ -19,6 +19,7 @@ in `types/zod/routes/assessments.ts` define accepted archive requests.
 | Demographics     | shadcn Input + AssessmentSelect             | Authored popup; delayed aria-invalid state, linked errors, and localized clearing placeholders.                   |
 | Navigation       | App route guards + PageHeader               | User archive is owner-scoped; admin archive requires admin claims.                                                |
 | Excel export     | AdminViewAssessments + assessment-export.ts | Admin-only complete dataset; shared score helpers, guarded retries, and a localized download action.              |
+| MC option format | AdminQuestions + native radio group         | Section-level Text/Audio; Text by default; switching preserves values, recordings, and play limits.               |
 
 ## Flow
 
@@ -130,20 +131,38 @@ failed uploads retain the previous value and show an inline error. The previous
 saved asset stays available while an edit is pending. No filename entry is required.
 Remove clears the form value and preview, retaining the stored file; saving the
 editor applies that removal to the question.
-Question sections can be saved with missing question or option recordings while
-audio is being prepared. MC questions still require at least two options and a
-valid correct key. Each option's optional admin hint is stored in `choices` and
-displayed only in Admin Questions. Grading shows option keys without hint text.
-Missing recordings remain explicit in the assessment UI.
+MC and hybrid sections use `mcOptionFormat` (`text_option` or `audio_option`), with Text as the default for both new
+sections and missing historical values. Plain audio sections have no option-format
+UI. The hybrid kind continues to mean recorded-answer plus optional MC assistance;
+the format controls only the offered options. `packages/contracts/questions.d.ts`
+and the question-save schema define this configuration contract.
+
+Both formats require at least two unique nonblank option keys and a correct key
+from those options. In Text mode, `choices` values are required nonblank option text,
+displayed beside the keys during assessment and grading. In Audio mode, the same
+values are optional hints for admins and markers; students see keys with recordings.
+Grading always shows available option text beside the keys in both formats,
+including hybrid selected and correct answers.
+Question and option recordings may be missing while content is being prepared.
+Audio-mode missing recordings remain explicit and never reveal hint text as a fallback.
+Text mode mounts no option player/playback hook, fetches no option audio assets or
+playback counts, logs no playback events, and initializes no tracking for new answers.
+
+Changing format changes labels and visible controls while retaining `choices`,
+`optionAudios`, uploaded files, and `maxOptionPlays` through save and reopening.
+Audio mode exposes and validates an integer play limit from 1 to 20; Text mode
+preserves the last valid limit without validating or using an unfinished numeric edit.
 Admin Questions disables Save while any uploader is active, including instruction,
 question, option, and image uploads. It waits for all concurrent uploads and their
 URL lookups to finish; success updates the file path before enabling Save, and
-failure enables Save with the previous path retained. Form submission also checks
+failure enables Save with the previous path retained. Toggling format while an
+option upload is in flight keeps Save disabled until it finishes and keeps its
+successful path even after the uploader is hidden. Form submission also checks
 the active uploads so Enter cannot save an unfinished upload.
 
 The shared `AudioPlayer` uses a native audio element with app-owned controls at every playback location.
-MC option recordings use its `option` variant through `McOptions` for both ordinary
-MC and assisted hybrid questions. Play and answer selection are separate controls;
+Audio-format MC option recordings use its `option` variant through `McOptions` for
+both ordinary MC and assisted hybrid questions. Play and answer selection are separate controls;
 only option keys are shown. The default allowance is two starts per option per
 assessment. Admin Questions can set a section's limit from 1 to 20. Stop ends the
 current listening; starting again counts another play and restarts from the beginning.
@@ -154,7 +173,9 @@ starts produce no count. Recording event IDs make background-save retries idempo
 Stored counts load in the background and merge with newer local counts without
 reducing them. Playback and answer submission remain available while count requests
 are pending or failing. The backend records events without enforcing the play limit,
-including late events saved after submission. Grading and XLSX expose the counts.
+including late events saved after submission or a switch to Text format. Grading
+and XLSX retain historical counts after a format switch; new Text answers have no
+playback tracking unless historical tracking already exists.
 Missing option recordings show an error and never reveal the stored label as a
 fallback. Legacy shared choices clips remain stored but are no longer offered during
 assessment. API contracts are declared in `packages/contracts/submissions.d.ts`;

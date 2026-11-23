@@ -9,10 +9,11 @@ export const DEFAULT_MAX_OPTION_PLAYS = 2;
  * Build a response update with an empty UUID list for each option of one question.
  * Example: { optionPlaybackIds: { "0": { A: [], B: [] } } }.
  * McOptions creates a UUID after audio starts; this helper builds the empty lists.
- * An absent optionAudios entry leaves legacy questions without playback tracking.
+ * Only explicit audio option presentation initializes tracking. Retained audio
+ * assets in text mode do not create playback counts.
  */
 export function initialOptionPlaybackIds(config: QuestionSectionDto, question: number) {
-  if (!config.optionAudios?.[question]) return {};
+  if (config.mcOptionFormat !== "audio_option" || !config.optionAudios?.[question]) return {};
   return {
     optionPlaybackIds: {
       [question]: Object.fromEntries(
@@ -24,7 +25,8 @@ export function initialOptionPlaybackIds(config: QuestionSectionDto, question: n
 
 /**
  * Record a successful start after playback begins. The UUID deduplicates background
- * save retries; the frontend owns the play limit. Late saves retain submitted answers.
+ * save retries; the frontend owns the play limit. Late saves retain submitted answers
+ * and remain accepted when the section has switched to text option presentation.
  */
 export async function updateOptionAudioPlayback(
   input: UpdateOptionAudioPlaybackInput,

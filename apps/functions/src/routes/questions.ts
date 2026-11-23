@@ -39,6 +39,7 @@ router.post(
       id,
       title,
       kind,
+      mcOptionFormat,
       length,
       goal,
       questions,
@@ -67,11 +68,12 @@ router.post(
     if (maxOptionPlays !== undefined) data.maxOptionPlays = maxOptionPlays;
     if (correctAnswers !== undefined) data.correctAnswers = correctAnswers;
     if (images !== undefined) data.images = images;
+    if (mcOptionFormat !== undefined) data.mcOptionFormat = mcOptionFormat;
 
     const docRef = questionSections.doc(id);
-    const existed = (await docRef.get()).exists;
+    const existing = await docRef.get();
     await docRef.set(data);
 
-    res.status(existed ? 200 : 201).json({ data: { id } });
+    res.status(existing.exists ? 200 : 201).json({ data: { id } });
   },
 );

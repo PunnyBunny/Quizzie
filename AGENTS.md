@@ -125,14 +125,25 @@ Firestore or Storage.
   shapes; hybrid evidence lives in the per-question `attempts` map.
 - MC answers store the configured option key as a string (or null for a skip),
   and grading compares it directly with the configured correct-answer key.
-  MC and hybrid option recordings use `optionAudios` by question and option key;
-  `choices` values are optional admin hints displayed only in Admin Questions;
-  assessment and grading show keys without hint text. `maxOptionPlays` defaults to 2 per option.
-  The frontend checks the limit and starts playback immediately; successful starts
+  MC and hybrid sections use `mcOptionFormat?: "text_option" | "audio_option"`, defaulting to text
+  for new sections and existing sections without the field. `audio_mc` still means
+  a recorded answer with optional MC assistance; it does not select the option format.
+  `choices` maps stable option keys to student-visible text in text mode and optional
+  hints for admins and markers in audio mode. Grading always shows available option
+  text for both formats. Text saves require nonblank text for each option;
+  both modes require at least two valid unique keys and a valid correct key. Audio
+  recordings and hints remain optional. `optionAudios` stores recordings by question
+  and option key. Switching format preserves choices, recordings, and `maxOptionPlays`;
+  uploaded assets are never deleted. Audio mode validates the play limit from 1 to 20,
+  defaulting to 2 per option. Text mode keeps the saved limit but does not use it or
+  mount option playback hooks, load option recordings, request counts, log plays,
+  or initialize playback tracking for new answers.
+  In audio mode the frontend checks the limit and starts playback immediately; successful starts
   are logged asynchronously as event UUIDs in `optionPlaybackIds`. Owner/admin
   endpoints deduplicate saves and expose `optionPlayCounts` to grading and export,
   without enforcing the play limit. Preserve counts when saving answers; listening
-  alone must not advance assessment progress.
+  alone must not advance assessment progress. Format switches retain historical
+  counts in grading/export and permit already-started playback events to finish saving.
 - Assessment, submission, grading, and scoring flows use the current question
   configuration. Use `getQuestionSections` to load it on the server.
 - Question time uses whole seconds in `questionTimeSeconds`. Load opening question,

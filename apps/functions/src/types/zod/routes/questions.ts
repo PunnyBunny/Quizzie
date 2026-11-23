@@ -12,6 +12,7 @@ export const AdminSaveQuestionSectionSchema = z
     id: DocumentIdSchema,
     title: z.string(),
     kind: z.enum(["mc", "audio", "audio_mc"]),
+    mcOptionFormat: z.enum(["text_option", "audio_option"]).default("text_option"),
     length: z.number().int().min(0),
     goal: z.string(),
     questions: z.array(z.string()).nullable(),
@@ -19,13 +20,27 @@ export const AdminSaveQuestionSectionSchema = z
     choicesAudios: z.array(z.string()).optional(),
     choices: z.array(z.record(z.string(), z.string())).optional(),
     optionAudios: z.array(z.record(z.string(), z.string())).optional(),
-    maxOptionPlays: z.number().int().min(1).max(20).optional(),
+    maxOptionPlays: z.number().optional(),
     correctAnswers: z.array(z.string()).optional(),
     images: z.array(z.string().nullable()).optional(),
     instructions: SectionInstructionSchema,
   })
   .superRefine((section, ctx) => {
     if (section.kind === "audio") return;
+    // Retain inactive limits across format switches; only audio options use them.
+    if (
+      section.mcOptionFormat === "audio_option" &&
+      section.maxOptionPlays !== undefined &&
+      (!Number.isInteger(section.maxOptionPlays) ||
+        section.maxOptionPlays < 1 ||
+        section.maxOptionPlays > 20)
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["maxOptionPlays"],
+        message: "Maximum option plays must be an integer between 1 and 20",
+      });
+    }
     for (let i = 0; i < section.length; i++) {
       const choices = section.choices?.[i];
       const correct = section.correctAnswers?.[i];
@@ -40,6 +55,16 @@ export const AdminSaveQuestionSectionSchema = z
           code: "custom",
           path: ["choices", i],
           message: `Question ${i + 1} requires at least two options and a valid answer key`,
+        });
+      }
+      if (
+        section.mcOptionFormat === "text_option" &&
+        Object.values(choices ?? {}).some((text) => !text.trim())
+      ) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["choices", i],
+          message: `Question ${i + 1} requires nonblank text for every option`,
         });
       }
       if (
