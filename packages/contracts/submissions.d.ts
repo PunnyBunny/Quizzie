@@ -11,6 +11,26 @@ export interface BaseStudentResponseDto {
   assessmentId: string;
   section: number;
   createdAtIsoTimestamp: string;
+  questionTimeSeconds?: Record<string, number>;
+}
+
+export interface UpdateQuestionTimeInput {
+  assessmentId: string;
+  section: number;
+  question: number;
+  totalSeconds: number; // Cumulative
+}
+
+export interface GetAssessmentTimeInput {
+  assessmentId: string;
+  section: number;
+  question: number;
+}
+
+export interface GetAssessmentTimeOutput {
+  questionSeconds: number;
+  sectionSeconds: number;
+  overallSeconds: number;
 }
 
 export interface McStudentResponseDto extends BaseStudentResponseDto {
@@ -66,6 +86,8 @@ export interface SubmitMcAnswerInput {
   section: number;
   question: number;
   answer: string | null;
+  /** Saved atomically with the answer; omission preserves existing timing. */
+  totalSeconds?: number;
 }
 
 export interface SubmitAudioAnswerInput {
@@ -74,6 +96,8 @@ export interface SubmitAudioAnswerInput {
   question: number;
   transcript: string | null;
   gsUri: string | null;
+  /** Saved atomically with the answer; omission preserves existing timing. */
+  totalSeconds?: number;
 }
 
 export interface SubmitAudioMcAnswerInput extends SubmitAudioAnswerInput, AudioMcAttemptDto {}

@@ -2,6 +2,9 @@ import type {
   AudioMcAttemptDto,
   BaseStudentResponseDto,
   StudentResponseDto,
+  UpdateQuestionTimeInput,
+  GetAssessmentTimeInput,
+  GetAssessmentTimeOutput,
 } from "@vaca/contracts";
 import { ApiError } from "../../middleware/error";
 import { assessments } from "./assessments";
@@ -24,6 +27,8 @@ interface BaseStudentResponseDoc {
    * Each array's length becomes the count exposed in response DTOs.
    */
   optionPlaybackIds?: Record<string, Record<string, string[]>>;
+  /** Combined whole seconds across visits, keyed by zero-based question index. */
+  questionTimeSeconds?: Record<string, number>;
 }
 
 export function getOptionPlayCounts(doc: StudentResponseDoc | undefined) {
@@ -104,6 +109,7 @@ export function toStudentResponseDto(doc: StudentResponseDoc): StudentResponseDt
     assessmentId: doc["assessment-id"],
     section: doc.section,
     createdAtIsoTimestamp: createdAt.toDate().toISOString(),
+    ...(doc.questionTimeSeconds && { questionTimeSeconds: doc.questionTimeSeconds }),
   };
 
   if (isMcStudentResponse(doc)) {
@@ -165,6 +171,75 @@ export async function getStudentResponseSnapshot(
       .limit(1),
   );
   return existing.docs[0] ?? transaction.get(studentResponses.doc(`${assessmentId}-${section}`));
+}
+
+function questionTimeUpdate(
+  response: StudentResponseDoc | undefined,
+  question: number,
+  totalSeconds: number,
+) {
+  return {
+    questionTimeSeconds: {
+      ...response?.questionTimeSeconds,
+      [question]: Math.max(response?.questionTimeSeconds?.[question] ?? 0, totalSeconds),
+    },
+  };
+}
+
+export async function getAssessmentTime(
+  input: GetAssessmentTimeInput,
+): Promise<GetAssessmentTimeOutput> {
+  const responses = await studentResponses
+    .collection()
+    .where("assessment-id", "==", input.assessmentId)
+    .get();
+  const totals: GetAssessmentTimeOutput = {
+    sectionSeconds: 0,
+    overallSeconds: 0,
+    questionSeconds: 0,
+  };
+  for (const doc of responses.docs) {
+    const response = doc.data();
+    const seconds = Object.values(response.questionTimeSeconds ?? {}).reduce(
+      (sum, value) => sum + value,
+      0,
+    );
+    totals.overallSeconds += seconds;
+    if (response.section === input.section) {
+      totals.sectionSeconds += seconds;
+      totals.questionSeconds += response.questionTimeSeconds?.[input.question] ?? 0;
+    }
+  }
+  return totals;
+}
+
+export async function saveQuestionTime(
+  input: UpdateQuestionTimeInput,
+  kind: StudentResponseDoc["type"],
+): Promise<void> {
+  const { assessmentId, section, question } = input;
+  await admin.firestore().runTransaction(async (transaction) => {
+    const current = await getStudentResponseSnapshot(transaction, assessmentId, section);
+    const base = {
+      "assessment-id": assessmentId,
+      section,
+      createdAt: FieldValue.serverTimestamp(),
+    };
+    const response: StudentResponseDoc =
+      current.data() ??
+      (kind === "mc"
+        ? { ...base, type: kind, studentResponses: {} }
+        : kind === "audio_mc"
+          ? { ...base, type: kind, files: {}, transcripts: {}, attempts: {} }
+          : { ...base, type: kind, files: {}, transcripts: {} });
+    if (response.type !== kind)
+      throw new ApiError("Response type does not match assessment configuration", 409);
+    transaction.set(current.ref, {
+      ...response,
+      ...questionTimeUpdate(response, question, input.totalSeconds),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  });
 }
 
 /**
@@ -245,6 +320,7 @@ export async function saveStudentAnswer(
   question: number,
   response: StudentResponseDoc,
   progress: { currentSection: number; currentQuestion: number },
+  totalSeconds?: number,
 ): Promise<void> {
   await admin.firestore().runTransaction(async (transaction) => {
     const current = await getStudentResponseSnapshot(transaction, assessmentId, section);
@@ -252,9 +328,14 @@ export async function saveStudentAnswer(
     const currentData = current.data();
     if (currentData && currentData.type !== response.type)
       throw new ApiError("Response type does not match assessment configuration", 409);
-    if (!current.exists) transaction.set(target, response);
+    const timingUpdate =
+      totalSeconds !== undefined ? questionTimeUpdate(currentData, question, totalSeconds) : {};
+    if (!current.exists) transaction.set(target, { ...response, ...timingUpdate });
     else {
-      const updates: Record<string, unknown> = { updatedAt: FieldValue.serverTimestamp() };
+      const updates: Record<string, unknown> = {
+        updatedAt: FieldValue.serverTimestamp(),
+        ...timingUpdate,
+      };
       if (response.optionPlaybackIds?.[question] && !currentData?.optionPlaybackIds?.[question])
         updates[`optionPlaybackIds.${question}`] = response.optionPlaybackIds[question];
       if (response.type === "mc")

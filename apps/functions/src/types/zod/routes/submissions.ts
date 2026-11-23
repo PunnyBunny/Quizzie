@@ -7,6 +7,8 @@ import type {
   SubmitMcAnswerInput,
   GetOptionAudioPlaybackInput,
   UpdateOptionAudioPlaybackInput,
+  UpdateQuestionTimeInput,
+  GetAssessmentTimeInput,
 } from "@vaca/contracts";
 
 const QuestionAddressSchema = z.object({
@@ -14,6 +16,11 @@ const QuestionAddressSchema = z.object({
   section: z.number().int().nonnegative(),
   question: z.number().int().nonnegative(),
 });
+export const UpdateQuestionTimeSchema = QuestionAddressSchema.extend({
+  totalSeconds: z.number().int().nonnegative(),
+}) satisfies z.ZodType<UpdateQuestionTimeInput>;
+export const GetAssessmentTimeSchema =
+  QuestionAddressSchema satisfies z.ZodType<GetAssessmentTimeInput>;
 export const GetOptionAudioPlaybackSchema =
   QuestionAddressSchema satisfies z.ZodType<GetOptionAudioPlaybackInput>;
 export const UpdateOptionAudioPlaybackSchema = QuestionAddressSchema.extend({
@@ -22,10 +29,12 @@ export const UpdateOptionAudioPlaybackSchema = QuestionAddressSchema.extend({
 }) satisfies z.ZodType<UpdateOptionAudioPlaybackInput>;
 export const SubmitMcAnswerSchema = QuestionAddressSchema.extend({
   answer: z.string().min(1).nullable(),
+  totalSeconds: z.number().int().nonnegative().optional(),
 }) satisfies z.ZodType<SubmitMcAnswerInput>;
 export const SubmitAudioAnswerSchema = QuestionAddressSchema.extend({
   transcript: z.string().nullable(),
   gsUri: z.string().min(1).nullable(),
+  totalSeconds: z.number().int().nonnegative().optional(),
 }) satisfies z.ZodType<SubmitAudioAnswerInput>;
 export const SubmitAudioMcAnswerSchema = SubmitAudioAnswerSchema.extend({
   assistanceOffered: z.boolean(),

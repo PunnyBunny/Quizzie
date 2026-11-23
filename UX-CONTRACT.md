@@ -89,6 +89,38 @@ validation, repeated updates, and retention without cloud writes. Browser checks
 cover both languages, keyboard operation, mobile layout, success, failure, and
 empty archives when an authenticated environment is available.
 
+## Question timing
+
+`useQuestionTime` owns elapsed timing for each question visit. It checkpoints every
+10 seconds. Closing or leaving the page does not trigger an extra save.
+Hidden tabs keep accumulating time. Elapsed timestamps, rather than callback counts,
+allow a delayed background checkpoint to include the full interval. Navigating away
+stops timing; a back/forward-cache restoration resumes it. No timing is persisted
+in browser storage. Abrupt shutdown retains the last successful checkpoint;
+failed checkpoints are retried with the latest cumulative total while the page stays open.
+
+Next and confirmed Skip stop timing before uploading or saving; their final timing
+is committed in the answer transaction. Failed submissions resume timing, excluding
+the upload/save wait. Confirmed Save and Exit waits for its timing save and stays on
+the question with an error if saving fails. Skip and exit confirmations use the
+shared Dialog with Cancel as the first action. Background failures show a localized
+warning and Retry without blocking answering or recording.
+
+Timing loads opening question, section, and overall totals once per question mount.
+The client saves opening question seconds plus elapsed seconds; the server keeps
+`max(stored, incoming)`. Failed reads retain elapsed time in memory and retry before
+saving; answers can still submit without timing. No baseline is assumed to be zero.
+This supports supervised single-tab use. Refreshing with a delayed save can undercount;
+the checkpoint interval is not a maximum loss guarantee.
+
+The header adds live elapsed seconds to opening section/overall totals, without
+adding checkpoints again. Its separate one-second tick preserves recording controls
+and audio players. Values use `HH:MM:SS`, tabular digits, and no per-tick announcements.
+Unknown totals show placeholders; timing failures show a warning and Retry.
+Instructions and upload/save waits are excluded. Grading and XLSX expose saved whole
+seconds; historical missing timing stays unavailable. Timing saves preserve evidence,
+grades, and playback counts and never advance assessment progress.
+
 ## Audio playback
 
 Question asset uploads use `AssetUploader` with a file picker and the shared media

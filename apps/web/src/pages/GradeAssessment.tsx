@@ -383,6 +383,13 @@ function GradeAssessmentContent({ id }: { id: string }) {
                         {questionIdx + 1}
                       </span>
                       <div className="flex-1">
+                        <p className="mb-3 text-sm text-muted-foreground">
+                          {mcStudentResponse?.questionTimeSeconds?.[questionIdx] === undefined
+                            ? t("gradeAssessment.timeUnavailable")
+                            : t("gradeAssessment.timeSpent", {
+                                seconds: mcStudentResponse.questionTimeSeconds[questionIdx],
+                              })}
+                        </p>
                         {questionText && <p className="mb-3 text-gray-800">{questionText}</p>}
                         {!validAnswer && (
                           <div className="mb-3 p-2 bg-amber-50 border border-amber-200 rounded-md text-sm text-amber-800">
@@ -471,6 +478,13 @@ function GradeAssessmentContent({ id }: { id: string }) {
                         {questionIdx + 1}
                       </span>
                       <div className="flex-1">
+                        <p className="mb-3 text-sm text-muted-foreground">
+                          {audioStudentResponse?.questionTimeSeconds?.[questionIdx] === undefined
+                            ? t("gradeAssessment.timeUnavailable")
+                            : t("gradeAssessment.timeSpent", {
+                                seconds: audioStudentResponse.questionTimeSeconds[questionIdx],
+                              })}
+                        </p>
                         {questionText && (
                           <p className="mb-3 text-gray-800 whitespace-pre-wrap">{questionText}</p>
                         )}

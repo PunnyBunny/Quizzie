@@ -142,6 +142,11 @@ size, and radius from the same variants as Button.
 
 ## Interaction states
 
+Question headers show Section time and Overall time together above the progress
+bar. `AssessmentTime` owns this quiet metadata row, using the existing muted labels,
+medium-weight tabular digits, and `HH:MM:SS` format. Keep both values side by side
+on narrow screens, with stable placeholders while saved totals load.
+
 Reuse shared loading, error, and success treatments. Archive controls retain their
 geometry while saving and expose busy state. Feedback uses an accessible live
 region. Keyboard focus remains visible. The preset adds no new motion behavior.

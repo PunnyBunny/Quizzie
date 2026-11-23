@@ -15,12 +15,14 @@ import { storage } from "../lib/firebase.ts";
 import { ref as storageRef, uploadBytes } from "firebase/storage";
 import mime from "mime";
 import { toUserMessage } from "../lib/errors.ts";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertAction, AlertDescription } from "@/components/ui/alert";
 import { AssessmentHeader } from "../components/AssessmentHeader";
+import { AssessmentTime } from "../components/AssessmentTime";
 import {
   Dialog,
   DialogBody,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -29,6 +31,7 @@ import { SectionInstructionBody } from "../components/SectionInstructionBody";
 import { useStorageUrl } from "../hooks/useStorageUrl.ts";
 import { audioStoragePath, imageStoragePath } from "../lib/asset-paths.ts";
 import { useTranslation } from "../hooks/useTranslation";
+import { useQuestionTime } from "../hooks/useQuestionTime";
 
 function MicrophoneIcon() {
   return (
@@ -110,6 +113,11 @@ function AssessmentQuestionInner() {
 
   const questionImage = useStorageUrl(question.image ? imageStoragePath(question.image) : null);
   const questionAudio = useStorageUrl(question.audio ? audioStoragePath(question.audio) : null);
+  const questionTime = useQuestionTime({
+    assessmentId: id,
+    section: sectionIndex,
+    question: questionIndex,
+  });
 
   const totalQuestions = section?.questions?.length ?? 0;
   const progressPercentage =
@@ -160,6 +168,7 @@ function AssessmentQuestionInner() {
 
   const [submitAudioMcAnswer] = useCallable("api/submit-audio-mc-answer");
   const [saving, setSaving] = useState(false);
+  const [pendingAction, setPendingAction] = useState<"skip" | "exit" | null>(null);
   const mounted = useRef(true); // Prevents further navigation if we left the page
   const uploaded = useRef<{ blob: Blob; uri: string } | null>(null);
   useLayoutEffect(() => {
@@ -199,12 +208,11 @@ function AssessmentQuestionInner() {
 
   const handleSkip = async () => {
     if (busy) return;
-    if (!window.confirm(t("question.confirmSkip"))) {
-      return;
-    }
 
     setSaving(true);
     setSubmitError(null);
+    const totalSeconds = await questionTime.stopAndGetTotalSeconds();
+    let answerSaved = false;
     try {
       if (question.kind === "audio_mc") {
         const gsUri = await uploadRecordingIfNotAlready();
@@ -217,6 +225,7 @@ function AssessmentQuestionInner() {
           assistanceOffered,
           selectedOption: null,
           skipped: true,
+          totalSeconds,
         });
       } else if (question.kind === "mc") {
         await submitMcAnswer({
@@ -224,6 +233,7 @@ function AssessmentQuestionInner() {
           section: sectionIndex,
           question: questionIndex,
           answer: null,
+          totalSeconds,
         });
       } else if (question.kind === "audio") {
         await submitAudioAnswer({
@@ -232,15 +242,19 @@ function AssessmentQuestionInner() {
           question: questionIndex,
           transcript: null,
           gsUri: null,
+          totalSeconds,
         });
       }
 
+      answerSaved = true;
+      questionTime.recordSavedTotalSeconds(totalSeconds);
       if (isLastQuestionInAssessment) {
         await finishAssessment({ assessmentId: id });
       }
 
       if (mounted.current) navigateToNext();
     } catch (err) {
+      if (!answerSaved) questionTime.resume();
       console.error("Failed to skip question:", err);
       setSubmitError(toUserMessage(err, t("question.errorSkip")));
     } finally {
@@ -269,6 +283,8 @@ function AssessmentQuestionInner() {
 
     setSaving(true);
     setSubmitError(null);
+    const totalSeconds = await questionTime.stopAndGetTotalSeconds();
+    let answerSaved = false;
     try {
       if (question.kind === "audio_mc") {
         const gsUri = await uploadRecordingIfNotAlready();
@@ -282,6 +298,7 @@ function AssessmentQuestionInner() {
           selectedOption:
             assistanceOffered && selectedIndex !== null ? question.choiceKeys[selectedIndex] : null,
           skipped: false,
+          totalSeconds,
         });
       } else if (question.kind === "mc") {
         await submitMcAnswer({
@@ -289,6 +306,7 @@ function AssessmentQuestionInner() {
           section: sectionIndex,
           question: questionIndex,
           answer: selectedIndex === null ? null : question.choiceKeys[selectedIndex],
+          totalSeconds,
         });
       } else if (question.kind === "audio" && audioBlob != null) {
         const gsUri = await uploadRecordingIfNotAlready();
@@ -298,17 +316,37 @@ function AssessmentQuestionInner() {
           question: questionIndex,
           transcript,
           gsUri,
+          totalSeconds,
         });
       }
 
+      answerSaved = true;
+      questionTime.recordSavedTotalSeconds(totalSeconds);
       if (isLastQuestionInAssessment) {
         await finishAssessment({ assessmentId: id });
       }
 
       if (mounted.current) navigateToNext();
     } catch (err) {
+      if (!answerSaved) questionTime.resume();
       console.error("Failed to submit answer:", err);
       setSubmitError(toUserMessage(err, t("question.errorSubmit")));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveAndExit = async () => {
+    if (busy) return;
+    setSaving(true);
+    setSubmitError(null);
+    questionTime.stop();
+    try {
+      await questionTime.save();
+      if (mounted.current) navigate("/");
+    } catch (err) {
+      questionTime.resume();
+      setSubmitError(toUserMessage(err, t("question.errorSaveTime")));
     } finally {
       setSaving(false);
     }
@@ -372,7 +410,12 @@ function AssessmentQuestionInner() {
           </div>
         }
         below={
-          <div className="w-full">
+          <div className="w-full space-y-4">
+            <AssessmentTime
+              openingTotals={questionTime.openingTotalTime}
+              getElapsedSeconds={questionTime.getElapsedSeconds}
+              error={questionTime.error}
+            />
             <div className="mx-auto w-full">
               <div className="h-2 rounded-sm bg-gray-300 overflow-hidden">
                 <div
@@ -388,6 +431,16 @@ function AssessmentQuestionInner() {
 
       <main className="w-full max-w-3xl flex flex-col p-4 sm:p-6">
         <form noValidate className="flex flex-col gap-6" onSubmit={onSubmit}>
+          {questionTime.error && (
+            <Alert variant="warning">
+              <AlertDescription>{t("question.errorSaveTime")}</AlertDescription>
+              <AlertAction>
+                <Button type="button" variant="outline" onClick={questionTime.retry}>
+                  {t("common.retry")}
+                </Button>
+              </AlertAction>
+            </Alert>
+          )}
           {submitError && (
             <Alert variant="destructive">
               <AlertDescription>{submitError}</AlertDescription>
@@ -539,17 +592,18 @@ function AssessmentQuestionInner() {
               variant="outline"
               type="button"
               disabled={busy}
-              onClick={() => {
-                if (window.confirm(t("common.confirmExit"))) {
-                  navigate("/");
-                }
-              }}
+              onClick={() => setPendingAction("exit")}
             >
               {t("common.saveAndExit")}
             </Button>
 
             <div className="flex gap-2 sm:gap-3">
-              <Button variant="ghost" type="button" onClick={handleSkip} disabled={busy}>
+              <Button
+                variant="ghost"
+                type="button"
+                onClick={() => setPendingAction("skip")}
+                disabled={busy}
+              >
                 {t("common.skip")}
               </Button>
 
@@ -573,6 +627,35 @@ function AssessmentQuestionInner() {
           </section>
         </form>
       </main>
+      <Dialog
+        open={pendingAction !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingAction(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {t(pendingAction === "skip" ? "question.confirmSkip" : "common.confirmExit")}
+            </DialogTitle>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPendingAction(null)}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              onClick={async () => {
+                const action = pendingAction;
+                setPendingAction(null);
+                if (action === "skip") await handleSkip();
+                else if (action === "exit") await handleSaveAndExit();
+              }}
+            >
+              {t(pendingAction === "skip" ? "common.skip" : "common.saveAndExit")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
