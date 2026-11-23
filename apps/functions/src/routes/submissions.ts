@@ -9,6 +9,9 @@ import type {
   UpdateOptionAudioPlaybackInput,
   UpdateOptionAudioPlaybackOutput,
   QuestionSectionDto,
+  UpdateQuestionTimeInput,
+  GetAssessmentTimeInput,
+  GetAssessmentTimeOutput,
 } from "@vaca/contracts";
 import { validate } from "../middleware/validation";
 import { ApiError } from "../middleware/error";
@@ -19,6 +22,8 @@ import {
   findStudentResponseRef,
   getOptionPlayCounts,
   saveStudentAnswer,
+  saveQuestionTime,
+  getAssessmentTime,
 } from "../types/models/student-responses";
 import {
   DEFAULT_MAX_OPTION_PLAYS,
@@ -31,10 +36,49 @@ import {
   SubmitAudioMcAnswerSchema,
   GetOptionAudioPlaybackSchema,
   UpdateOptionAudioPlaybackSchema,
+  UpdateQuestionTimeSchema,
+  GetAssessmentTimeSchema,
 } from "../types/zod/routes/submissions";
 import type { FirebaseFunctionRequest, FirebaseFunctionResponse } from "../utils/express";
 
 export const router = express.Router();
+router.post(
+  "/get-assessment-time",
+  validate(GetAssessmentTimeSchema),
+  async (
+    req: FirebaseFunctionRequest<GetAssessmentTimeInput>,
+    res: FirebaseFunctionResponse<GetAssessmentTimeOutput>,
+  ) => {
+    const input = req.body.data;
+    await getAssessmentWithAuth(
+      input.assessmentId,
+      res.locals.callerEmail,
+      res.locals.callerClaims?.isAdmin === true,
+    );
+    res.status(200).json({ data: await getAssessmentTime(input) });
+  },
+);
+router.post(
+  "/update-question-time",
+  validate(UpdateQuestionTimeSchema),
+  async (
+    req: FirebaseFunctionRequest<UpdateQuestionTimeInput>,
+    res: FirebaseFunctionResponse<OkOutput>,
+  ) => {
+    const input = req.body.data;
+    await getAssessmentWithAuth(
+      input.assessmentId,
+      res.locals.callerEmail,
+      res.locals.callerClaims?.isAdmin === true,
+    );
+    const sections = await getQuestionSections();
+    const kind = sections[input.section]?.kind;
+    if (!kind) throw new ApiError("Invalid question or response type", 400);
+    getConfiguredQuestion(sections, input.section, input.question, kind);
+    await saveQuestionTime(input, kind);
+    res.status(200).json({ data: { ok: true } });
+  },
+);
 async function getAuthorizedOptionAudioSection(
   input: GetOptionAudioPlaybackInput,
   res: FirebaseFunctionResponse<GetOptionAudioPlaybackOutput>,
@@ -155,6 +199,7 @@ router.post(
         ...initialOptionPlaybackIds(config, input.question),
       },
       progress,
+      input.totalSeconds,
     );
     res.status(200).json({ data: { ok: true } });
   },
@@ -182,6 +227,7 @@ router.post(
         transcripts: { [input.question]: input.transcript },
       },
       progress,
+      input.totalSeconds,
     );
     res.status(200).json({ data: { ok: true } });
   },
@@ -223,6 +269,7 @@ router.post(
         },
       },
       progress,
+      input.totalSeconds,
     );
     res.status(200).json({ data: { ok: true } });
   },

@@ -36,6 +36,9 @@ import type {
   SubmitAudioAnswerInput,
   SubmitAudioMcAnswerInput,
   SubmitMcAnswerInput,
+  UpdateQuestionTimeInput,
+  GetAssessmentTimeInput,
+  GetAssessmentTimeOutput,
 } from "./submissions";
 import type {
   AdminDeleteSubtaskInput,
@@ -56,6 +59,8 @@ export interface ApiEndpoints {
   "api/set-assessment-archived": Endpoint<SetAssessmentArchivedInput, OkOutput>;
   "api/get-questions": Endpoint<void, GetQuestionsOutput>;
   "api/submit-mc-answer": Endpoint<SubmitMcAnswerInput, OkOutput>;
+  "api/update-question-time": Endpoint<UpdateQuestionTimeInput, OkOutput>;
+  "api/get-assessment-time": Endpoint<GetAssessmentTimeInput, GetAssessmentTimeOutput>;
   "api/get-option-audio-playback": Endpoint<
     GetOptionAudioPlaybackInput,
     GetOptionAudioPlaybackOutput

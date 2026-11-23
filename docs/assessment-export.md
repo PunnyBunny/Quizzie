@@ -20,6 +20,9 @@ the browser builds the `.xlsx` download without changing stored data.
   `q1_transcript`, `q1_choice`, `q1_help`, etc. Choices are blank when none were
   selected; help uses `1`/`0`, or is blank when no attempt was stored. Skipped
   and unanswered MC questions are blank. Scores stay in the summary sheets.
+  Every question adds `q1_time_s`, `q2_time_s`, etc., containing accumulated whole
+  seconds. Missing historical timing stays blank; a tracked zero stays numeric zero.
+  Time-only checkpoints are included even when no answer was submitted.
   MC and audio MC questions with option recordings or playback history also add
   `q1_plays_A`, `q1_plays_B`, etc., using each configured or historical option key.
   These are numeric counts, including zero for unplayed options in tracked

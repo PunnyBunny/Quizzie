@@ -22,6 +22,8 @@ const en: Dict = {
   "adminQuestions.invalidPlayLimit":
     "Enter a whole number from 1 to 20 for the maximum plays per option.",
   "gradeAssessment.optionPlays": "Option {{key}}: {{count}} plays",
+  "gradeAssessment.timeSpent": "Time spent: {{seconds}} seconds",
+  "gradeAssessment.timeUnavailable": "Time spent: unavailable",
   "audio.play": "Play",
   "audio.pause": "Pause",
   "audio.replay": "Replay",
@@ -265,6 +267,12 @@ const en: Dict = {
   "assessment.idLabel": "Assessment ID",
   "assessment.section": "Section",
   "assessment.question": "Question",
+  "assessment.elapsedTime": "Elapsed assessment time",
+  "assessment.sectionTime": "Section time",
+  "assessment.overallTime": "Overall time",
+  "assessment.timeUnavailable": "Time unavailable",
+  "assessment.errorTime":
+    "Could not load saved times. Retry to show the section and overall totals.",
 
   // Assessment Question
   "question.viewInstructions": "View Instructions",
@@ -284,6 +292,8 @@ const en: Dict = {
   "question.confirmSkip": "Are you sure you want to skip this question? You can't go back.",
   "question.errorSkip": "Could not skip this question.",
   "question.errorSubmit": "Could not submit your answer.",
+  "question.errorSaveTime":
+    "Question time could not be loaded or saved. Retry to save the current total.",
   "question.alertSelect": "Please select an answer.",
   "question.alertRecord": "Please record your answer.",
   "question.questionImageAlt": "Question image",
@@ -489,6 +499,8 @@ const zh: Dict = {
   "adminQuestions.maxOptionPlays": "每個選項的播放次數上限",
   "adminQuestions.invalidPlayLimit": "請輸入 1 至 20 之間的整數作為每個選項的播放次數上限。",
   "gradeAssessment.optionPlays": "選項 {{key}}：播放了 {{count}} 次",
+  "gradeAssessment.timeSpent": "作答時間：{{seconds}} 秒",
+  "gradeAssessment.timeUnavailable": "作答時間：未有記錄",
   "audio.play": "播放",
   "audio.pause": "暫停",
   "audio.replay": "重新播放",
@@ -723,6 +735,11 @@ const zh: Dict = {
   "assessment.idLabel": "評估編號",
   "assessment.section": "章節",
   "assessment.question": "題目",
+  "assessment.elapsedTime": "累計評估時間",
+  "assessment.sectionTime": "本節用時",
+  "assessment.overallTime": "總用時",
+  "assessment.timeUnavailable": "未有時間記錄",
+  "assessment.errorTime": "無法載入已儲存的時間。請重試以顯示本節及整體累計時間。",
 
   // Assessment Question
   "question.viewInstructions": "檢視說明",
@@ -742,6 +759,7 @@ const zh: Dict = {
   "question.confirmSkip": "確定要略過這題嗎?略過後將無法回到本題。",
   "question.errorSkip": "無法略過此題。",
   "question.errorSubmit": "無法提交答案。",
+  "question.errorSaveTime": "無法載入或儲存作答時間。請重試以儲存目前累計時間。",
   "question.alertSelect": "請選擇答案。",
   "question.alertRecord": "請錄製答案。",
   "question.questionImageAlt": "題目圖片",

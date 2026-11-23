@@ -135,6 +135,14 @@ Firestore or Storage.
   alone must not advance assessment progress.
 - Assessment, submission, grading, and scoring flows use the current question
   configuration. Use `getQuestionSections` to load it on the server.
+- Question time uses whole seconds in `questionTimeSeconds`. Load opening question,
+  section, and overall totals through `api/get-assessment-time`; save opening question
+  seconds plus elapsed seconds through `api/update-question-time`. Transactions keep
+  the larger total. No visit IDs or local backups. Checkpoint every 10 seconds, keep
+  running while hidden, and stop before uploads or Save and Exit. Final timing is
+  atomic with the answer. The header adds live elapsed time to opening section/overall
+  totals; grading and XLSX expose saved totals. Never save timing without its baseline.
+  Designed for supervised single-tab use; refreshes with delayed saves can undercount.
 - Audio responses store files, transcripts, and grades. Question assets use
   `question-assets/audios` and `question-assets/images`; browser path helpers live
   in `src/lib/asset-paths.ts`. Storage rules distinguish question assets from

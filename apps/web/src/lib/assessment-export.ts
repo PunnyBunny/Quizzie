@@ -39,6 +39,7 @@ function responseKeys(response: StudentResponseDto): string[] {
   return [
     ...new Set([
       ...evidenceKeys,
+      ...Object.keys(response.questionTimeSeconds ?? {}),
       ...Object.keys(response.type !== "audio" ? (response.optionPlayCounts ?? {}) : {}),
     ]),
   ];
@@ -205,6 +206,7 @@ export function buildAssessmentWorkbook(data: AdminExportAssessmentsOutput): Exp
     for (const q of questions) {
       sheet.headers.push(
         ...fields.map((field) => "q" + (q + 1) + (fields.length === 1 ? "" : "_" + field)),
+        `q${q + 1}_time_s`,
         ...optionKeys.get(q)!.map((key) => `q${q + 1}_plays_${key}`),
       );
       const current = section && q < section.length;
@@ -234,6 +236,7 @@ export function buildAssessmentWorkbook(data: AdminExportAssessmentsOutput): Exp
           help: flag(attempt?.assistanceOffered),
         };
         row.push(...fields.map((field) => values[field]));
+        row.push(response?.questionTimeSeconds?.[q] ?? null);
         const counts =
           response && response.type !== "audio" ? response.optionPlayCounts?.[q] : undefined;
         row.push(...optionKeys.get(q)!.map((key) => (counts ? (counts[key] ?? 0) : null)));

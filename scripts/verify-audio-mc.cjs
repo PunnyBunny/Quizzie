@@ -873,16 +873,21 @@ async function uiChecks() {
   function questionUI(
     blob = new Blob(["initial attempt"], { type: "audio/webm" }),
     kind = "audio_mc",
+    readTime = async () => ({ questionSeconds: 0, sectionSeconds: 0, overallSeconds: 0 }),
   ) {
     const hooks = hookRuntime(),
       calls = [],
+      checkpoints = [],
+      intervals = new Map(),
+      listeners = new Map(),
       uploads = [],
       navigations = [],
       cleanups = [];
     let failUpload = false,
       failSave = false,
       uploadWait = null,
-      status = "idle";
+      status = "idle",
+      now = 0;
     const key = (relative) => path.join(root, `apps/web/src/${relative}`);
     class Player {
       constructor() {
@@ -948,7 +953,10 @@ async function uiChecks() {
         [key("lib/firebase-hooks.ts")]: {
           useCallable: (name) => [
             async (data) => {
-              calls.push({ name, data });
+              if (name === "api/get-assessment-time") {
+                return { data: await readTime() };
+              }
+              (name === "api/update-question-time" ? checkpoints : calls).push({ name, data });
               if (failSave) {
                 failSave = false;
                 throw new Error("save failed");
@@ -975,9 +983,27 @@ async function uiChecks() {
         ]),
       },
       {
-        window: { confirm: () => true },
+        Date: class extends Date {
+          static now() {
+            return now;
+          }
+        },
+        window: {
+          setInterval: (fn, delay) => {
+            intervals.set(fn, delay);
+            return fn;
+          },
+          clearInterval: (fn) => intervals.delete(fn),
+          addEventListener: (type, fn) => listeners.set(type, fn),
+          removeEventListener: (type) => listeners.delete(type),
+        },
         HTMLAudioElement: Player,
-        document: { querySelectorAll: () => [questionPlayer, choicesPlayer] },
+        document: {
+          querySelectorAll: () => [questionPlayer, choicesPlayer],
+          addEventListener: (type, fn) => listeners.set(type, fn),
+          removeEventListener: (type) => listeners.delete(type),
+          visibilityState: "hidden",
+        },
         console: { error() {}, log() {} },
       },
     );
@@ -997,6 +1023,16 @@ async function uiChecks() {
     return {
       render,
       calls,
+      checkpoints,
+      intervals,
+      listeners,
+      advance: (ms) => {
+        now += ms;
+      },
+      checkpoint: async () => {
+        for (const fn of intervals.keys()) fn();
+        await new Promise(setImmediate);
+      },
       uploads,
       navigations,
       initial,
@@ -1012,7 +1048,20 @@ async function uiChecks() {
         nodes(render())
           .find((node) => node.type === "form")
           .props.onSubmit({ preventDefault() {} }),
-      skip: () => findButton("common.skip").props.onClick(),
+      skip: () => {
+        findButton("common.skip").props.onClick();
+        return nodes(render())
+          .filter((node) => isButton(node) && node.props.children.includes("common.skip"))
+          .at(-1)
+          .props.onClick();
+      },
+      exit: () => {
+        findButton("common.saveAndExit").props.onClick();
+        return nodes(render())
+          .filter((node) => isButton(node) && node.props.children.includes("common.saveAndExit"))
+          .at(-1)
+          .props.onClick();
+      },
       failNextUpload: () => {
         failUpload = true;
       },
@@ -1031,6 +1080,106 @@ async function uiChecks() {
           .disabled,
     };
   }
+  let failRead = true,
+    readCount = 0;
+  const resumed = questionUI(undefined, "mc", async () => {
+    readCount++;
+    if (failRead) throw new Error("offline");
+    return { questionSeconds: 25, sectionSeconds: 125, overallSeconds: 325 };
+  });
+  resumed.advance(12_000);
+  await resumed.checkpoint();
+  assert.equal(resumed.checkpoints.length, 0, "failed baseline reads never save from zero");
+  await resumed.exit();
+  assert.equal(resumed.navigations.length, 0, "exit requires a successful timing save");
+  failRead = false;
+  resumed.advance(3_000);
+  await resumed.checkpoint();
+  assert.equal(
+    resumed.checkpoints.at(-1).data.totalSeconds,
+    40,
+    "recovery retains local elapsed time",
+  );
+  const readsAfterRecovery = readCount;
+  resumed.advance(10_000);
+  await resumed.checkpoint();
+  assert.equal(resumed.checkpoints.at(-1).data.totalSeconds, 50);
+  assert.equal(readCount, readsAfterRecovery, "checkpoints keep the opening baseline fixed");
+  resumed.select(0);
+  await resumed.submit();
+  assert.equal(resumed.calls.at(-1).data.totalSeconds, 50);
+  resumed.unmount();
+
+  const unavailable = questionUI(undefined, "mc", async () => {
+    throw new Error("offline");
+  });
+  unavailable.select(0);
+  await unavailable.submit();
+  assert.equal(unavailable.calls.at(-1).data.totalSeconds, undefined);
+  assert.equal(unavailable.checkpoints.length, 0);
+  assert.equal(unavailable.navigations.length, 1, "baseline failure does not discard the answer");
+  unavailable.unmount();
+  const timed = questionUI(undefined, "mc");
+  assert.deepEqual([...timed.intervals.values()], [10_000]);
+  timed.advance(10_500);
+  await timed.checkpoint();
+  assert.equal(timed.checkpoints.at(-1).data.totalSeconds, 10);
+  timed.advance(25_000);
+  assert.equal(timed.listeners.has("visibilitychange"), false);
+  await timed.checkpoint();
+  assert.equal(timed.checkpoints.at(-1).data.totalSeconds, 35);
+  timed.advance(70_000); // A throttled callback must include all time spent hidden.
+  await timed.checkpoint();
+  assert.equal(timed.checkpoints.at(-1).data.totalSeconds, 105);
+  timed.failNextSave();
+  timed.advance(10_000);
+  await timed.checkpoint();
+  assert(
+    nodes(timed.render()).some((node) => node.type === "Alert" && node.props.variant === "warning"),
+  );
+  await timed.checkpoint();
+  assert(
+    !nodes(timed.render()).some(
+      (node) => node.type === "Alert" && node.props.variant === "warning",
+    ),
+  );
+  timed.select(0);
+  await timed.submit();
+  assert.equal(timed.calls.at(-1).data.totalSeconds, 115);
+  const checkpointCount = timed.checkpoints.length;
+  timed.unmount();
+  await new Promise(setImmediate);
+  assert.equal(
+    timed.checkpoints.length,
+    checkpointCount,
+    "unmount does not send a final checkpoint",
+  );
+  assert.equal(timed.intervals.size, 0);
+  assert.equal(timed.listeners.size, 0);
+
+  const restored = questionUI(undefined, "mc");
+  restored.advance(5_100);
+  restored.listeners.get("pagehide")();
+  await new Promise(setImmediate);
+  assert.equal(restored.checkpoints.length, 0, "pagehide does not save");
+  restored.advance(90_000);
+  restored.listeners.get("pageshow")({ persisted: true });
+  restored.advance(2_500);
+  await restored.checkpoint();
+  assert.equal(restored.checkpoints.at(-1).data.totalSeconds, 7);
+
+  const exiting = questionUI(undefined, "mc");
+  exiting.advance(12_345);
+  exiting.failNextSave();
+  await exiting.exit();
+  assert.equal(exiting.navigations.length, 0);
+  exiting.advance(2_000);
+  await exiting.exit();
+  assert.equal(exiting.checkpoints.at(-1).data.totalSeconds, 14);
+  assert.equal(exiting.navigations.at(-1), "/");
+  console.log(
+    "PASS: ten-second checkpoints, hidden time, throttled callbacks, failed-save retry, final seconds, Save and Exit, and timer cleanup.",
+  );
   const ui = questionUI();
   ui.offer();
   ui.select(1);
@@ -1130,18 +1279,22 @@ async function uiChecks() {
   assert.equal(recording.choicesPlayer.paused, true);
   let resolveUpload;
   const pending = questionUI();
+  pending.advance(5_500);
   pending.waitForUpload(
     new Promise((resolve) => {
       resolveUpload = resolve;
     }),
   );
   const save = pending.submit();
+  pending.advance(90_000); // Upload and save waits are excluded from answering time.
   await pending.submit();
+  await new Promise(setImmediate);
   assert.equal(pending.uploads.length, 1);
   pending.unmount();
   resolveUpload();
   await save;
   assert.equal(pending.calls.length, 1); // Leaving allows the initiated save to complete.
+  assert.equal(pending.calls[0].data.totalSeconds, 5);
   assert.equal(pending.navigations.length, 0);
   const hooks = hookRuntime();
   const data = {
@@ -1815,6 +1968,7 @@ async function assessmentExportChecks() {
     section: 0,
     type: "mc",
     studentResponses: { 0: "A", 1: null },
+    questionTimeSeconds: { 0: 42, 1: 0 },
   });
   app.documents.set("studentResponses/a-1", {
     ...base,
@@ -1964,20 +2118,34 @@ async function assessmentExportChecks() {
     ["11 - 題目", "3 - 題目", "7 - 題目"],
   );
   assert.equal(mc.rows.length, 3);
-  assert.deepEqual(Array.from(mc.headers), ["name", "id", "q1", "q2", "q3"]);
-  assert.deepEqual(Array.from(audio.headers), ["name", "id", "q1", "q2"]);
+  assert.deepEqual(Array.from(mc.headers), [
+    "name",
+    "id",
+    "q1",
+    "q1_time_s",
+    "q2",
+    "q2_time_s",
+    "q3",
+    "q3_time_s",
+  ]);
+  assert.deepEqual(Array.from(audio.headers), ["name", "id", "q1", "q1_time_s", "q2", "q2_time_s"]);
   assert.deepEqual(Array.from(hybrid.headers), [
     "name",
     "id",
     "q1_transcript",
     "q1_choice",
     "q1_help",
+    "q1_time_s",
     "q2_transcript",
     "q2_choice",
     "q2_help",
+    "q2_time_s",
   ]);
-  assert.deepEqual(Array.from(history.headers), ["name", "id", "q1"]);
+  assert.deepEqual(Array.from(history.headers), ["name", "id", "q1", "q1_time_s"]);
   assert.equal(cell(mc, mc.rows[0], "q1"), "A");
+  assert.equal(cell(mc, mc.rows[0], "q1_time_s"), 42);
+  assert.equal(cell(mc, mc.rows[0], "q2_time_s"), 0);
+  assert.equal(cell(mc, mc.rows[0], "q3_time_s"), null);
   assert.equal(cell(mc, mc.rows[0], "q2"), null);
   assert.equal(cell(mc, mc.rows[0], "q3"), undefined);
   assert.equal(cell(audio, audio.rows[0], "q1"), '第一行, "答案"\n第二行');
@@ -2983,7 +3151,204 @@ async function assetUploaderChecks() {
   );
 }
 
+async function assessmentTimeDisplayChecks() {
+  const translations = sourceLoader()("apps/web/src/i18n/translations.ts").TRANSLATIONS;
+  const hooks = hookRuntime(),
+    intervals = new Map();
+  let elapsedSeconds = 0,
+    openingTotals = null,
+    language = "en";
+  const getElapsedSeconds = () => elapsedSeconds;
+  const Component = sourceLoader(
+    {
+      react: hooks.React,
+      [path.join(root, "apps/web/src/hooks/useTranslation.ts")]: {
+        useTranslation: () => ({ t: (key) => translations[language][key] }),
+      },
+    },
+    {
+      window: {
+        setInterval: (fn, delay) => {
+          intervals.set(fn, delay);
+          return fn;
+        },
+        clearInterval: (fn) => intervals.delete(fn),
+      },
+    },
+  )("apps/web/src/components/AssessmentTime.tsx").AssessmentTime;
+  const render = () =>
+    hooks.render(() => Component({ openingTotals, getElapsedSeconds, error: false }));
+  const times = () =>
+    nodes(render())
+      .filter((node) => node.type === "time")
+      .map((node) => node.props.children[0]);
+  assert.equal(nodes(render()).find((node) => node.type === "dl").props["aria-busy"], true);
+  const cleanups = hooks.effects.map((effect) => effect());
+  assert.equal(times().length, 0);
+  assert.deepEqual([...intervals.values()], [1000]);
+  openingTotals = { questionSeconds: 10, sectionSeconds: 120, overallSeconds: 3660 };
+  elapsedSeconds = 15;
+  for (const tick of intervals.keys()) tick();
+  assert.deepEqual(times(), ["00:02:15", "01:01:15"]);
+  elapsedSeconds = 16;
+  for (const tick of intervals.keys()) tick();
+  language = "zh-Hant";
+  assert.deepEqual(times(), ["00:02:16", "01:01:16"]);
+  assert(
+    nodes(render()).some((node) => node.type === "dt" && node.props.children.includes("本節用時")),
+  );
+  assert.equal(
+    nodes(render()).find((node) => node.props.role === "timer").props["aria-live"],
+    "off",
+  );
+  cleanups.forEach((cleanup) => cleanup());
+  assert.equal(intervals.size, 0);
+  console.log(
+    "PASS: opening totals plus live time, hour formatting, isolated display ticks, localization, and loading placeholders.",
+  );
+}
+
+async function questionTimeChecks() {
+  const app = backend();
+  app.documents.set("assessments/timed", {
+    creatorEmail: "owner",
+    currentSection: 0,
+    currentQuestion: 0,
+    finished: false,
+    createdAt: app.timestamp,
+  });
+  const uuid = () => require("node:crypto").randomUUID();
+  const emptyTotals = await app.call("/get-assessment-time", {
+    assessmentId: "timed",
+    section: 0,
+    question: 0,
+  });
+  assert.equal(emptyTotals.overallSeconds, 0);
+  assert.equal(emptyTotals.sectionSeconds, 0);
+  for (const [section, kind] of ["mc", "audio", "audio_mc"].entries()) {
+    app.documents.set(`questions/${section}`, { kind, length: 2, choices: [{ A: "" }, { A: "" }] });
+  }
+  for (const [section, kind] of ["mc", "audio", "audio_mc"].entries()) {
+    const address = { assessmentId: "timed", section, question: 0 };
+    const checkpoint = (totalSeconds) =>
+      app.call("/update-question-time", { ...address, totalSeconds });
+    const response = () => app.documents.get(`studentResponses/timed-${section}`);
+    const progress = JSON.stringify(app.documents.get("assessments/timed"));
+    await checkpoint(10);
+    assert.equal(response().questionTimeSeconds[0], 10);
+    const totals = await app.call("/get-assessment-time", address);
+    assert.equal(totals.sectionSeconds, 10);
+    assert.equal(totals.overallSeconds, section * 40 + 10);
+    assert.equal(totals.questionSeconds, 10);
+    await assert.rejects(
+      app.call("/get-assessment-time", address, "stranger"),
+      (error) => error.statusCode === 403,
+    );
+    await app.call("/get-assessment-time", address, "admin", { isAdmin: true });
+    await assert.rejects(
+      app.call("/get-assessment-time", { ...address, question: -1 }),
+      (error) => error.statusCode === 400,
+    );
+    assert.equal(JSON.stringify(app.documents.get("assessments/timed")), progress);
+    assert.equal(
+      Object.keys(kind === "mc" ? response().studentResponses : response().files).length,
+      0,
+    );
+    await checkpoint(10);
+    await checkpoint(5);
+    assert.equal(response().questionTimeSeconds[0], 10);
+    await checkpoint(25);
+    const baseline = (await app.call("/get-assessment-time", address)).questionSeconds;
+    await checkpoint(baseline + 2);
+    assert.equal(response().questionTimeSeconds[0], 27);
+    response().optionPlaybackIds = { 0: { A: [uuid()] } };
+    const answer = {
+      ...address,
+      ...(kind === "mc" ? { answer: "A" } : { gsUri: null, transcript: null }),
+      ...(kind === "audio_mc"
+        ? { assistanceOffered: false, selectedOption: null, skipped: true }
+        : {}),
+      totalSeconds: 30,
+    };
+    const endpoint = `/submit-${kind.replace("_", "-")}-answer`;
+    await app.call(endpoint, answer);
+    await app.call(endpoint, answer);
+    assert.equal(response().questionTimeSeconds[0], 30);
+    if (kind !== "mc") response().grades = { 0: 4 };
+    await checkpoint(35); // A late checkpoint must retain answers, grades, and plays.
+    assert.equal(response().questionTimeSeconds[0], 35);
+    assert.equal(response().optionPlaybackIds[0].A.length, 1);
+    if (kind !== "mc") assert.equal(response().grades[0], 4);
+    app.failNextCommit();
+    await assert.rejects(checkpoint(40));
+    assert.equal(response().questionTimeSeconds[0], 35);
+    await checkpoint(40);
+    assert.equal(response().questionTimeSeconds[0], 40);
+    await assert.rejects(
+      app.call("/update-question-time", { ...address, totalSeconds: 99 }, "stranger"),
+      (error) => error.statusCode === 403,
+    );
+    for (const patch of [
+      { totalSeconds: -1 },
+      { totalSeconds: 1.5 },
+      { assessmentId: "bad/id" },
+      { question: 2 },
+    ]) {
+      await assert.rejects(
+        app.call("/update-question-time", { ...address, totalSeconds: 40, ...patch }),
+        (error) => error.statusCode === 400,
+      );
+    }
+    await app.call("/update-question-time", { ...address, question: 1, totalSeconds: 0 }, "admin", {
+      isAdmin: true,
+    });
+    assert.equal(response().questionTimeSeconds[1], 0);
+    const dto = (await app.call("/get-assessment-student-responses", { assessmentId: "timed" }))
+      .studentResponsesBySection[section];
+    assert.equal(dto.questionTimeSeconds[0], 40);
+    const resumed = await app.call("/get-assessment-time", address);
+    assert.equal(resumed.sectionSeconds, 40);
+    assert.equal(resumed.overallSeconds, (section + 1) * 40);
+    assert.equal(resumed.questionSeconds, 40);
+  }
+  const legacy = app.documents.get("studentResponses/timed-2");
+  app.documents.delete("studentResponses/timed-2");
+  app.documents.set("studentResponses/legacy-id", legacy);
+  await app.call("/update-question-time", {
+    assessmentId: "timed",
+    section: 2,
+    question: 0,
+    totalSeconds: 43,
+  });
+  assert.equal(app.documents.has("studentResponses/timed-2"), false);
+  assert.equal(app.documents.get("studentResponses/legacy-id").questionTimeSeconds[0], 43);
+  const { buildAssessmentWorkbook } = app.load("apps/web/src/lib/assessment-export.ts");
+  const sheets = buildAssessmentWorkbook({
+    assessments: [],
+    sections: [],
+    subtasks: [],
+    responses: [
+      {
+        assessmentId: "timed",
+        section: 8,
+        type: "mc",
+        studentResponses: {},
+        questionTimeSeconds: { 4: 12 },
+      },
+    ],
+  });
+  assert(
+    sheets.some((sheet) => sheet.headers.includes("q5_time_s")),
+    "time-only historical questions remain exportable",
+  );
+  console.log(
+    "PASS: whole-second timing for all question types, deduplicated/stale checkpoints, revisits, atomic answer timing, retry failures, permissions/validation, preserved evidence/grades/plays, legacy IDs, and DTO/export totals.",
+  );
+}
+
 async function main() {
+  await assessmentTimeDisplayChecks();
+  await questionTimeChecks();
   await assetUploaderChecks();
   await mcOptionsChecks();
   await optionPlaybackChecks();
