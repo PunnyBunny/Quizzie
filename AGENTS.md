@@ -14,7 +14,8 @@ subtask scores, and admin management of users, questions, and assessments.
   build step; it must not become a Functions runtime dependency.
 - `apps/web`: React 19, TypeScript, Vite 8, React Router 6, Tailwind CSS 4, and
   the Firebase browser SDK. `src/main.tsx` installs the language provider, error
-  boundary, and router; `src/App.tsx` defines routes and authentication/admin guards.
+  boundary, router, and app-wide debug provider; `src/App.tsx` defines routes and
+  authentication/admin guards.
 - Web `src/pages` contains assessment, grading, and admin screens; `src/components`
   contains shared UI. `src/providers` manages questions, last answered question,
   and microphone recording/speech recognition across assessment routes.
@@ -151,8 +152,15 @@ Firestore or Storage.
   seconds plus elapsed seconds through `api/update-question-time`. Transactions keep
   the larger total. No visit IDs or local backups. Checkpoint every 10 seconds, keep
   running while hidden, and stop before uploads or Save and Exit. Final timing is
-  atomic with the answer. The header adds live elapsed time to opening section/overall
-  totals; grading and XLSX expose saved totals. Never save timing without its baseline.
+  atomic with the answer. The header shows live section/overall totals only in debug
+  mode for verified authenticated admins (off by default): `?debug=1` enables and
+  `?debug=0` disables on any route. The choice is remembered for the tab across
+  navigation/refresh in `sessionStorage` (`quizzie.debug`).
+  During auth/admin verification debug stays hidden. Signed-out/non-admin users and
+  auth failures clear the preference and replace the URL without any `debug` parameters,
+  preserving the pathname, other query parameters, hash, and navigation state.
+  Timing always runs; timing-save warnings and Retry remain visible in normal mode.
+  Grading and XLSX expose saved totals. Never save timing without its baseline.
   Designed for supervised single-tab use; refreshes with delayed saves can undercount.
 - Audio responses store files, transcripts, and grades. Question assets use
   `question-assets/audios` and `question-assets/images`; browser path helpers live

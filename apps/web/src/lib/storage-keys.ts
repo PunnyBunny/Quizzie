@@ -4,6 +4,7 @@ import type { GetOptionAudioPlaybackInput } from "@vaca/contracts";
 const STORAGE_NAMESPACE = "quizzie";
 
 export const storageKeys = {
+  debug: `${STORAGE_NAMESPACE}.debug`,
   language: `${STORAGE_NAMESPACE}.language`,
   optionAudioPlays: ({ assessmentId, section, question }: GetOptionAudioPlaybackInput) =>
     `${STORAGE_NAMESPACE}.optionAudioPlays:${JSON.stringify([assessmentId, section, question])}`,

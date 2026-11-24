@@ -5,13 +5,16 @@ import "./index.css";
 import App from "./App.tsx";
 import { ErrorBoundary } from "./components/ErrorBoundary.tsx";
 import { LanguageProvider } from "./i18n/LanguageProvider.tsx";
+import { DebugProvider } from "./providers/DebugProvider.tsx";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <LanguageProvider>
       <ErrorBoundary>
         <BrowserRouter>
-          <App />
+          <DebugProvider>
+            <App />
+          </DebugProvider>
         </BrowserRouter>
       </ErrorBoundary>
     </LanguageProvider>
