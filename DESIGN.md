@@ -166,8 +166,10 @@ MC and hybrid sections have a section-level Text/Audio option format. Missing
 formats, including existing sections, default to Text. Text options pair the stable
 key with student-visible `choices` text during assessment and grading, without
 option players or playback-count requests. Audio options use the shared player's
-`option` variant beside a separate native radio label containing only the key;
-`choices` text is then an optional hint for admins and markers, hidden from students.
+`option` variant beside a separate native radio label. Initially only the key is
+shown; optional `choices` text joins the label when that option starts its second
+successful play and remains visible thereafter, including on revisits using counts.
+Long text wraps within the existing option card.
 Grading always displays available option text, including hybrid selected and correct
 answers, regardless of format. The option variant has Play/Stop
 and a count, with no seek or standalone Replay control.
@@ -179,8 +181,8 @@ option cards, primary focus color, and localized feedback remain canonical.
 
 Admin Questions owns the section format's native radio group, with a visible legend
 and localized explanation. It uses existing form borders, typography, and focus
-tokens. Text mode labels choice values Option text; Audio mode labels them Admin
-hint and reveals the recording uploaders and play limit. Switching formats preserves
+tokens. Both modes label choice values Option text; Audio mode marks text optional,
+explains the second-play reveal, and shows the recording uploaders and play limit. Switching formats preserves
 all values and assets, including uploads that are still finishing. Plain audio
 sections have no option-format controls. Hybrid answer/assistance behavior is
 independent of option presentation. Historical playback counts remain available

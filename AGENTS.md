@@ -130,10 +130,12 @@ Firestore or Storage.
   for new sections and existing sections without the field. `audio_mc` still means
   a recorded answer with optional MC assistance; it does not select the option format.
   `choices` maps stable option keys to student-visible text in text mode and optional
-  hints for admins and markers in audio mode. Grading always shows available option
+  text revealed from the second successful play of each audio option onwards.
+  Cached and saved counts restore this visibility; missing text remains audio only.
+  Grading always shows available option
   text for both formats. Text saves require nonblank text for each option;
   both modes require at least two valid unique keys and a valid correct key. Audio
-  recordings and hints remain optional. `optionAudios` stores recordings by question
+  recordings and text remain optional. `optionAudios` stores recordings by question
   and option key. Switching format preserves choices, recordings, and `maxOptionPlays`;
   uploaded assets are never deleted. Audio mode validates the play limit from 1 to 20,
   defaulting to 2 per option. Text mode keeps the saved limit but does not use it or

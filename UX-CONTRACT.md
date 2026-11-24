@@ -157,11 +157,12 @@ and the question-save schema define this configuration contract.
 Both formats require at least two unique nonblank option keys and a correct key
 from those options. In Text mode, `choices` values are required nonblank option text,
 displayed beside the keys during assessment and grading. In Audio mode, the same
-values are optional hints for admins and markers; students see keys with recordings.
+values are optional text; students initially see keys with recordings and see the
+text from each option’s second successful play onwards.
 Grading always shows available option text beside the keys in both formats,
 including hybrid selected and correct answers.
 Question and option recordings may be missing while content is being prepared.
-Audio-mode missing recordings remain explicit and never reveal hint text as a fallback.
+Audio-mode missing recordings remain explicit and do not bypass the text reveal threshold.
 Text mode mounts no option player/playback hook, fetches no option audio assets or
 playback counts, logs no playback events, and initializes no tracking for new answers.
 
@@ -180,7 +181,11 @@ the active uploads so Enter cannot save an unfinished upload.
 The shared `AudioPlayer` uses a native audio element with app-owned controls at every playback location.
 Audio-format MC option recordings use its `option` variant through `McOptions` for
 both ordinary MC and assisted hybrid questions. Play and answer selection are separate controls;
-only option keys are shown. The default allowance is two starts per option per
+option text appears in its radio label once that option has at least two successful
+starts. Cached and saved counts restore revealed text on revisits. Failed starts
+do not reveal text; a delayed or failed count save does not hide it. Missing text
+leaves the option audio only. With a one-play limit, text stays hidden.
+The default allowance is two starts per option per
 assessment. Admin Questions can set a section's limit from 1 to 20. Stop ends the
 current listening; starting again counts another play and restarts from the beginning.
 There is no seeking or uncounted resume/replay. Exhaustion leaves selection available.
@@ -193,8 +198,8 @@ are pending or failing. The backend records events without enforcing the play li
 including late events saved after submission or a switch to Text format. Grading
 and XLSX retain historical counts after a format switch; new Text answers have no
 playback tracking unless historical tracking already exists.
-Missing option recordings show an error and never reveal the stored label as a
-fallback. Legacy shared choices clips remain stored but are no longer offered during
+Missing option recordings show an error; text visibility still depends on the
+option’s successful play count. Legacy shared choices clips remain stored but are no longer offered during
 assessment. API contracts are declared in `packages/contracts/submissions.d.ts`;
 ownership uses `getAssessmentWithAuth`.
 

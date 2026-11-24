@@ -9,6 +9,7 @@ import type { GetOptionAudioPlaybackInput } from "@vaca/contracts";
 
 interface BaseMcOptionsProps {
   keys: string[];
+  choices: Record<string, string>;
   selectedIndex: number | null;
   onSelect: (index: number) => void;
   disabled: boolean;
@@ -16,7 +17,6 @@ interface BaseMcOptionsProps {
 
 interface TextMcOptionsProps extends BaseMcOptionsProps {
   optionFormat: "text_option";
-  choices: Record<string, string>;
 }
 
 interface AudioMcOptionsProps extends BaseMcOptionsProps, GetOptionAudioPlaybackInput {
@@ -72,6 +72,7 @@ function AudioMcOptions({
   section,
   question,
   keys,
+  choices,
   audios,
   selectedIndex,
   onSelect,
@@ -105,7 +106,7 @@ function AudioMcOptions({
           key={key}
           className="flex flex-wrap items-center gap-3 rounded-md border-2 bg-white p-3 focus-within:border-primary"
         >
-          <label className="flex cursor-pointer items-center gap-3 py-2 font-medium">
+          <label className="flex min-w-0 cursor-pointer items-start gap-3 py-2">
             <input
               type="radio"
               name="choice"
@@ -113,9 +114,13 @@ function AudioMcOptions({
               checked={selectedIndex === index}
               disabled={disabled}
               onChange={() => onSelect(index)}
-              className="h-4 w-4 accent-primary"
+              className="mt-1 h-4 w-4 shrink-0 accent-primary"
             />
-            {key}
+            <span className="font-medium wrap-anywhere">{key}</span>
+            {/* Counts update only after a successful start, including saved plays on revisit. */}
+            {Object.hasOwn(counts, key) && counts[key] >= 2 && Object.hasOwn(choices, key) && (
+              <span className="min-w-0 whitespace-pre-wrap wrap-anywhere">{choices[key]}</span>
+            )}
           </label>
           <OptionRecording
             path={Object.hasOwn(audios, key) ? audios[key] : ""}

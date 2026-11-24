@@ -14,7 +14,8 @@ text or audio options; collapsing returns to audio-only submission, records assi
 as not offered, and omits the MC answer. Recording is available with choices open or closed.
 Assisted submission requires an option. Skip stores a null MC response
 while retaining initial evidence. Text options show their configured keys and option
-text; audio options show keys with individual recordings and no hint text.
+text; audio options show keys with individual recordings and reveal available
+choice text from each option’s second successful play onwards.
 Only a manual 0–5 grade awards points; MC correctness never assigns a score.
 
 ## Configuration
@@ -35,17 +36,18 @@ This choice does not change answer keys, scoring, timing, recording, or assistan
 **Option text**; every option requires nonblank text, displayed to students and in
 grading. Text options mount no playback hook/player, request no option audio assets
 or counts, and log no playback events. In Audio mode the same strings are optional
-**Admin hints**, shown in Admin Questions and grading. Markers see available option
+**Option text**, revealed to students from the second successful play of that
+option onwards and always shown in Admin Questions and grading. Markers see available option
 text for both formats, including hybrid selected and correct answers. The editor reveals individual
 recording uploaders and the section play limit. Both modes require at least two
-unique nonblank keys and a matching correct key; Audio hints and recordings remain
+unique nonblank keys and a matching correct key; Audio option text and recordings remain
 optional when saving.
 
 `optionAudios` maps option keys to asset paths in the existing question-audio area.
 Switching format preserves both choice strings and option recordings, plus the
 play limit, through saving and reopening. It never deletes uploaded assets.
 Audio mode needs individual recordings before students can listen; missing audio
-is reported without revealing hint text. Legacy `choicesAudios` remains stored
+is reported without bypassing the text reveal threshold. Legacy `choicesAudios` remains stored
 but is not played during assessment in either format.
 
 `AssetUploader` offers a file picker and a preview. It generates a unique storage
@@ -68,6 +70,13 @@ Play is pressed. Playback does not wait for a backend request. A successful star
 increments the local count; a failed start leaves the count unchanged. Counts are
 cached in browser storage so hiding choices or reloading preserves the allowance.
 The section's limit comes from the question configuration already loaded by the app.
+
+`AudioMcOptions` uses the same counts to reveal each option’s `choices` text at two
+or more successful starts. The second play reveals text immediately, without waiting
+for its background save. Cached counts restore it after remounting or reloading;
+stored counts restore it when loaded from the backend. Failed starts and save retries
+do not reveal text early. A failed save does not hide text already revealed. Empty
+or missing choice text remains audio only; a one-play limit never reveals text.
 
 `get-option-audio-playback` loads stored counts in the background and merges them
 with local counts without reducing plays recorded meanwhile. A failed read does
@@ -166,7 +175,9 @@ isolated test setup. Local web development otherwise uses cloud Auth and Storage
   both toggling and save/reopening. Plain Audio sections have no format selector.
   Toggle to Text during an upload and confirm Save waits and retains the result.
 - In Audio format, upload individual option recordings. Play one twice and confirm a third start
-  is blocked while selecting it remains possible. Verify another option still
+  is blocked while selecting it remains possible. Confirm its text is hidden on the
+  first play and appears when the second starts, including while its save is pending
+  or failing. Reload and confirm the text stays visible. Verify another option still
   has its own allowance, and that reload, assistance toggling, and another tab
   preserve counts. Delay or fail playback-count requests and confirm audio starts
   immediately, the frontend limit still applies, and Retry saves each play once.

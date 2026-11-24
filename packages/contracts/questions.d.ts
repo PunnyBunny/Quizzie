@@ -15,7 +15,8 @@ export interface QuestionSectionDto {
   choicesAudios?: string[];
   /**
    * Stable option keys mapped to student-visible text in text mode (the default),
-   * or optional hints for admins and markers in audio mode. Grading shows both.
+   * or optional text revealed from the second successful play per audio option.
+   * Grading always shows available text in both formats.
    * TODO: separate hints and choices
    */
   choices?: Record<string, string>[];

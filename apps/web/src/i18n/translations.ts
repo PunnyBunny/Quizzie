@@ -21,7 +21,7 @@ const en: Dict = {
   "adminQuestions.optionFormat.text_option": "Text",
   "adminQuestions.optionFormat.audio_option": "Audio",
   "adminQuestions.optionFormatHelp":
-    "Text displays option text to students. Audio uses recordings with hints for admins and markers. Switching formats keeps option values, recordings, and play limits.",
+    "Text displays option text to students. Audio reveals optional option text to students from the second play onwards; markers always see it. Switching formats keeps option values, recordings, and play limits.",
   "adminQuestions.maxOptionPlays": "Maximum plays per option",
   "adminQuestions.invalidPlayLimit":
     "Enter a whole number from 1 to 20 for the maximum plays per option.",
@@ -476,7 +476,7 @@ const en: Dict = {
   "adminQuestions.addChoice": "+ Add choice",
   "adminQuestions.choiceKey": "Key",
   "adminQuestions.choiceText": "Option text",
-  "adminQuestions.choiceHint": "Admin hint (optional; also shown in grading)",
+  "adminQuestions.choiceHint": "Option text (optional; shown from the second play onwards)",
   "adminQuestions.removeChoice": "Remove choice {{label}}",
   "adminQuestions.noChoices": "No choices.",
   "adminQuestions.correctAnswer": "Correct answer",
@@ -505,7 +505,7 @@ const zh: Dict = {
   "adminQuestions.optionFormat.text_option": "文字",
   "adminQuestions.optionFormat.audio_option": "音訊",
   "adminQuestions.optionFormatHelp":
-    "文字模式會向學生顯示選項文字。音訊模式使用錄音，提示供管理員及評分員查看。切換格式會保留選項內容、錄音及播放次數上限。",
+    "文字模式會向學生顯示選項文字。音訊模式會從第二次播放起向學生顯示已填寫的選項文字；評分員可隨時查看。切換格式會保留選項內容、錄音及播放次數上限。",
   "adminQuestions.maxOptionPlays": "每個選項的播放次數上限",
   "adminQuestions.invalidPlayLimit": "請輸入 1 至 20 之間的整數作為每個選項的播放次數上限。",
   "gradeAssessment.optionPlays": "選項 {{key}}：播放了 {{count}} 次",
@@ -946,7 +946,7 @@ const zh: Dict = {
   "adminQuestions.addChoice": "+ 新增選項",
   "adminQuestions.choiceKey": "代號",
   "adminQuestions.choiceText": "選項文字",
-  "adminQuestions.choiceHint": "管理員提示（選填，亦會在評分頁面顯示）",
+  "adminQuestions.choiceHint": "選項文字（選填，從第二次播放起顯示）",
   "adminQuestions.removeChoice": "移除選項 {{label}}",
   "adminQuestions.noChoices": "沒有選項。",
   "adminQuestions.correctAnswer": "正確答案",
