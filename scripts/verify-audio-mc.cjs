@@ -3086,6 +3086,7 @@ async function mcOptionsChecks() {
     const props = {
       optionFormat,
       keys: ["B", "D"],
+      choices: { B: "First option", D: "Second option" },
       ...(optionFormat === "audio_option"
         ? {
             assessmentId: "test",
@@ -3094,7 +3095,7 @@ async function mcOptionsChecks() {
             audios: { B: "b.mp3", D: "d.mp3" },
             maxPlays: 2,
           }
-        : { choices: { B: "First option", D: "Second option" } }),
+        : {}),
       selectedIndex: null,
       onSelect(index) {
         props.selectedIndex = index;
@@ -3157,10 +3158,9 @@ async function mcOptionsChecks() {
     finishRead = resolve;
   });
   const first = makeOptions();
-  assert(
-    first.render().every((node) => !node.props.children.includes("First option")),
-    "audio mode does not display admin hints",
-  );
+  const showsText = (options, text) =>
+    options.render().some((node) => node.props.children.includes(text));
+  assert(!showsText(first, "First option"), "audio option text stays hidden before playback");
   assert.equal(
     first.recordings()[0].props.disabled,
     false,
@@ -3172,6 +3172,7 @@ async function mcOptionsChecks() {
     1,
     "count updates before the background response",
   );
+  assert(!showsText(first, "First option"), "the first play does not reveal text");
   assert.equal(first.recordings()[1].props.disabled, false);
   const element = first.recordings()[0];
   const player = nodes(element.type(element.props)).find((node) => node.type === "AudioPlayer");
@@ -3179,12 +3180,15 @@ async function mcOptionsChecks() {
   assert.equal(player.props.maxPlays, 2);
   first.recordings()[0].props.onPlayed();
   assert.equal(first.recordings()[0].props.count, 2);
+  assert(showsText(first, "First option"), "the second play reveals text before saves finish");
+  assert(!showsText(first, "Second option"), "each option reveals its text independently");
   assert.equal(requests.length, 2);
   assert(requests.every((request) => !("action" in request)));
   finishRead();
   await flush();
   pendingRead = null;
   assert.equal(first.recordings()[0].props.count, 2, "a stale read cannot lower local counts");
+  assert(showsText(first, "First option"), "a stale read cannot hide revealed text");
   first.cleanup();
   const remounted = makeOptions();
   assert.equal(
@@ -3192,6 +3196,7 @@ async function mcOptionsChecks() {
     2,
     "frontend counts survive collapse and remount",
   );
+  assert(showsText(remounted, "First option"), "cached counts restore revealed text");
   finishSaves();
   await flush();
   assert.equal(serverCounts.B, 2);
@@ -3216,18 +3221,35 @@ async function mcOptionsChecks() {
   finishSaves();
   await flush();
   assert.equal(serverCounts.D, 1, "lost response retries cannot duplicate a play");
+  assert(!showsText(remounted, "Second option"), "save retries do not reveal text early");
   failSave = true;
   remounted.recordings()[1].props.onPlayed();
   finishSaves();
   await flush();
   assert.equal(remounted.recordings()[1].props.count, 2);
+  assert(showsText(remounted, "Second option"), "failed saves do not hide revealed text");
   remounted.retry();
   finishSaves();
   await flush();
   assert.equal(serverCounts.D, 2);
   remounted.cleanup();
+  cache.clear();
+  const restored = makeOptions();
+  assert(!showsText(restored, "First option"), "without cached counts text waits for saved counts");
+  await flush();
+  assert(showsText(restored, "First option"), "server counts restore revealed text");
+  restored.props.maxPlays = 4;
+  restored.recordings()[0].props.onPlayed();
+  assert(showsText(restored, "First option"), "text stays visible beyond the second play");
+  finishSaves();
+  await flush();
+  delete restored.props.choices.B;
+  restored.props.choices.D = "";
+  assert(!showsText(restored, "First option"), "missing text keeps the option audio only");
+  assert(!showsText(restored, "Second option"), "empty text keeps the option audio only");
+  restored.cleanup();
   console.log(
-    "PASS: immediate local playback counts, nonblocking background saves, cached allowances, stale reads, failed saves, and idempotent Retry.",
+    "PASS: second-play text reveal, restored reveals, immediate local playback counts, nonblocking background saves, cached allowances, stale reads, failed saves, and idempotent Retry.",
   );
 }
 

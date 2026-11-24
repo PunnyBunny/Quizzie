@@ -506,6 +506,7 @@ function AssessmentQuestionInner() {
                 >
                   <McOptions
                     keys={question.choiceKeys}
+                    choices={question.choices}
                     selectedIndex={selectedIndex}
                     onSelect={setSelectedIndex}
                     disabled={busy}
@@ -520,7 +521,6 @@ function AssessmentQuestionInner() {
                         }
                       : {
                           optionFormat: question.optionFormat,
-                          choices: question.choices,
                         })}
                   />
                 </div>
