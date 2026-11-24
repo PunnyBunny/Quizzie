@@ -2,14 +2,28 @@ import { useEffect, useState } from "react";
 import type { User } from "firebase/auth";
 
 export default function useIsAdmin(user: User | null | undefined) {
-  // if user is null, then they are not logged in, so they are not an admin
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(user ? null : false);
+  const [result, setResult] = useState<{ user: User; isAdmin: boolean } | null>(null);
 
   useEffect(() => {
-    void user
-      ?.getIdTokenResult()
-      .then((token) => setIsAdmin((token.claims.isAdmin as boolean | undefined) ?? false));
+    let active = true;
+    setResult(null);
+    if (user) {
+      void user.getIdTokenResult().then(
+        (token) => {
+          if (active) setResult({ user, isAdmin: token.claims.isAdmin === true });
+        },
+        () => {
+          if (active) setResult({ user, isAdmin: false });
+        },
+      );
+    }
+    return () => {
+      active = false;
+    };
   }, [user]);
 
-  return { loading: isAdmin == null, isAdmin };
+  return {
+    loading: !!user && result?.user !== user,
+    isAdmin: !!user && result?.user === user && result.isAdmin,
+  };
 }

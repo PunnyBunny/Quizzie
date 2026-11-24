@@ -32,6 +32,7 @@ import { useStorageUrl } from "../hooks/useStorageUrl.ts";
 import { audioStoragePath, imageStoragePath } from "../lib/asset-paths.ts";
 import { useTranslation } from "../hooks/useTranslation";
 import { useQuestionTime } from "../hooks/useQuestionTime";
+import { useDebugMode } from "../hooks/useDebugMode";
 
 function MicrophoneIcon() {
   return (
@@ -81,6 +82,7 @@ export function AssessmentQuestion() {
 
 function AssessmentQuestionInner() {
   const { t } = useTranslation();
+  const debugMode = useDebugMode();
   const {
     id = "",
     section: sectionIndexStr = "",
@@ -411,11 +413,13 @@ function AssessmentQuestionInner() {
         }
         below={
           <div className="w-full space-y-4">
-            <AssessmentTime
-              openingTotals={questionTime.openingTotalTime}
-              getElapsedSeconds={questionTime.getElapsedSeconds}
-              error={questionTime.error}
-            />
+            {debugMode && (
+              <AssessmentTime
+                openingTotals={questionTime.openingTotalTime}
+                getElapsedSeconds={questionTime.getElapsedSeconds}
+                error={questionTime.error}
+              />
+            )}
             <div className="mx-auto w-full">
               <div className="h-2 rounded-sm bg-gray-300 overflow-hidden">
                 <div

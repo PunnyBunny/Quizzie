@@ -114,9 +114,26 @@ saving; answers can still submit without timing. No baseline is assumed to be ze
 This supports supervised single-tab use. Refreshing with a delayed save can undercount;
 the checkpoint interval is not a maximum loss guarantee.
 
-The header adds live elapsed seconds to opening section/overall totals, without
-adding checkpoints again. Its separate one-second tick preserves recording controls
-and audio players. Values use `HH:MM:SS`, tabular digits, and no per-tick announcements.
+The header timer is visible only in debug mode for verified authenticated admins,
+and is off by default. For admins on any route, including login, `?debug=1` enables
+it and `?debug=0` disables it. Shared `DebugProvider` state remembers the choice
+across navigation and refresh for the current browser tab using `sessionStorage`
+key `quizzie.debug`. Missing or invalid values leave the preference unchanged.
+If storage is unavailable, the preference still survives in-app navigation;
+refresh requires the URL flag again.
+Debug stays hidden while auth/admin verification is loading; URL flags wait for
+verification and survive in-app redirects. Signed-out/non-admin users and auth
+failures disable debug, clear its stored/in-memory preference, and replace the
+current URL without all `debug` parameters. The pathname, other query parameters,
+hash, and navigation state are preserved. A user switch requires fresh admin
+verification; stale claims and late results from a previous user cannot enable debug.
+`useQuestionTime` stays mounted and checkpoints in both modes. The progress bar
+and timing failure warning/Retry remain visible in normal mode.
+
+In debug mode, the header adds live elapsed seconds to opening section/overall
+totals, without adding checkpoints again. Its separate one-second tick preserves
+recording controls and audio players. Values use `HH:MM:SS`, tabular digits, and
+no per-tick announcements.
 Unknown totals show placeholders; timing failures show a warning and Retry.
 Instructions and upload/save waits are excluded. Grading and XLSX expose saved whole
 seconds; historical missing timing stays unavailable. Timing saves preserve evidence,

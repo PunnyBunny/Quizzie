@@ -975,6 +975,7 @@ async function uiChecks() {
           useStorageUrl: () => ({ url: "asset:test", loading: false, error: null }),
         },
         [key("hooks/useTranslation.ts")]: { useTranslation: () => ({ t: (key) => key }) },
+        [key("hooks/useDebugMode.ts")]: { useDebugMode: () => false },
         ...componentStubs([
           "Alert",
           "AssessmentHeader",
