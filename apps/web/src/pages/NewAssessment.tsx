@@ -253,9 +253,10 @@ export default function NewAssessment() {
                   value={grade}
                   onValueChange={setGrade}
                   placeholder={t("newAssessment.grade.select")}
-                  options={["S1", "S2", "S3", "S4", "S5", "S6"].map((value) => ({
+                  options={["S1", "S2", "S3", "S4", "S5", "S6", "Adult Group"].map((value) => ({
                     value,
-                    label: value,
+                    label:
+                      value === "Adult Group" ? t("newAssessment.grade.adultGroup") : value,
                   }))}
                 />
                 <span id="grade-error">

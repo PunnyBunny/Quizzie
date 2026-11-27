@@ -376,6 +376,7 @@ function AssessmentQuestionInner() {
     >
       <AssessmentHeader
         title={title}
+        subtitle={section.subtitle}
         assessmentId={id}
         sectionIndex={sectionIndex}
         questionIndex={questionIndex}

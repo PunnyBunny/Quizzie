@@ -3,6 +3,7 @@ import { useTranslation } from "../hooks/useTranslation";
 
 interface AssessmentHeaderProps {
   title: string;
+  subtitle?: string;
   assessmentId: string;
   sectionIndex: number;
   questionIndex?: number;
@@ -12,6 +13,7 @@ interface AssessmentHeaderProps {
 
 export function AssessmentHeader({
   title,
+  subtitle,
   assessmentId,
   sectionIndex,
   questionIndex,
@@ -24,9 +26,13 @@ export function AssessmentHeader({
       <div className="w-full flex flex-col sm:flex-row sm:justify-between gap-3 mx-auto">
         <div className="min-w-0">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 wrap-break-word">{title}</h1>
+          {subtitle && (
+            <p className="text-sm sm:text-base text-gray-600 mt-1 whitespace-pre-line wrap-break-word">
+              {subtitle}
+            </p>
+          )}
           <p className="text-xs sm:text-sm text-gray-500 mt-1 break-all">
-            {t("assessment.idLabel")} {assessmentId} • {t("assessment.section")}{" "}
-            {sectionIndex + 1}
+            {t("assessment.idLabel")} {assessmentId} • {t("assessment.section")} {sectionIndex + 1}
             {questionIndex != null && ` • ${t("assessment.question")} ${questionIndex + 1}`}
           </p>
         </div>

@@ -17,26 +17,26 @@ export default function AssessmentSectionInstruction() {
 
   const { section } = useSection(sectionIndex);
   const title = section?.title ?? t("instruction.section");
-  const goal = section?.goal ?? t("instruction.noGoal");
 
   return (
     <div className="flex flex-col items-center bg-gray-50 min-h-screen">
-      <AssessmentHeader title={title} assessmentId={id} sectionIndex={sectionIndex} />
+      <AssessmentHeader
+        title={title}
+        subtitle={section?.subtitle}
+        assessmentId={id}
+        sectionIndex={sectionIndex}
+      />
 
       <main className="flex flex-col w-full max-w-3xl gap-6 p-4 sm:p-6 md:p-8">
-        <section className="flex flex-col">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-semibold text-gray-800 mb-3">
-            {t("instruction.goal")}
+        {section?.subtitle && (
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-gray-800 mb-3 whitespace-pre-line wrap-break-word">
+            {section.subtitle}
           </h1>
-          <p className="text-base sm:text-lg md:text-xl text-gray-800 leading-relaxed sm:leading-8 whitespace-pre-line">
-            {goal}
-          </p>
-        </section>
-
+        )}
         <section className="flex flex-col">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-gray-800 mb-3">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-gray-800 mb-3">
             {t("instruction.title")}
-          </h1>
+          </h2>
           <SectionInstructionBody instruction={section?.instruction} />
         </section>
 

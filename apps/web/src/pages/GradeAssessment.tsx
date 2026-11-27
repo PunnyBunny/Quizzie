@@ -373,7 +373,11 @@ function GradeAssessmentContent({ id }: { id: string }) {
         <div className="bg-white border border-gray-200 rounded-lg">
           <div className="p-4 border-b border-gray-200">
             <h2 className="text-xl font-semibold">{currentQuizSection.title}</h2>
-            <p className="text-gray-600 text-sm mt-1">{currentQuizSection.goal}</p>
+            {currentQuizSection.subtitle && (
+              <p className="text-gray-600 text-sm mt-1 whitespace-pre-line wrap-break-word">
+                {currentQuizSection.subtitle}
+              </p>
+            )}
           </div>
 
           {isMcSection ? (

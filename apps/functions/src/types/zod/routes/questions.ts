@@ -14,7 +14,7 @@ export const AdminSaveQuestionSectionSchema = z
     kind: z.enum(["mc", "audio", "audio_mc"]),
     mcOptionFormat: z.enum(["text_option", "audio_option"]).default("text_option"),
     length: z.number().int().min(0),
-    goal: z.string(),
+    subtitle: z.string(),
     questions: z.array(z.string()).nullable(),
     audios: z.array(z.string()),
     choicesAudios: z.array(z.string()).optional(),
