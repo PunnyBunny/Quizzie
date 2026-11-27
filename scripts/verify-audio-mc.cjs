@@ -846,7 +846,7 @@ async function questionProviderChecks() {
                 title: "MC",
                 kind: "mc",
                 length: 1,
-                goal: "",
+                subtitle: "Section subtitle",
                 questions: ["Q"],
                 audios: ["q.mp3"],
                 choices: [{ D: "second", B: "first" }],
@@ -865,7 +865,9 @@ async function questionProviderChecks() {
   render();
   hooks.effects.forEach((effect) => effect());
   await new Promise(setImmediate);
-  const question = render().props.value[0].questions[0];
+  const section = render().props.value[0];
+  assert.equal(section.subtitle, "Section subtitle");
+  const question = section.questions[0];
   assert.deepEqual(Array.from(question.choiceKeys), ["B", "D"]);
   assert.equal(question.optionFormat, "text_option", "existing sections default to text");
   assert.equal(question.choices.B, "first");
@@ -1537,7 +1539,7 @@ async function adminQuestionsChecks(app) {
     title: `Section ${index}`,
     kind: "mc",
     length: 0,
-    goal: "",
+    subtitle: "",
     questions: [],
     audios: [],
     instructions: { text: "", audio: "" },
@@ -1588,6 +1590,9 @@ async function adminQuestionsChecks(app) {
     nodes(kindSelect()).some((node) => node.type === "option" && node.props.value === "audio_mc"),
   );
   assert.equal(formatRadio("text_option").props.checked, true, "new sections default to text");
+  render()
+    .find((node) => node.type === "input" && node.props.id === "section-subtitle")
+    .props.onChange({ target: { value: "Edited subtitle" } });
   kindSelect().props.onChange({ target: { value: "audio_mc" } });
   formatRadio("audio_option").props.onChange();
   button("adminQuestions.addQuestion").props.onClick();
@@ -1641,6 +1646,7 @@ async function adminQuestionsChecks(app) {
   await submit();
   assert.equal(saved.length, 1);
   const stored = app.documents.get("questions/s8");
+  assert.equal(stored.subtitle, "Edited subtitle");
   assert.equal(stored.kind, "audio_mc");
   assert.equal(stored.mcOptionFormat, "audio_option");
   assert.equal(stored.audios[0], "s8/question.mp3");
@@ -1656,6 +1662,12 @@ async function adminQuestionsChecks(app) {
     .find((node) => isButton(node) && "aria-expanded" in node.props)
     .props.onClick();
   assert.equal(kindSelect().props.value, "audio_mc");
+  assert.equal(
+    render().find((node) => node.type === "input" && node.props.id === "section-subtitle").props
+      .value,
+    "Edited subtitle",
+    "saved subtitles remain editable",
+  );
   assert.equal(hintInputs()[1].props.value, "Admin-only hint", "saved hints remain editable");
   assert.equal(
     render().filter((node) => node.type === "AssetUploader" && node.props.label)[1].props.value,
@@ -2017,7 +2029,7 @@ async function assessmentExportChecks() {
   });
   const section = {
     title: "題目",
-    goal: "",
+    subtitle: "",
     questions: ["Q1\rcontinued", "Q2", "Q3"],
     audios: [],
     instructions: { audio: "", text: "" },
@@ -2540,7 +2552,7 @@ async function optionPlaybackChecks() {
     kind: "mc",
     mcOptionFormat: "audio_option",
     length: 2,
-    goal: "",
+    subtitle: "",
     questions: ["Q1", "Q2"],
     audios: [],
     choices: [
@@ -2784,7 +2796,7 @@ async function mcOptionFormatChecks() {
     title: "Format",
     kind: "mc",
     length: 2,
-    goal: "",
+    subtitle: "",
     questions: ["Q1", "Q2"],
     audios: [],
     choices: [
@@ -3651,7 +3663,7 @@ async function main() {
     title: "Section",
     kind: "mc",
     length: 2,
-    goal: "",
+    subtitle: "",
     questions: ["Q1", "Q2"],
     audios: ["q1.mp3", "q2.mp3"],
     choices: [

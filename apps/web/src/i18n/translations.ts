@@ -262,8 +262,6 @@ const en: Dict = {
 
   // Section instruction
   "instruction.section": "Section",
-  "instruction.goal": "Goal",
-  "instruction.noGoal": "No goal provided.",
   "instruction.title": "Instructions",
   "instruction.none": "No instructions provided for this section.",
   "instruction.audioFallback": "Your browser does not support the audio element.",
@@ -447,7 +445,7 @@ const en: Dict = {
   "adminQuestions.col.title": "Title",
   "adminQuestions.col.kind": "Kind",
   "adminQuestions.col.length": "Length",
-  "adminQuestions.col.goal": "Goal",
+  "adminQuestions.col.subtitle": "Subtitle",
   "adminQuestions.col.actions": "Actions",
   "adminQuestions.empty": "No sections yet.",
   "adminQuestions.editTitle": 'Edit Section "{{id}}"',
@@ -460,7 +458,7 @@ const en: Dict = {
     "Enter a unique ID for this section. Contact the developer if it needs to be changed after creation.",
   "adminQuestions.kind": "Kind",
   "adminQuestions.titleField": "Title",
-  "adminQuestions.goal": "Goal",
+  "adminQuestions.subtitleField": "Subtitle",
   "adminQuestions.instructionsText": "Instructions: text",
   "adminQuestions.instructionsAudio": "Instructions: audio",
   "adminQuestions.perQuestionFields": "Per-question fields",
@@ -737,8 +735,6 @@ const zh: Dict = {
 
   // Section instruction
   "instruction.section": "章節",
-  "instruction.goal": "目標",
-  "instruction.noGoal": "未提供目標。",
   "instruction.title": "說明",
   "instruction.none": "本章節未提供說明。",
   "instruction.audioFallback": "您的瀏覽器不支援音訊播放。",
@@ -918,7 +914,7 @@ const zh: Dict = {
   "adminQuestions.col.title": "標題",
   "adminQuestions.col.kind": "類型",
   "adminQuestions.col.length": "題數",
-  "adminQuestions.col.goal": "目標",
+  "adminQuestions.col.subtitle": "副標題",
   "adminQuestions.col.actions": "操作",
   "adminQuestions.empty": "尚無章節。",
   "adminQuestions.editTitle": "編輯章節「{{id}}」",
@@ -931,7 +927,7 @@ const zh: Dict = {
     "請輸入這個章節專用、不與其他章節重複的 ID。建立後如需更改，請聯絡開發人員。",
   "adminQuestions.kind": "類型",
   "adminQuestions.titleField": "標題",
-  "adminQuestions.goal": "目標",
+  "adminQuestions.subtitleField": "副標題",
   "adminQuestions.instructionsText": "說明文字",
   "adminQuestions.instructionsAudio": "說明音訊",
   "adminQuestions.perQuestionFields": "個別題目欄位",

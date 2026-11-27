@@ -37,7 +37,7 @@ const section = {
   title: "",
   kind: "mc",
   length: 0,
-  goal: "",
+  subtitle: "",
   questions: null,
   audios: [],
   instructions: { audio: "", text: "" },

@@ -149,6 +149,8 @@ Firestore or Storage.
   counts in grading/export and permit already-started playback events to finish saving.
 - Assessment, submission, grading, and scoring flows use the current question
   configuration. Use `getQuestionSections` to load it on the server.
+- Question sections use `subtitle` for the text beneath their title. Assessment
+  and grading headings display it without a separate label.
 - Question time uses whole seconds in `questionTimeSeconds`. Load opening question,
   section, and overall totals through `api/get-assessment-time`; save opening question
   seconds plus elapsed seconds through `api/update-question-time`. Transactions keep

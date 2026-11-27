@@ -20,7 +20,7 @@ export interface Question {
 
 export interface Section {
   title: string;
-  goal: string;
+  subtitle: string;
   questions: Question[];
   instruction: SectionInstructionDto;
 }
@@ -32,7 +32,7 @@ function transformSections(apiSections: QuestionSectionDto[]): Section[] {
       kind,
       mcOptionFormat = "text_option",
       length,
-      goal,
+      subtitle,
       questions,
       audios,
       choices,
@@ -42,7 +42,7 @@ function transformSections(apiSections: QuestionSectionDto[]): Section[] {
       images,
       instructions,
     }) => {
-      const section: Section = { title, goal, instruction: instructions, questions: [] };
+      const section: Section = { title, subtitle, instruction: instructions, questions: [] };
       section.questions = Array.from({ length }).map((_, i) => {
         const choiceKeys = Object.keys(choices?.[i] ?? {}).sort((a, b) => a.localeCompare(b));
         return {

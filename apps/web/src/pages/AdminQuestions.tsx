@@ -55,7 +55,7 @@ interface FormState {
   title: string;
   kind: Kind;
   optionFormat: OptionFormat;
-  goal: string;
+  subtitle: string;
   instructionText: string;
   instructionAudio: string;
   rows: QuestionRow[];
@@ -86,7 +86,7 @@ const blankForm = (id = ""): FormState => ({
   title: "",
   kind: "mc",
   optionFormat: "text_option",
-  goal: "",
+  subtitle: "",
   instructionText: "",
   instructionAudio: "",
   rows: [],
@@ -123,7 +123,7 @@ function sectionToForm(section: QuestionSectionDto): FormState {
     title: section.title,
     kind: section.kind,
     optionFormat: section.mcOptionFormat ?? "text_option",
-    goal: section.goal,
+    subtitle: section.subtitle,
     instructionText: section.instructions.text,
     instructionAudio: section.instructions.audio,
     rows,
@@ -203,7 +203,7 @@ function buildInput(
     title: form.title,
     kind: form.kind,
     length,
-    goal: form.goal,
+    subtitle: form.subtitle,
     questions,
     audios,
     ...(form.kind === "audio_mc" ? { choicesAudios: form.rows.map((r) => r.choicesAudio) } : {}),
@@ -422,7 +422,7 @@ export default function AdminQuestions() {
                       {t("adminQuestions.col.length")}{" "}
                     </th>
                     <th className="px-4 sm:px-6 py-3 font-medium">
-                      {t("adminQuestions.col.goal")}
+                      {t("adminQuestions.col.subtitle")}
                     </th>
                     <th className="px-4 sm:px-6 py-3 font-medium">
                       {t("adminQuestions.col.actions")}
@@ -458,7 +458,7 @@ export default function AdminQuestions() {
                       <td className="px-4 sm:px-6 py-3 text-center">{section.length}</td>
                       <td className="px-4 sm:px-6 py-3 text-gray-600 align-top">
                         <div className="max-w-[280px] md:max-w-[420px] lg:max-w-none wrap-break-word">
-                          {section.goal}
+                          {section.subtitle}
                         </div>
                       </td>
                       <td className="px-4 sm:px-6 py-3">
@@ -641,13 +641,17 @@ export default function AdminQuestions() {
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          {t("adminQuestions.goal")}
+                        <label
+                          htmlFor="section-subtitle"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
+                          {t("adminQuestions.subtitleField")}
                         </label>
                         <input
+                          id="section-subtitle"
                           type="text"
-                          value={form.goal}
-                          onChange={(e) => updateForm("goal", e.target.value)}
+                          value={form.subtitle}
+                          onChange={(e) => updateForm("subtitle", e.target.value)}
                           className={INPUT_CLASSES}
                         />
                       </div>

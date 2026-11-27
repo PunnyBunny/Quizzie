@@ -9,7 +9,7 @@ export interface QuestionSectionDto {
   kind: "mc" | "audio" | "audio_mc";
   mcOptionFormat?: "text_option" | "audio_option";
   length: number;
-  goal: string;
+  subtitle: string;
   questions: string[] | null;
   audios: string[];
   choicesAudios?: string[];

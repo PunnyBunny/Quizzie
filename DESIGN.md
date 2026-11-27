@@ -134,6 +134,12 @@ that value and `rounded-xl` using 1.4 times it (0.875rem).
 User records stack as cards; administrative comparisons use semantic tables with
 horizontal overflow. Long names and Chinese labels wrap without hiding actions.
 
+Section subtitles appear directly beneath their titles in assessment headers and
+grading, without a separate label. Empty subtitles leave no placeholder or extra
+paragraph. The section instruction page repeats the subtitle immediately before
+the Instructions heading, matching its heading typography. Admin Questions labels
+the same field Subtitle / 副標題.
+
 The home page is a task hub: an orange-tinted new-assessment panel carries the primary
 action, View and Grade share a two-column row on wider screens, and Archive and
 Administration use compact utility links. Mobile layouts stack in task order.
